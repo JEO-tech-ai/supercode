@@ -24,12 +24,12 @@ SuperCoin is a multi-provider AI CLI tool that integrates authentication and mod
 
 | Agent | Model | Capabilities |
 |-------|--------|--------------|
-| **Orchestrator** | Claude Sonnet 4 | Request classification, task planning |
-| **Explorer** | Claude Haiku 3.5 | Code navigation, search, discovery |
-| **Analyst** | Gemini 2.0 Flash | Large context analysis (1M tokens) |
-| **Executor** | GPT-4o | Command execution, tool usage |
+| **Orchestrator** | Claude Sonnet 4.5 | Request classification, task planning |
+| **Explorer** | Claude Haiku 4.5 | Code navigation, search, discovery |
+| **Analyst** | Gemini 3 Flash | Large context analysis (1M tokens) |
+| **Executor** | GPT-5.2 | Command execution, tool usage |
 | **Code Reviewer** | Claude Opus 4.5 | Deep code review, quality analysis |
-| **Doc Writer** | Gemini 2.0 Pro | Documentation generation |
+| **Doc Writer** | Gemini 3 Pro | Documentation generation |
 
 ### Hook System
 - **Pre/Post hooks** - Lifecycle events for workflows
@@ -89,10 +89,10 @@ supercoin models list
 supercoin models info anthropic/claude-opus-4-5
 
 # Set default model
-supercoin models set-default anthropic/claude-sonnet-4
+supercoin models set-default anthropic/claude-sonnet-4-5
 
 # Use specific model for single request
-supercoin -m openai/gpt-4o "What's the weather?"
+supercoin -m openai/gpt-5.2 "What's the weather?"
 ```
 
 ### 3. Basic Chat
@@ -170,52 +170,46 @@ supercoin doctor
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                      SuperCoin CLI                           │
-├─────────────────────────────────────────────────────────────────────┤
-│  CLI Layer                                                   │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
-│  │  auth    │ │  models  │ │  agents  │ │  server  │  │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘  │
-├─────────────────────────────────────────────────────────────────────┤
-│  Plugin Core Layer                                            │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
-│  │   Hooks     │  │   Tools     │  │   Skills    │     │
-│  └─────────────┘  └─────────────┘  └─────────────┘     │
-├─────────────────────────────────────────────────────────────────────┤
-│  Service Layer                                               │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
-│  │ Auth Hub    │  │Model Router │  │ Agent       │     │
-│  │             │  │             │  │ Orchestrator│     │
-│  └─────────────┘  └─────────────┘  └─────────────┘     │
-├─────────────────────────────────────────────────────────────────────┤
-│  Provider Layer                                              │
-│  ┌───────────┐  ┌───────────┐  ┌───────────┐         │
-│  │  Claude   │  │  Codex    │  │  Gemini   │         │
-│  │ Provider  │  │ Provider  │  │ Provider  │         │
-│  └───────────┘  └───────────┘  └───────────┘         │
-├─────────────────────────────────────────────────────────────────────┤
-│  Local Server Layer                                         │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
-│  │ HTTP Server │  │Token Store  │  │Request     │     │
-│  │ (Hono)      │  │(Encrypted) │  │Proxy       │     │
-│  └─────────────┘  └─────────────┘  └─────────────┘     │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    CLI[SuperCoin CLI] --> Auth[Auth Hub]
+    CLI --> Router[Model Router]
+    CLI --> Agents[Agent System]
+    
+    subgraph "Local Server"
+        Server[Hono Server]
+        Proxy[Request Proxy]
+        TokenStore[(Token Store)]
+    end
+    
+    Auth --> TokenStore
+    
+    Router --> Claude[Anthropic Provider]
+    Router --> Codex[OpenAI Provider]
+    Router --> Gemini[Google Provider]
+    
+    Agents --> Orchestrator
+    Agents --> Explorer
+    Agents --> Analyst
+    Agents --> Executor
+    
+    Router -.-> Proxy
 ```
 
 ## Model Aliases
 
 | Alias | Full Model ID |
 |-------|--------------|
-| `claude` | `anthropic/claude-sonnet-4` |
-| `sonnet` | `anthropic/claude-sonnet-4` |
+| `claude` | `anthropic/claude-sonnet-4-5` |
+| `sonnet` | `anthropic/claude-sonnet-4-5` |
 | `opus` | `anthropic/claude-opus-4-5` |
-| `haiku` | `anthropic/claude-haiku-3-5` |
-| `gpt` | `openai/gpt-4o` |
-| `4o` | `openai/gpt-4o` |
-| `gemini` | `google/gemini-2.0-flash` |
-| `flash` | `google/gemini-2.0-flash` |
+| `haiku` | `anthropic/claude-haiku-4-5` |
+| `gpt` | `openai/gpt-5.2` |
+| `gpt-5` | `openai/gpt-5.2` |
+| `o1` | `openai/o1` |
+| `gemini` | `google/gemini-3-flash` |
+| `flash` | `google/gemini-3-flash` |
+| `pro` | `google/gemini-3-pro` |
 
 ## Configuration File
 
@@ -223,10 +217,10 @@ supercoin doctor
 
 ```json
 {
-  "default_model": "anthropic/claude-sonnet-4",
+  "default_model": "anthropic/claude-sonnet-4-5",
   "fallback_models": [
-    "openai/gpt-4o",
-    "google/gemini-2.0-flash"
+    "openai/gpt-5.2",
+    "google/gemini-3-flash"
   ],
   "providers": {
     "anthropic": {
@@ -247,11 +241,11 @@ supercoin doctor
   },
   "agents": {
     "explorer": {
-      "model": "anthropic/claude-haiku-3-5",
+      "model": "anthropic/claude-haiku-4-5",
       "disabled": false
     },
     "analyst": {
-      "model": "google/gemini-2.0-flash",
+      "model": "google/gemini-3-flash",
       "disabled": false
     }
   },
