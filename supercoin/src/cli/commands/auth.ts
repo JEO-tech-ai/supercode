@@ -39,7 +39,7 @@ export function createAuthCommand(config: SuperCoinConfig): Command {
           options: [
             { value: "claude", label: "Claude (Anthropic)", hint: "API Key" },
             { value: "codex", label: "Codex (OpenAI)", hint: "API Key" },
-            { value: "gemini", label: "Gemini (Google)", hint: "API Key" },
+            { value: "gemini", label: "Gemini (Google)", hint: "OAuth with Antigravity" },
           ],
           required: true,
         });
