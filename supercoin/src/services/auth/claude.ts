@@ -23,6 +23,11 @@ export class ClaudeAuthProvider implements AuthProvider {
       let apiKey = options?.apiKey || process.env.ANTHROPIC_API_KEY;
 
       if (!apiKey && options?.interactive !== false) {
+        clack.note(
+          "Get your API key from:\n" +
+          "https://console.anthropic.com/settings/keys"
+        );
+
         const input = await clack.password({
           message: "Enter your Anthropic API key:",
           validate: (value) => {
