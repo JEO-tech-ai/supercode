@@ -51,6 +51,20 @@ export class AnthropicProvider implements Provider {
       pricing: { input: 15.0, output: 75.0 },
     },
     {
+      id: "claude-sonnet-4-5",
+      name: "Claude Sonnet 4.5",
+      contextWindow: 200000,
+      capabilities: ["chat", "vision", "function_calling"],
+      pricing: { input: 3.0, output: 15.0 },
+    },
+    {
+      id: "claude-haiku-4-5",
+      name: "Claude Haiku 4.5",
+      contextWindow: 200000,
+      capabilities: ["chat", "vision", "function_calling"],
+      pricing: { input: 0.8, output: 4.0 },
+    },
+    {
       id: "claude-sonnet-4",
       name: "Claude Sonnet 4",
       contextWindow: 200000,

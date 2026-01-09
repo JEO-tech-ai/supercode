@@ -53,18 +53,18 @@ export class OpenAIProvider implements Provider {
 
   private readonly models: ModelDefinition[] = [
     {
-      id: "gpt-4o",
-      name: "GPT-4o",
-      contextWindow: 128000,
-      capabilities: ["chat", "vision", "function_calling"],
-      pricing: { input: 2.5, output: 10.0 },
+      id: "gpt-5.2",
+      name: "GPT-5.2",
+      contextWindow: 200000,
+      capabilities: ["chat", "vision", "function_calling", "reasoning"],
+      pricing: { input: 5.0, output: 15.0 },
     },
     {
-      id: "gpt-4-turbo",
-      name: "GPT-4 Turbo",
-      contextWindow: 128000,
-      capabilities: ["chat", "vision", "function_calling"],
-      pricing: { input: 10.0, output: 30.0 },
+      id: "o3",
+      name: "o3",
+      contextWindow: 200000,
+      capabilities: ["chat", "reasoning"],
+      pricing: { input: 15.0, output: 60.0 },
     },
     {
       id: "o1",
@@ -79,6 +79,13 @@ export class OpenAIProvider implements Provider {
       contextWindow: 128000,
       capabilities: ["chat", "reasoning", "coding"],
       pricing: { input: 3.0, output: 12.0 },
+    },
+    {
+      id: "gpt-4o",
+      name: "GPT-4o",
+      contextWindow: 128000,
+      capabilities: ["chat", "vision", "function_calling"],
+      pricing: { input: 2.5, output: 10.0 },
     },
   ];
 

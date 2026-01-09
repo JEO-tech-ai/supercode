@@ -201,23 +201,25 @@ export class ModelRouter {
     return new Map([
       ["claude-opus", "anthropic/claude-opus-4-5"],
       ["opus", "anthropic/claude-opus-4-5"],
-      ["claude-sonnet", "anthropic/claude-sonnet-4"],
-      ["sonnet", "anthropic/claude-sonnet-4"],
-      ["claude-haiku", "anthropic/claude-haiku-3-5"],
-      ["haiku", "anthropic/claude-haiku-3-5"],
-      ["claude", "anthropic/claude-sonnet-4"],
+      ["claude-sonnet", "anthropic/claude-sonnet-4-5"],
+      ["sonnet", "anthropic/claude-sonnet-4-5"],
+      ["claude-haiku", "anthropic/claude-haiku-4-5"],
+      ["haiku", "anthropic/claude-haiku-4-5"],
+      ["claude", "anthropic/claude-sonnet-4-5"],
 
+      ["gpt-5.2", "openai/gpt-5.2"],
+      ["gpt-5", "openai/gpt-5.2"],
       ["gpt-4o", "openai/gpt-4o"],
       ["4o", "openai/gpt-4o"],
-      ["gpt-4", "openai/gpt-4-turbo"],
-      ["gpt", "openai/gpt-4o"],
+      ["gpt", "openai/gpt-5.2"],
       ["o1", "openai/o1"],
       ["o1-mini", "openai/o1-mini"],
+      ["o3", "openai/o3"],
 
-      ["gemini-flash", "google/gemini-2.0-flash"],
-      ["flash", "google/gemini-2.0-flash"],
-      ["gemini-pro", "google/gemini-2.0-pro"],
-      ["gemini", "google/gemini-2.0-flash"],
+      ["gemini-flash", "google/gemini-3-flash"],
+      ["flash", "google/gemini-3-flash"],
+      ["gemini-pro", "google/gemini-3-pro"],
+      ["gemini", "google/gemini-3-flash"],
     ]);
   }
 
@@ -276,8 +278,8 @@ let routerInstance: ModelRouter | null = null;
 export function getModelRouter(config?: RouterConfig): ModelRouter {
   if (!routerInstance) {
     const defaultConfig: RouterConfig = config || {
-      defaultModel: "anthropic/claude-sonnet-4",
-      fallbackModels: ["openai/gpt-4o", "google/gemini-2.0-flash"],
+      defaultModel: "anthropic/claude-sonnet-4-5",
+      fallbackModels: ["openai/gpt-5.2", "google/gemini-3-flash"],
     };
     routerInstance = new ModelRouter(defaultConfig);
   }

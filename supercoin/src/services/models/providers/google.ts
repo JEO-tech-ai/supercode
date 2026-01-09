@@ -50,6 +50,20 @@ export class GoogleProvider implements Provider {
 
   private readonly models: ModelDefinition[] = [
     {
+      id: "gemini-3-pro",
+      name: "Gemini 3 Pro",
+      contextWindow: 2000000,
+      capabilities: ["chat", "vision", "function_calling", "long_context"],
+      pricing: { input: 1.25, output: 5.0 },
+    },
+    {
+      id: "gemini-3-flash",
+      name: "Gemini 3 Flash",
+      contextWindow: 1000000,
+      capabilities: ["chat", "vision", "function_calling", "long_context"],
+      pricing: { input: 0.075, output: 0.3 },
+    },
+    {
       id: "gemini-2.0-flash",
       name: "Gemini 2.0 Flash",
       contextWindow: 1000000,
@@ -60,13 +74,6 @@ export class GoogleProvider implements Provider {
       id: "gemini-2.0-pro",
       name: "Gemini 2.0 Pro",
       contextWindow: 1000000,
-      capabilities: ["chat", "vision", "function_calling", "long_context"],
-      pricing: { input: 1.25, output: 5.0 },
-    },
-    {
-      id: "gemini-1.5-pro",
-      name: "Gemini 1.5 Pro",
-      contextWindow: 2000000,
       capabilities: ["chat", "vision", "function_calling", "long_context"],
       pricing: { input: 1.25, output: 5.0 },
     },
