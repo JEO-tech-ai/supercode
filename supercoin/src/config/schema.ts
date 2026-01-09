@@ -1,72 +1,73 @@
-/**
- * SuperCoin Configuration Schema
- * Zod-based configuration validation
- */
+import * as fs from "fs";
 import { z } from "zod";
 
-// Provider configuration
-export const ProviderConfigSchema = z.object({
-  enabled: z.boolean().default(true),
-  apiKey: z.string().optional(),
-  baseUrl: z.string().url().optional(),
-  defaultModel: z.string().optional(),
-});
-
-// Agent configuration
-export const AgentConfigSchema = z.object({
-  model: z.string().optional(),
-  temperature: z.number().min(0).max(2).optional(),
-  maxTokens: z.number().positive().optional(),
-  disabled: z.boolean().optional(),
-});
-
-// Server configuration
-export const ServerConfigSchema = z.object({
-  port: z.number().min(1024).max(65535).default(3100),
-  host: z.string().default("127.0.0.1"),
-  autoStart: z.boolean().default(true),
-});
-
-// Main configuration schema
 export const SuperCoinConfigSchema = z.object({
-  // Default model
-  default_model: z.string().default("anthropic/claude-sonnet-4"),
-
-  // Fallback models
-  fallback_models: z.array(z.string()).default([
-    "openai/gpt-4o",
-    "google/gemini-2.0-flash",
-  ]),
-
-  // Providers
+  default_model: z.string().default("anthropic/claude-sonnet-4-5"),
+  fallback_models: z.array(z.string()).default([]),
   providers: z.object({
-    anthropic: ProviderConfigSchema.optional(),
-    openai: ProviderConfigSchema.optional(),
-    google: ProviderConfigSchema.optional(),
+    anthropic: z.object({
+      enabled: z.boolean().default(true),
+      apiKey: z.string().optional(),
+      baseUrl: z.string().url().default("https://api.anthropic.com"),
+    }).optional(),
+    openai: z.object({
+      enabled: z.boolean().default(true),
+      apiKey: z.string().optional(),
+      baseUrl: z.string().url().default("https://api.openai.com"),
+    }).optional(),
+    google: z.object({
+      enabled: z.boolean().default(true),
+      apiKey: z.string().optional(),
+      clientId: z.string().optional(),
+      clientSecret: z.string().optional(),
+      baseUrl: z.string().url().default("https://generativelanguage.googleapis.com"),
+    }).optional(),
   }).optional(),
-
-  // Agents
-  agents: z.record(z.string(), AgentConfigSchema).optional(),
-  disabled_agents: z.array(z.string()).optional(),
-
-  // Hooks
-  disabled_hooks: z.array(z.string()).optional(),
-
-  // Server
-  server: ServerConfigSchema.optional(),
-
-  // Experimental features
-  experimental: z.object({
-    preemptive_compaction: z.boolean().default(false),
-    parallel_agents: z.boolean().default(true),
+  agents: z.record(z.object({
+    model: z.string().optional(),
+    disabled: z.boolean().optional(),
+  })).optional(),
+  disabled_hooks: z.array(z.string()).default([]),
+  server: z.object({
+    port: z.number().int().min(1).max(65535).default(3100),
+    host: z.string().default("127.0.0.1"),
+    autoStart: z.boolean().default(true),
   }).optional(),
 });
 
 export type SuperCoinConfig = z.infer<typeof SuperCoinConfigSchema>;
-export type ProviderConfig = z.infer<typeof ProviderConfigSchema>;
-export type AgentConfig = z.infer<typeof AgentConfigSchema>;
-export type ServerConfig = z.infer<typeof ServerConfigSchema>;
+
+export function getConfig(): SuperCoinConfig {
+  const configPath = getConfigPath();
+  if (!existsSync(configPath)) {
+    return getDefaultConfig();
+  }
+
+  try {
+    const content = readFileSync(configPath, "utf-8");
+    const parsed = JSON.parse(content) as unknown;
+    return SuperCoinConfigSchema.parse(parsed);
+  } catch (error) {
+    console.error(`Failed to parse config: ${error}`);
+    return getDefaultConfig();
+  }
+}
 
 export function getDefaultConfig(): SuperCoinConfig {
-  return SuperCoinConfigSchema.parse({});
+  return {
+    default_model: "anthropic/claude-sonnet-4-5",
+    fallback_models: [],
+    providers: {
+      anthropic: {
+        enabled: true,
+        baseUrl: "https://api.anthropic.com",
+      },
+    },
+    disabled_hooks: [],
+    server: {
+      port: 3100,
+      host: "127.0.0.1",
+      autoStart: true,
+    },
+  };
 }

@@ -8,12 +8,14 @@
     "supercoin": "dist/cli/index.js"
   },
   "scripts": {
-    "dev": "bun --hot src/cli/index.ts",
-    "build": "bun build src/cli/index.ts --outdir dist/cli --target node",
+    "build": "bun run scripts/build.ts",
+    "dev": "bun run scripts/dev.ts",
+    "dev:setup": "bun run scripts/dev-setup.ts",
     "start": "bun src/cli/index.ts",
     "test": "bun test",
     "test:coverage": "bun test --coverage",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "typecheck": "bun run scripts/build.ts && tsc --noEmit"
   },
   "dependencies": {
     "@clack/prompts": "^0.7.0",

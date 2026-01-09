@@ -4,9 +4,14 @@ import { getModelRouter } from "../../src/services/models/router";
 describe("ModelRouter", () => {
   test("should initialize with default config", () => {
     const router = getModelRouter({
-      defaultModel: "anthropic/claude-sonnet-4",
-      fallbackModels: ["openai/gpt-4o"],
+      defaultModel: "anthropic/claude-sonnet-4-5",
+      fallbackModels: ["openai/gpt-5.2", "google/gemini-3-flash"],
     });
+
+    const current = router.getCurrentModel();
+    expect(current.provider).toBe("anthropic");
+    expect(current.model).toBe("claude-sonnet-4-5");
+  });
 
     const current = router.getCurrentModel();
     expect(current.provider).toBe("anthropic");
@@ -23,9 +28,9 @@ describe("ModelRouter", () => {
     const openaiModels = models.filter((m) => m.provider === "openai");
     const googleModels = models.filter((m) => m.provider === "google");
 
-    expect(anthropicModels.length).toBeGreaterThan(0);
-    expect(openaiModels.length).toBeGreaterThan(0);
-    expect(googleModels.length).toBeGreaterThan(0);
+    expect(anthropicModels.length).toBe(5);
+    expect(openaiModels.length).toBe(5);
+    expect(googleModels.length).toBe(4);
   });
 
   test("should resolve model aliases", () => {

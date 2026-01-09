@@ -42,13 +42,13 @@ describe("SuperCoinConfig", () => {
     const config = SuperCoinConfigSchema.parse({
       agents: {
         analyst: {
-          model: "google/gemini-2.0-flash",
-          temperature: 0.5,
+          model: "google/gemini-3-flash",
+          disabled: false,
         },
       },
     });
 
-    expect(config.agents?.analyst?.model).toBe("google/gemini-2.0-flash");
-    expect(config.agents?.analyst?.temperature).toBe(0.5);
+    expect(config.agents?.analyst?.model).toBe("google/gemini-3-flash");
+    expect(config.agents?.analyst?.disabled).toBe(false);
   });
 });
