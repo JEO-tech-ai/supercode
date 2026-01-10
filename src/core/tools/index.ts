@@ -1,4 +1,4 @@
-export { bashTool } from "./bash";
+export { bashTool } from "./bash-pty";
 export { readTool, writeTool, editTool } from "./file";
 export { grepTool, globTool } from "./search";
 export { TodoWriteTool, TodoReadTool } from "./todo";

@@ -32,4 +32,7 @@ export const logger = {
   },
 };
 
+export const Log = logger;
 export default logger;
+export type { Logger } = typeof logger;
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
