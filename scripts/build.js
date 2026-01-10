@@ -1,4 +1,11 @@
-import { build } from "esbuild";
+let buildProject;
+try {
+  const esbuildModule = await import("esbuild");
+  buildProject = esbuildModule.build;
+} catch (error) {
+  console.error("esbuild is not installed. Run: npm install");
+  process.exit(1);
+}
 
 const externalPackages = [
   "@clack/prompts",
@@ -11,9 +18,9 @@ const externalPackages = [
   "@ai-sdk/google",
 ];
 
-export async function buildProject() {
+async function build() {
   await Promise.all([
-    build({
+    buildProject({
       entryPoints: ["./src/cli/index.ts"],
       bundle: true,
       platform: "node",
@@ -28,7 +35,7 @@ export async function buildProject() {
       },
     }),
 
-    build({
+    buildProject({
       entryPoints: ["./src/supercoin.ts"],
       bundle: true,
       platform: "node",
@@ -42,4 +49,4 @@ export async function buildProject() {
   ]);
 }
 
-buildProject();
+build();
