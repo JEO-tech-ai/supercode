@@ -42,39 +42,13 @@ npm install -g supercoin
 npx supercoin
 ```
 
-### Install from GitHub (Source)
-
-**Method 1: Clone and Install (Recommended)**
-
-```bash
-# Clone the repository
-git clone https://github.com/JEO-tech-ai/supercode.git
-cd supercode
-
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-
-# Install globally (use sudo if needed)
-sudo npm install -g .
-# Or if you have npm global write permission:
-npm link
-
-# Verify installation
-supercoin --help
-```
-
 ### Prerequisites
 
 - [Node.js](https://nodejs.org) v18+
 - [Ollama](https://ollama.com) (recommended for local models)
 - [Bun](https://bun.sh) (optional, for development only)
 
-### Installation Methods
-
-**Method 1: Clone and Install (Recommended)**
+### Install from GitHub (Source)
 
 ```bash
 # Clone repository
@@ -97,8 +71,6 @@ supercoin --help
 ```
 
 > **Note**: This method is recommended as it avoids potential build issues that can occur with direct npm install from git URL.
-https://github.com/JEO-tech-ai/supercode
-```
 
 ### Install from GitHub (Development)
 
@@ -186,7 +158,7 @@ supercoin auth login --claude      # API Key
 supercoin auth login --codex       # API Key
 
 # Chat with specific provider
-supercoin --provider anthropic -m claude-opus-4-5 "Hello"
+supercoin --provider anthropic -m claude-sonnet-4-20250514 "Hello"
 supercoin --provider google -m gemini-2.0-flash "Hello"
 ```
 
@@ -249,7 +221,7 @@ supercoin
 supercoin "What is TypeScript?"
 
 # Specify provider and model
-supercoin --provider anthropic -m claude-opus-4-5 "Explain AI"
+supercoin --provider anthropic -m claude-sonnet-4-20250514 "Explain AI"
 supercoin -p google -m gemini-2.0-flash "Hello world"
 
 # Adjust parameters
@@ -283,7 +255,7 @@ supercoin --no-tui
 ### UltraWork Mode
 For tasks requiring maximum precision and multi-step reasoning, activate **UltraWork Mode**.
 - **Activation**: Include `ultrawork`, `ulw`, or `@ultrawork` in your prompt to trigger high-intensity orchestration.
-- **High-IQ Models**: Automatically upgrades the model selection to high-performance providers (e.g., Claude 3.5 Opus, Gemini 1.5 Pro).
+- **High-IQ Models**: Automatically upgrades the model selection to high-performance providers (e.g., Claude Sonnet 4, Gemini 2.0 Pro).
 - **Maximum Parallelism**: Spawns multiple background agents in parallel to handle independent sub-tasks simultaneously.
 - **Extended Autonomy**: Increases the loop limit up to 50 iterations for deep research and complex implementations.
 
@@ -393,7 +365,7 @@ supercoin config list
 supercoin config get default_model
 
 # Set config value
-supercoin config set default_model anthropic/claude-opus-4
+supercoin config set default_model anthropic/claude-sonnet-4-20250514
 
 # Show configuration file paths
 supercoin config path
@@ -427,10 +399,10 @@ SuperCoin uses a configuration file located at `~/.config/supercoin/config.json`
 
 ```json
 {
-  "default_model": "anthropic/claude-sonnet-4-5",
+  "default_model": "anthropic/claude-sonnet-4-20250514",
   "fallback_models": [
-    "openai/gpt-5.2",
-    "google/gemini-3-flash"
+    "openai/gpt-4o",
+    "google/gemini-2.0-flash"
   ],
   "providers": {
     "anthropic": { "enabled": true },
@@ -479,16 +451,16 @@ Create `opencode.json`, `.opencode.json`, or `supercoin.json` in your project:
 
 | Provider | Model ID | Context |
 |----------|----------|---------|
-| Anthropic | claude-opus-4-5 | 200K |
-| Anthropic | claude-sonnet-4-5 | 200K |
-| Anthropic | claude-haiku-4-5 | 200K |
-| OpenAI | gpt-5.2 | 200K |
+| Anthropic | claude-sonnet-4-20250514 | 200K |
+| Anthropic | claude-3-5-sonnet-20241022 | 200K |
+| Anthropic | claude-3-5-haiku-20241022 | 200K |
 | OpenAI | gpt-4o | 128K |
-| OpenAI | o3 | 200K |
-| OpenAI | o1 | 128K |
-| Google | gemini-3-pro | 2M |
-| Google | gemini-3-flash | 1M |
+| OpenAI | gpt-4o-mini | 128K |
+| OpenAI | o1 | 200K |
+| OpenAI | o1-mini | 128K |
 | Google | gemini-2.0-flash | 1M |
+| Google | gemini-1.5-pro | 2M |
+| Google | gemini-1.5-flash | 1M |
 
 ### Localhost Providers
 
