@@ -85,6 +85,7 @@ export function classifyRequest(request: string): RequestType {
 export class Coin implements Agent {
   readonly name = "coin" as const;
   readonly displayName = "Coin";
+  readonly model = "ollama/llama3:latest";
 
   readonly capabilities = [
     "planning",

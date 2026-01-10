@@ -4,6 +4,7 @@ import { streamAIResponse } from "../models/ai-sdk";
 export class AnalystAgent implements Agent {
   readonly name = "analyst" as const;
   readonly displayName = "Analyst";
+  readonly model = "ollama/llama3:latest";
 
   readonly capabilities = [
     "large_context_analysis",

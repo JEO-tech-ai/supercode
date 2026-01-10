@@ -4,6 +4,7 @@ import { streamAIResponse } from "../models/ai-sdk";
 export class ExplorerAgent implements Agent {
   readonly name = "explorer" as const;
   readonly displayName = "Explorer";
+  readonly model = "ollama/llama3:latest";
 
   readonly capabilities = ["exploration", "search", "navigation"];
 

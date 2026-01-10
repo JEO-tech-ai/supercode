@@ -4,6 +4,7 @@ import { streamAIResponse } from "../models/ai-sdk";
 export class CodeReviewerAgent implements Agent {
   readonly name = "code_reviewer" as const;
   readonly displayName = "Code Reviewer";
+  readonly model = "ollama/llama3:latest";
 
   readonly capabilities = [
     "code_review",

@@ -4,6 +4,7 @@ import { streamAIResponse } from "../models/ai-sdk";
 export class ExecutorAgent implements Agent {
   readonly name = "executor" as const;
   readonly displayName = "Executor";
+  readonly model = "ollama/llama3:latest";
 
   readonly capabilities = [
     "command_execution",

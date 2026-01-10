@@ -4,6 +4,7 @@ import { streamAIResponse } from "../models/ai-sdk";
 export class DocWriterAgent implements Agent {
   readonly name = "doc_writer" as const;
   readonly displayName = "Documentation Writer";
+  readonly model = "ollama/llama3:latest";
 
   readonly capabilities = [
     "documentation",

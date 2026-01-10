@@ -41,16 +41,16 @@ describe("E2E: Agent System", () => {
       const registry = getAgentRegistry();
 
       const explorer = registry.get("explorer");
-      expect(explorer?.model).toBe("anthropic/claude-haiku-3-5");
+      expect(explorer?.model).toBe("ollama/llama3:latest");
 
       const analyst = registry.get("analyst");
-      expect(analyst?.model).toBe("google/gemini-2.0-flash");
+      expect(analyst?.model).toBe("ollama/llama3:latest");
 
       const executor = registry.get("executor");
-      expect(executor?.model).toBe("openai/gpt-4o");
+      expect(executor?.model).toBe("ollama/llama3:latest");
 
       const codeReviewer = registry.get("code_reviewer");
-      expect(codeReviewer?.model).toBe("anthropic/claude-opus-4-5");
+      expect(codeReviewer?.model).toBe("ollama/llama3:latest");
     });
   });
 
