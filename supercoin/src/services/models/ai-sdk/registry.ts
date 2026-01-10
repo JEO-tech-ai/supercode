@@ -98,19 +98,19 @@ export function createModel(config: AISDKModelConfig): AISDKModelResult {
     case "ollama": {
       const baseURL = config.baseURL || providerConfig.defaultBaseURL;
       const ollama = createOpenAI({ baseURL, apiKey: "ollama" });
-      languageModel = ollama(model);
+      languageModel = ollama.chat(model);
       break;
     }
     case "lmstudio": {
       const baseURL = config.baseURL || providerConfig.defaultBaseURL;
       const lmstudio = createOpenAI({ baseURL, apiKey: "lm-studio" });
-      languageModel = lmstudio(model);
+      languageModel = lmstudio.chat(model);
       break;
     }
     case "llamacpp": {
       const baseURL = config.baseURL || providerConfig.defaultBaseURL;
       const llamacpp = createOpenAI({ baseURL, apiKey: "llamacpp" });
-      languageModel = llamacpp(model);
+      languageModel = llamacpp.chat(model);
       break;
     }
     default: {

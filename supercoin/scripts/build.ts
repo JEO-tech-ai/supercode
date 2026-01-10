@@ -1,6 +1,17 @@
 import { build } from "esbuild";
 
-export async function build() {
+const externalPackages = [
+  "@clack/prompts",
+  "commander",
+  "zod",
+  "hono",
+  "ai",
+  "@ai-sdk/openai",
+  "@ai-sdk/anthropic",
+  "@ai-sdk/google",
+];
+
+export async function buildProject() {
   await Promise.all([
     build({
       entryPoints: ["./src/cli/index.ts"],
@@ -9,7 +20,7 @@ export async function build() {
       target: "node18",
       outfile: "./dist/cli/index.js",
       sourcemap: true,
-      external: ["@clack/prompts", "commander", "zod", "hono"],
+      external: externalPackages,
       minify: false,
       format: "esm",
     }),
@@ -21,9 +32,11 @@ export async function build() {
       target: "node18",
       outfile: "./dist/index.js",
       sourcemap: true,
-      external: ["@clack/prompts", "commander", "zod", "hono"],
+      external: externalPackages,
       minify: false,
       format: "esm",
     }),
   ]);
 }
+
+buildProject();

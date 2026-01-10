@@ -112,11 +112,11 @@ export async function streamAIResponse(options: StreamOptions): Promise<StreamRe
 
     const convertedMessages = convertMessages(messages, systemPrompt);
 
-    const result = streamText({
+    const result = await streamText({
       model: languageModel,
       messages: convertedMessages,
       temperature,
-      maxOutputTokens: maxTokens,
+      maxTokens: maxTokens,
     });
 
     let fullText = "";
