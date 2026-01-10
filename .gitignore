@@ -16,3 +16,6 @@ opencode.json
 .opencode.json
 supercoin.json
 
+# Build
+dist/
+build/
