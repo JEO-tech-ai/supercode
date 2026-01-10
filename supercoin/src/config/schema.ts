@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+const LocalhostProviderSchema = z.object({
+  enabled: z.boolean().default(true),
+  baseUrl: z.string().default("http://localhost:11434/v1"),
+  defaultModel: z.string().optional(),
+});
+
 export const SuperCoinConfigSchema = z.object({
   default_model: z.string().default("anthropic/claude-sonnet-4-5"),
   fallback_models: z.array(z.string()).default([]),
@@ -20,6 +26,18 @@ export const SuperCoinConfigSchema = z.object({
       clientId: z.string().optional(),
       clientSecret: z.string().optional(),
       baseUrl: z.string().url().default("https://generativelanguage.googleapis.com"),
+    }).optional(),
+    ollama: LocalhostProviderSchema.extend({
+      baseUrl: z.string().default("http://localhost:11434/v1"),
+      defaultModel: z.string().default("llama3.2"),
+    }).optional(),
+    lmstudio: LocalhostProviderSchema.extend({
+      baseUrl: z.string().default("http://localhost:1234/v1"),
+      defaultModel: z.string().default("local-model"),
+    }).optional(),
+    llamacpp: LocalhostProviderSchema.extend({
+      baseUrl: z.string().default("http://localhost:8080/v1"),
+      defaultModel: z.string().default("local-model"),
     }).optional(),
   }).optional(),
   agents: z.record(z.object({

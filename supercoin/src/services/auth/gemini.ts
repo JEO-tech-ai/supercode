@@ -104,7 +104,7 @@ export class GeminiAuthProvider implements AuthProvider {
   private async loginWithOAuth(accountId?: string): Promise<AuthResult> {
     try {
       if (!isServerRunning()) {
-        await startServer({ port: DEFAULT_SERVER_PORT, host: "127.0.0.1", autoStart: false });
+        await startServer({ port: DEFAULT_SERVER_PORT, host: "127.0.0.1" });
       }
 
       const redirectUri = `http://localhost:${DEFAULT_SERVER_PORT}/callback/${this.name}`;
@@ -146,7 +146,7 @@ export class GeminiAuthProvider implements AuthProvider {
         throw new Error("Invalid state parameter (CSRF protection)");
       }
 
-      await this.exchangeCode(code, storedState.codeVerifier, redirectUri, storedState.accountId);
+      await this.exchangeCode(code, storedState.codeVerifier!, redirectUri, storedState.accountId!);
       await this.oauthStateStore.delete(returnedState);
 
       return { success: true, provider: this.name, accountId: storedState.accountId };
