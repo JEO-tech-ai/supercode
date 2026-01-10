@@ -276,7 +276,7 @@ export class ModelRouter {
 let routerInstance: ModelRouter | null = null;
 
 export function getModelRouter(config?: RouterConfig): ModelRouter {
-  if (!routerInstance) {
+  if (!routerInstance || config) {
     const defaultConfig: RouterConfig = config || {
       defaultModel: "anthropic/claude-sonnet-4-5",
       fallbackModels: ["openai/gpt-5.2", "google/gemini-3-flash"],
@@ -284,4 +284,8 @@ export function getModelRouter(config?: RouterConfig): ModelRouter {
     routerInstance = new ModelRouter(defaultConfig);
   }
   return routerInstance;
+}
+
+export function resetModelRouter(): void {
+  routerInstance = null;
 }

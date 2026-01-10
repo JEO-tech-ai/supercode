@@ -1,16 +1,19 @@
-import { expect, test, describe, beforeAll } from "bun:test";
-import { getModelRouter } from "../../src/services/models/router";
-import { getAuthHub } from "../../src/services/auth/hub";
-import { getTokenStore } from "../../src/server/store/token-store";
+import { expect, test, describe, beforeEach } from "bun:test";
+import { getModelRouter, resetModelRouter } from "../../src/services/models/router";
 
 describe("E2E: Model Router", () => {
-  const router = getModelRouter({
+  beforeEach(() => {
+    resetModelRouter();
+  });
+
+  const getRouter = () => getModelRouter({
     defaultModel: "anthropic/claude-sonnet-4-5",
     fallbackModels: ["openai/gpt-5.2", "google/gemini-3-flash"],
   });
 
   describe("Model Listing", () => {
     test("should list all available models", () => {
+      const router = getRouter();
       const models = router.listModels();
 
       expect(models.length).toBeGreaterThan(0);
@@ -22,6 +25,7 @@ describe("E2E: Model Router", () => {
     });
 
     test("should provide model details", () => {
+      const router = getRouter();
       const models = router.listModels();
 
       for (const model of models) {
@@ -38,6 +42,7 @@ describe("E2E: Model Router", () => {
 
   describe("Model Selection", () => {
     test("should get current model", () => {
+      const router = getRouter();
       const current = router.getCurrentModel();
 
       expect(current.provider).toBe("anthropic");
@@ -45,6 +50,7 @@ describe("E2E: Model Router", () => {
     });
 
     test("should resolve aliases correctly", () => {
+      const router = getRouter();
       const aliases = [
         { alias: "opus", expected: "anthropic/claude-opus-4-5" },
         { alias: "sonnet", expected: "anthropic/claude-sonnet-4-5" },
@@ -61,6 +67,7 @@ describe("E2E: Model Router", () => {
     });
 
     test("should get model info by full ID", () => {
+      const router = getRouter();
       const info = router.getModelInfo("anthropic/claude-sonnet-4-5");
 
       expect(info).not.toBeNull();
@@ -72,6 +79,7 @@ describe("E2E: Model Router", () => {
 
   describe("Provider Comparison", () => {
     test("should compare context windows", () => {
+      const router = getRouter();
       const claudeInfo = router.getModelInfo("anthropic/claude-sonnet-4-5");
       const geminiInfo = router.getModelInfo("google/gemini-3-flash");
 
@@ -79,6 +87,7 @@ describe("E2E: Model Router", () => {
     });
 
     test("should compare pricing", () => {
+      const router = getRouter();
       const haikuInfo = router.getModelInfo("anthropic/claude-haiku-4-5");
       const opusInfo = router.getModelInfo("anthropic/claude-opus-4-5");
 
@@ -88,11 +97,13 @@ describe("E2E: Model Router", () => {
 
   describe("Model Validation", () => {
     test("should return null for unknown model", () => {
+      const router = getRouter();
       const info = router.getModelInfo("unknown/model");
       expect(info).toBeNull();
     });
 
     test("should return null for invalid alias", () => {
+      const router = getRouter();
       const info = router.getModelInfo("invalid-alias");
       expect(info).toBeNull();
     });

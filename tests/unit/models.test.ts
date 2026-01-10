@@ -1,7 +1,11 @@
-import { expect, test, describe } from "bun:test";
-import { getModelRouter } from "../../src/services/models/router";
+import { expect, test, describe, beforeEach } from "bun:test";
+import { getModelRouter, resetModelRouter } from "../../src/services/models/router";
 
 describe("ModelRouter", () => {
+  beforeEach(() => {
+    resetModelRouter();
+  });
+
   test("should initialize with default config", () => {
     const router = getModelRouter({
       defaultModel: "anthropic/claude-sonnet-4-5",
