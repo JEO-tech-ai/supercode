@@ -198,18 +198,29 @@ graph TD
 
 ## Model Aliases
 
-| Alias | Full Model ID |
-|-------|--------------|
-| `claude` | `anthropic/claude-sonnet-4-5` |
-| `sonnet` | `anthropic/claude-sonnet-4-5` |
-| `opus` | `anthropic/claude-opus-4-5` |
-| `haiku` | `anthropic/claude-haiku-4-5` |
-| `gpt` | `openai/gpt-5.2` |
-| `gpt-5` | `openai/gpt-5.2` |
-| `o1` | `openai/o1` |
-| `gemini` | `google/gemini-3-flash` |
-| `flash` | `google/gemini-3-flash` |
-| `pro` | `google/gemini-3-pro` |
+| Alias | Full Model ID | Description |
+|-------|--------------|-------------|
+| `claude` | `anthropic/claude-sonnet-4-5` | Default Claude model (Standard) |
+| `sonnet` | `anthropic/claude-sonnet-4-5` | Claude Sonnet 4.5 |
+| `opus` | `anthropic/claude-opus-4-5` | Claude Opus 4.5 (High-reasoning) |
+| `haiku` | `anthropic/claude-haiku-4-5` | Claude Haiku 4.5 (Fast/Cheap) |
+| `gpt` | `openai/gpt-5.2` | Default OpenAI model |
+| `gpt-5` | `openai/gpt-5.2` | GPT-5.2 (Latest) |
+| `o1` | `openai/o1` | OpenAI o1 (Reasoning) |
+| `gemini` | `google/gemini-3-flash` | Default Gemini model (Fast) |
+| `flash` | `google/gemini-3-flash` | Gemini 3 Flash |
+| `pro` | `google/gemini-3-pro` | Gemini 3 Pro (High/Low variants available) |
+
+### Google Antigravity Models
+
+The Google provider (Antigravity) supports a range of models including Gemini 3 series and experimental builds.
+
+- **Gemini 3 Pro**: Available in High/Low variants for different performance needs.
+- **Gemini 2.5 Flash/Pro**: Previous generation models often available via internal codes.
+- **Experimental**: Models like `COSMICFORGE`, `HORIZONDAWN` may appear in internal lists.
+- **Open Source**: Support for models like GPT-OSS 120B via Antigravity profiles.
+
+> **Note**: Specific model availability depends on your Google Antigravity account access and region. Use `supercoin models list` to see your available models.
 
 ## Configuration File
 
