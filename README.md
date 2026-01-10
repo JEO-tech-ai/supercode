@@ -608,10 +608,25 @@ bun run build
 - **Runtime**: [Bun](https://bun.sh)
 - **AI SDK**: [Vercel AI SDK](https://sdk.vercel.ai) - Universal provider abstraction
 - **CLI Framework**: [Commander.js](https://github.com/tj/commander.js)
-- **Interactive UI**: [@clack/prompts](https://github.com/natemoo-re/clack)
-- **HTTP Server**: [Hono](https://hono.dev)
+- **Interactive UI**: [@clack/prompts](https://github.com/natemoo-re/clack) - Beautiful terminal prompts
+- **HTTP Server**: [Hono](https://hono.dev) - Lightweight OAuth callback server
 - **Validation**: [Zod](https://zod.dev)
 - **Language**: TypeScript
+
+### TUI Architecture
+
+SuperCoin features a dual-mode CLI interface:
+
+1. **Interactive Mode** (default): Rich terminal UI with `@clack/prompts`
+   - Provider selection with visual indicators
+   - Real-time spinners and progress updates
+   - Consistent cancel handling via `CancelledError`
+   - Styled output with UI utilities (`src/shared/ui.ts`)
+
+2. **Command-Line Mode**: Direct execution with flags
+   - Full control via `--provider`, `--model`, etc.
+   - JSON output support for scripting
+   - Quiet mode for minimal output
 
 ### AI SDK Providers
 
@@ -655,12 +670,14 @@ This architecture allows adding 75+ providers with minimal code.
 - [x] Self-documentation generator (`src/core/knowledge/generator.ts`)
 - [x] Interactive help system (`src/core/knowledge/help.ts`)
 
-### ✅ Phase 5: Advanced Features (Partially Complete)
+### ✅ Phase 5: Advanced Features
 - [x] AI client manager (`src/services/models/ai-sdk/`)
 - [x] Multi-provider support (OpenAI, Anthropic, Google, Ollama)
 - [x] Agent system (`src/services/agents/`)
 - [x] Background task concurrency (`src/services/background/`)
-- [x] Authentication system with OAuth 2.0 (`src/services/auth/`)
+- [x] Authentication system with OAuth 2.0 + PKCE (`src/services/auth/`)
+- [x] TUI utilities with consistent styling (`src/shared/ui.ts`)
+- [x] CancelledError for graceful user cancellation
 - [ ] Smart CLI shell (planned)
 - [ ] Workflow automation engine (planned)
 - [ ] Plugin system (planned)

@@ -6,6 +6,7 @@ import { Command } from "commander";
 import * as clack from "@clack/prompts";
 import type { SuperCoinConfig } from "../../config/schema";
 import { getAuthHub, type AuthProviderName, type AuthStatus } from "../../services/auth";
+import { UI, CancelledError } from "../../shared/ui";
 import logger from "../../shared/logger";
 
 export function createAuthCommand(config: SuperCoinConfig): Command {
@@ -32,6 +33,7 @@ export function createAuthCommand(config: SuperCoinConfig): Command {
 
       // If no specific provider, show interactive selection
       if (providers.length === 0 && options.tui !== false) {
+        UI.empty();
         clack.intro("SuperCoin Authentication");
 
         const selected = await clack.multiselect({
@@ -39,14 +41,13 @@ export function createAuthCommand(config: SuperCoinConfig): Command {
           options: [
             { value: "claude", label: "Claude (Anthropic)", hint: "API Key" },
             { value: "codex", label: "Codex (OpenAI)", hint: "API Key" },
-            { value: "gemini", label: "Gemini (Google)", hint: "OAuth with Antigravity" },
+            { value: "gemini", label: "Gemini (Google)", hint: "OAuth or API Key" },
           ],
           required: true,
         });
 
         if (clack.isCancel(selected)) {
-          clack.cancel("Authentication cancelled");
-          process.exit(0);
+          throw new CancelledError();
         }
 
         providers.push(...(selected as AuthProviderName[]));
@@ -168,25 +169,21 @@ export function createAuthCommand(config: SuperCoinConfig): Command {
 async function showAuthStatus(authHub: ReturnType<typeof getAuthHub>): Promise<void> {
   const statuses = await authHub.status();
 
-  console.log("\nAuthentication Status:\n");
-  console.log("+-----------+----------------+-----------+---------------------+");
-  console.log("| Provider  | Status         | Type      | Expires             |");
-  console.log("+-----------+----------------+-----------+---------------------+");
+  UI.empty();
+  clack.intro("Credentials");
 
   for (const status of statuses) {
     const icon = status.authenticated ? "[OK]" : "[--]";
+    const typeText = status.type ? UI.dim(`(${status.type})`) : "";
     const statusText = status.authenticated ? "Authenticated" : "Not logged in";
-    const typeText = status.type || "-";
-    const expiresText = status.expiresAt
-      ? status.expiresAt === Number.MAX_SAFE_INTEGER
-        ? "Never"
-        : new Date(status.expiresAt).toLocaleString()
-      : "-";
-
-    console.log(
-      `| ${status.provider.padEnd(9)} | ${icon} ${statusText.padEnd(10)} | ${typeText.padEnd(9)} | ${expiresText.padEnd(19)} |`
-    );
+    
+    if (status.authenticated) {
+      clack.log.success(`${status.provider} ${typeText}`);
+    } else {
+      clack.log.info(`${status.provider} ${UI.dim(statusText)}`);
+    }
   }
 
-  console.log("+-----------+----------------+-----------+---------------------+");
+  const authCount = statuses.filter(s => s.authenticated).length;
+  clack.outro(`${authCount} of ${statuses.length} providers authenticated`);
 }

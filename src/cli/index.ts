@@ -10,11 +10,13 @@ import { createDashboardCommand } from "./commands/dashboard";
 import { resolveProviderFromConfig } from "../config/opencode";
 import { streamAIResponse, checkLocalhostAvailability } from "../services/models/ai-sdk";
 import type { AISDKProviderName } from "../services/models/ai-sdk/types";
+import { UI, CancelledError } from "../shared/ui";
 import logger from "../shared/logger";
 
 const VERSION = "0.1.0";
 
 async function runInteractiveMode() {
+  UI.empty();
   clack.intro("🪙 SuperCoin - Unified AI CLI Hub");
 
   const action = await clack.select({
@@ -31,8 +33,7 @@ async function runInteractiveMode() {
   });
 
   if (clack.isCancel(action)) {
-    clack.cancel("Operation cancelled");
-    process.exit(0);
+    throw new CancelledError();
   }
 
   switch (action) {
@@ -73,14 +74,13 @@ async function runChatFlow() {
       { value: "llamacpp", label: "🔧 llama.cpp (Local)", hint: "Raw performance" },
       { value: "anthropic", label: "🤖 Claude (Anthropic)", hint: "Requires API key" },
       { value: "openai", label: "⚡ Codex (OpenAI)", hint: "Requires API key" },
-      { value: "google", label: "🔮 Gemini (Google)", hint: "Requires API key or OAuth" },
+      { value: "google", label: "🔮 Gemini (Google)", hint: "OAuth or API key" },
     ],
     initialValue: projectConfig.provider as AISDKProviderName,
   });
 
   if (clack.isCancel(provider)) {
-    clack.cancel("Operation cancelled");
-    return;
+    throw new CancelledError();
   }
 
   const isLocalhost = ["ollama", "lmstudio", "llamacpp"].includes(provider);
@@ -116,8 +116,7 @@ async function runChatFlow() {
   });
 
   if (clack.isCancel(customizeModel)) {
-    clack.cancel("Operation cancelled");
-    return;
+    throw new CancelledError();
   }
 
   if (customizeModel) {
@@ -128,8 +127,7 @@ async function runChatFlow() {
     });
 
     if (clack.isCancel(modelInput)) {
-      clack.cancel("Operation cancelled");
-      return;
+      throw new CancelledError();
     }
 
     model = modelInput;
@@ -144,8 +142,7 @@ async function runChatFlow() {
   });
 
   if (clack.isCancel(prompt)) {
-    clack.cancel("Operation cancelled");
-    return;
+    throw new CancelledError();
   }
 
   const s = clack.spinner();
@@ -190,8 +187,7 @@ async function runAuthFlow() {
   });
 
   if (clack.isCancel(authAction)) {
-    clack.cancel("Operation cancelled");
-    return;
+    throw new CancelledError();
   }
 
   clack.log.info(`Run: supercoin auth ${authAction} --help`);
@@ -316,6 +312,10 @@ async function main() {
 }
 
 main().catch((error) => {
+  if (error instanceof CancelledError) {
+    clack.cancel("Operation cancelled");
+    process.exit(0);
+  }
   logger.error("Fatal error", error);
   process.exit(1);
 });
