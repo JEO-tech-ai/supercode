@@ -69,10 +69,6 @@ export function classifyRequest(request: string): RequestType {
   }
 
   // Trivial patterns: simple questions, explanations
-  // UltraWork mode patterns (high priority)
-  const ultraworkPatterns = [/\s*(ultrawork|ulw|울트라워크|울트라워크|@ultrawork|@ulw)\s*/i, /maximize.*effort/i, /parallel.*agents/i];
-
-
   const trivialPatterns = [
     /^(what|why|when)\s+(is|are|do|does)/i,
     /^(explain|describe|tell me about)/i,
@@ -80,13 +76,7 @@ export function classifyRequest(request: string): RequestType {
   ];
 
   for (const pattern of trivialPatterns) {
-    if (pattern.test(request)) // Check UltraWork mode first
-  for (const pattern of ultraworkPatterns) {
-    if (pattern.test(request)) return RequestType.ULTRAWORK;
-  }
-
-
-  return RequestType.TRIVIAL;
+    if (pattern.test(request)) return RequestType.TRIVIAL;
   }
 
   return RequestType.TRIVIAL;
