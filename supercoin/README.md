@@ -1,6 +1,12 @@
 # SuperCoin
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Bun](https://img.shields.io/badge/Bun-1.0+-black?logo=bun)](https://bun.sh)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue?logo=typescript)](https://www.typescriptlang.org/)
+
 Unified AI CLI hub for Claude, Codex, Gemini, and localhost models.
+
+**Privacy-first • Cost-free • Multi-provider • Open Source**
 
 ## Features
 
@@ -15,13 +21,36 @@ Unified AI CLI hub for Claude, Codex, Gemini, and localhost models.
 
 ## Installation
 
+### Prerequisites
+
+- [Bun](https://bun.sh) runtime (v1.0+)
+- [Ollama](https://ollama.com) (recommended for local models)
+
+### Install from GitHub
+
 ```bash
 # Clone the repository
-git clone https://github.com/supercent/supercoin.git
-cd supercoin
+git clone https://github.com/JEO-tech-ai/supercode.git
+cd supercode/supercoin
 
 # Install dependencies
 bun install
+
+# Run directly with Bun
+bun src/cli/index.ts --help
+```
+
+### Build from Source
+
+```bash
+# Type check
+bun run lint
+
+# Run tests
+bun test
+
+# Build (optional - not required with Bun)
+bun run build
 ```
 
 ## Quick Start

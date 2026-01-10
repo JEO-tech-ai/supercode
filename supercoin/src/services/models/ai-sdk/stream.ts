@@ -116,7 +116,7 @@ export async function streamAIResponse(options: StreamOptions): Promise<StreamRe
       model: languageModel,
       messages: convertedMessages,
       temperature,
-      maxTokens: maxTokens,
+      maxOutputTokens: maxTokens,
     });
 
     let fullText = "";
