@@ -1,12 +1,29 @@
 {
   "name": "supercoin",
   "version": "0.1.0",
-  "description": "Unified AI CLI hub for Claude, Codex, and Gemini",
+  "description": "Unified AI CLI hub for Claude, Codex, Gemini, and localhost models",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "supercoin": "dist/cli/index.js"
+    "supercoin": "./dist/cli/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JEO-tech-ai/supercode.git",
+    "directory": "supercoin"
+  },
+  "bugs": {
+    "url": "https://github.com/JEO-tech-ai/supercode/issues"
+  },
+  "homepage": "https://github.com/JEO-tech-ai/supercode/tree/main/supercoin#readme",
   "scripts": {
     "build": "bun run scripts/build.ts",
     "dev": "bun run scripts/dev.ts",
@@ -29,6 +46,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "esbuild": "^0.27.2",
     "typescript": "^5.3.3"
   },
   "keywords": [

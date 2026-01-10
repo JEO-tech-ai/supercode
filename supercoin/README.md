@@ -21,12 +21,27 @@ Unified AI CLI hub for Claude, Codex, Gemini, and localhost models.
 
 ## Installation
 
+### Install from npm (Recommended)
+
+```bash
+# Install globally
+npm install -g supercoin
+
+# Or use with npx (no installation needed)
+npx supercoin
+
+# Verify installation
+supercoin --version
+```
+
 ### Prerequisites
 
-- [Bun](https://bun.sh) runtime (v1.0+)
+- [Node.js](https://nodejs.org) v18+ (for npm installation)
+- [Node.js](https://nodejs.org) v18+ (for npm installation)
+- [Bun](https://bun.sh) v1.0+ (for development)
 - [Ollama](https://ollama.com) (recommended for local models)
 
-### Install from GitHub
+### Install from GitHub (Development)
 
 ```bash
 # Clone the repository
@@ -55,7 +70,34 @@ bun run build
 
 ## Quick Start
 
-### Using Localhost Models (Recommended)
+### Interactive Mode (GUI/TUI)
+
+```bash
+# Simply run supercoin without arguments
+supercoin
+
+# You'll see an interactive menu:
+# 🪙 SuperCoin - Unified AI CLI Hub
+#
+# What would you like to do?
+# ❯ 💬 Start Chat
+#   🔐 Authentication
+#   🤖 Models
+#   ⚙️  Configuration
+#   🌐 Server
+#   🩺 Doctor
+```
+
+**Interactive Features**:
+- Beautiful terminal UI powered by @clack/prompts
+- Provider selection with visual indicators
+- Model customization prompts
+- Real-time streaming responses
+- Progress spinners and status updates
+
+### Command-Line Mode
+
+#### Using Localhost Models (Recommended)
 
 ```bash
 # Install Ollama (macOS/Linux)
@@ -64,16 +106,19 @@ curl -fsSL https://ollama.com/install.sh | sh
 # Pull a model
 ollama pull llama3
 
-# Start chatting
-bun src/cli/index.ts "Hello, what is 2+2?"
+# Interactive mode (GUI)
+supercoin
+
+# Or direct command-line mode
+supercoin "Hello, what is 2+2?"
 # Output: Provider: ollama | Model: llama3:latest
 #         The answer is 4.
 
-# Or with flags
-bun src/cli/index.ts --provider ollama -m llama3 "Explain AI"
+# With flags
+supercoin --provider ollama -m llama3 "Explain AI"
 ```
 
-### Using API-Based Providers
+#### Using API-Based Providers
 
 ```bash
 # Login to providers
@@ -82,11 +127,22 @@ supercoin auth login --claude      # API Key
 supercoin auth login --codex       # API Key
 
 # Chat with specific provider
-bun src/cli/index.ts --provider anthropic -m claude-opus-4-5 "Hello"
-bun src/cli/index.ts --provider google -m gemini-2.0-flash "Hello"
+supercoin --provider anthropic -m claude-opus-4-5 "Hello"
+supercoin --provider google -m gemini-2.0-flash "Hello"
 ```
 
-### Project Configuration
+#### Disable Interactive Mode
+
+```bash
+# Use --no-tui flag to skip interactive menu
+supercoin --no-tui
+# Shows help instead
+
+# Or provide a prompt directly
+supercoin "your question here"
+```
+
+#### Project Configuration
 
 Create `opencode.json` in your project root:
 
@@ -101,32 +157,53 @@ Create `opencode.json` in your project root:
 
 Alternative filenames: `.opencode.json` or `supercoin.json`
 
-Then simply:
+Then simply run:
 
 ```bash
-bun src/cli/index.ts "Your prompt here"
+supercoin
+# Or
+supercoin "Your prompt here"
 ```
 
 ## CLI Usage
 
-### Basic Chat
+### Interactive Mode (Default)
+
+```bash
+# Run without arguments to launch interactive TUI
+supercoin
+
+# Navigate with arrow keys and Enter
+# Select from:
+# - 💬 Start Chat
+# - 🔐 Authentication
+# - 🤖 Models
+# - ⚙️  Configuration
+# - 🌐 Server
+# - 🩺 Doctor
+```
+
+### Basic Chat (Command-Line)
 
 ```bash
 # Use default provider (ollama)
-bun src/cli/index.ts "What is TypeScript?"
+supercoin "What is TypeScript?"
 
 # Specify provider and model
-bun src/cli/index.ts --provider anthropic -m claude-opus-4-5 "Explain AI"
-bun src/cli/index.ts -p google -m gemini-2.0-flash "Hello world"
+supercoin --provider anthropic -m claude-opus-4-5 "Explain AI"
+supercoin -p google -m gemini-2.0-flash "Hello world"
 
 # Adjust parameters
-bun src/cli/index.ts -t 0.9 --max-tokens 1000 "Creative writing prompt"
+supercoin -t 0.9 --max-tokens 1000 "Creative writing prompt"
 
 # Verbose output (shows token usage)
-bun src/cli/index.ts -v "Your question"
+supercoin -v "Your question"
 
 # Quiet mode (no provider info)
-bun src/cli/index.ts -q "Your question"
+supercoin -q "Your question"
+
+# Disable TUI (force help)
+supercoin --no-tui
 ```
 
 ### Available Flags
@@ -138,6 +215,7 @@ bun src/cli/index.ts -q "Your question"
 | `-t, --temperature` | Temperature (0-2) | `-t 0.7` |
 | `--max-tokens` | Max output tokens | `--max-tokens 2048` |
 | `--base-url` | Custom base URL | `--base-url http://localhost:11434/v1` |
+| `--no-tui` | Disable interactive UI | `--no-tui` |
 | `-v, --verbose` | Show token usage | `-v` |
 | `-q, --quiet` | Minimal output | `-q` |
 
@@ -409,6 +487,48 @@ supercoin/
 │   ├── unit/                  # Unit tests
 │   └── e2e/                   # End-to-end tests
 └── examples/                   # Usage examples
+```
+
+## Publishing to npm
+
+### Prepare for Publishing
+
+```bash
+# Update version in package.json
+npm version patch  # or minor, major
+
+# Build the project
+bun run build
+
+# Test the build locally
+npm link
+supercoin --version
+
+# Verify package contents
+npm pack --dry-run
+```
+
+### Publish
+
+```bash
+# Login to npm (first time only)
+npm login
+
+# Publish to npm
+npm publish
+
+# Verify published package
+npm view supercoin
+```
+
+### Install Published Package
+
+```bash
+# Global installation
+npm install -g supercoin
+
+# Or use with npx
+npx supercoin
 ```
 
 ## Development

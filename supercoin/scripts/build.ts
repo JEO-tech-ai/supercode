@@ -28,7 +28,7 @@ export async function buildProject() {
     build({
       entryPoints: ["./src/supercoin.ts"],
       bundle: true,
-      platform: "neutral",
+      platform: "node",
       target: "node18",
       outfile: "./dist/index.js",
       sourcemap: true,
