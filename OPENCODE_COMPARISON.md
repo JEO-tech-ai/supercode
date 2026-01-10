@@ -1,6 +1,6 @@
 # OpenCode vs SuperCoin: 프로젝트 구조 및 동작 흐름 비교 분석
 
-> **목적**: OpenCode의 아키텍처를 분석하고, SuperCoin을 OpenCode 구조로 개선하되 Sisyphus를 Coin으로 변경하고 localhost를 통해 동작하도록 설계
+> **목적**: OpenCode의 아키텍처를 분석하고, SuperCoin을 OpenCode 구조로 개선하되 Cent를 사용하고 localhost를 통해 동작하도록 설계
 
 ---
 
@@ -40,11 +40,11 @@ opencode/
 
 ### 1.2 핵심 컴포넌트
 
-#### **A. Sisyphus Agent (Main Orchestrator)**
+#### **A. Cent Agent (Main Orchestrator)**
 
 ```typescript
-// packages/opencode/src/agent/sisyphus.ts
-export class SisyphusAgent {
+// packages/opencode/src/agent/coin.ts
+export class CoinAgent {
   async execute(userInput: string, context: SessionContext) {
     // 1. 사용자 입력 분석
     const intent = await this.analyzeIntent(userInput)
@@ -298,7 +298,7 @@ export class ModelRouter {
 
 | 구분 | OpenCode | SuperCoin | 차이점 |
 |------|----------|-----------|--------|
-| **메인 에이전트** | Sisyphus | Coin | 이름만 다름, 역할 유사 |
+ | **메인 에이전트** | Sisyphus | Cent | 이름만 다름, 역할 유사 |
 | **모델 통합** | AI SDK + Provider 추상화 | 직접 API 호출 | OpenCode가 훨씬 확장성 높음 |
 | **프로바이더 수** | 75+ (Ollama, LM Studio 포함) | 3개 (Claude, Codex, Gemini) | OpenCode가 압도적 |
 | **localhost 지원** | ✅ OpenAI-compatible API | ❌ 지원 안 함 | 핵심 차이 |
@@ -414,7 +414,7 @@ export class ModelRouter {
 
 ### 5.1 목표
 
-1. ✅ **Sisyphus → Coin 변경**: 에이전트 이름만 변경
+1. ✅ **Sisyphus → Cent 변경**: 에이전트 이름만 변경
 2. ✅ **AI SDK 통합**: Provider 추상화 레이어 추가
 3. ✅ **localhost 지원**: Ollama, LM Studio 등 로컬 모델 사용
 4. ✅ **Zen 모델 제거**: 기본 모델을 localhost로 설정
@@ -439,7 +439,7 @@ supercoin/
 │   │   ├── llm.ts                  # 🆕 LLM 스트리밍 (AI SDK)
 │   │   └── context.ts              # 컨텍스트 관리
 │   ├── agents/
-│   │   ├── coin.ts                 # ✏️ Sisyphus → Coin (이름 변경)
+│   │   ├── coin.ts                 # ✏️ Sisyphus → Cent (이름 변경)
 │   │   ├── explorer.ts
 │   │   └── ...
 │   ├── config/
@@ -878,7 +878,7 @@ src/services/models/providers/
 - 스트리밍, 도구 호출, 에러 처리가 통합됨
 - 새로운 프로바이더 추가가 매우 쉬움
 
-### Q2: Sisyphus → Coin으로 이름만 바꾸면 되나요?
+### Q2: Sisyphus → Cent으로 이름만 바꾸면 되나요?
 
 **A:** 거의 맞습니다. 핵심 로직은 동일하게 유지하되, SuperCoin의 기존 아키텍처와 잘 통합하는 것이 중요합니다. Coin은:
 - Sisyphus의 오케스트레이션 로직을 그대로 사용
@@ -912,7 +912,7 @@ OpenCode의 아키텍처를 SuperCoin에 통합하면:
 ✅ **확장성**: 75+ 프로바이더 즉시 지원  
 ✅ **localhost 우선**: Ollama, LM Studio로 무료 사용  
 ✅ **스트리밍 개선**: AI SDK의 안정적인 스트리밍  
-✅ **Sisyphus → Coin**: 검증된 오케스트레이션 로직  
+✅ **Sisyphus → Cent**: 검증된 오케스트레이션 로직  
 ✅ **호환성**: 기존 인증, 설정 시스템 유지
 
 **다음 단계**: Phase 1부터 시작하여 5주 내 완료 목표

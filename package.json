@@ -20,12 +20,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/JEO-tech-ai/supercode.git"
+    "url": "https://github.com/JEO-tech-ai/supercoin.git"
   },
   "bugs": {
-    "url": "https://github.com/JEO-tech-ai/supercode/issues"
+    "url": "https://github.com/JEO-tech-ai/supercoin/issues"
   },
-  "homepage": "https://github.com/JEO-tech-ai/supercode#readme",
+  "homepage": "https://github.com/JEO-tech-ai/supercoin#readme",
   "scripts": {
     "build": "node scripts/build.js",
     "dev": "bun run scripts/dev.ts",
@@ -64,6 +64,6 @@
     "gemini",
     "supercoin"
   ],
-  "author": "supercent",
+  "author": "JEO-tech-ai",
   "license": "MIT"
 }
