@@ -37,7 +37,6 @@ supercoin --version
 ### Prerequisites
 
 - [Node.js](https://nodejs.org) v18+ (for npm installation)
-- [Node.js](https://nodejs.org) v18+ (for npm installation)
 - [Bun](https://bun.sh) v1.0+ (for development)
 - [Ollama](https://ollama.com) (recommended for local models)
 
@@ -430,7 +429,7 @@ ollama pull phi3             # Microsoft Phi-3 (3.8B)
 ollama list
 
 # Use with SuperCoin
-bun src/cli/index.ts --provider ollama -m llama3 "Your prompt"
+supercoin --provider ollama -m llama3 "Your prompt"
 ```
 
 #### LM Studio Setup
@@ -441,7 +440,7 @@ bun src/cli/index.ts --provider ollama -m llama3 "Your prompt"
 # 3. Load a model in the UI
 
 # Use with SuperCoin
-bun src/cli/index.ts --provider lmstudio -m your-model "Your prompt"
+supercoin --provider lmstudio -m your-model "Your prompt"
 ```
 
 #### llama.cpp Setup
@@ -456,7 +455,7 @@ make server
 ./build/bin/llama-server -m models/your-model.gguf
 
 # Use with SuperCoin
-bun src/cli/index.ts --provider llamacpp --base-url http://localhost:8080/v1 "Your prompt"
+supercoin --provider llamacpp --base-url http://localhost:8080/v1 "Your prompt"
 ```
 
 ## Project Structure
