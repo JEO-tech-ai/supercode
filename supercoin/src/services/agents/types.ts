@@ -25,7 +25,7 @@ export interface AgentResult {
 export interface Agent {
   readonly name: AgentName;
   readonly displayName: string;
-  readonly model: string;
+  readonly model?: string;
   readonly capabilities: string[];
   readonly allowedTools?: string[];
   readonly restrictedTools?: string[];

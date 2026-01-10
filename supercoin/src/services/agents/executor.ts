@@ -1,10 +1,9 @@
 import type { Agent, AgentContext, AgentResult } from "./types";
-import { getModelRouter } from "../models/router";
+import { streamAIResponse } from "../models/ai-sdk";
 
 export class ExecutorAgent implements Agent {
   readonly name = "executor" as const;
   readonly displayName = "Executor";
-  readonly model = "openai/gpt-4o";
 
   readonly capabilities = [
     "command_execution",
@@ -52,10 +51,10 @@ Result: SUCCESS | FAILURE
 \`\`\``;
 
   async execute(prompt: string, _context?: AgentContext): Promise<AgentResult> {
-    const router = getModelRouter();
-
     try {
-      const response = await router.route({
+      const result = await streamAIResponse({
+        provider: "ollama",
+        model: "llama3:latest",
         messages: [{ role: "user", content: prompt }],
         systemPrompt: this.systemPrompt,
         temperature: 0.1,
@@ -64,10 +63,9 @@ Result: SUCCESS | FAILURE
 
       return {
         success: true,
-        content: response.content,
-        toolCalls: response.toolCalls,
-        usage: response.usage,
-        model: this.model,
+        content: result.text,
+        usage: result.usage,
+        model: "ollama/llama3:latest",
       };
     } catch (error) {
       return {

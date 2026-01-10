@@ -9,7 +9,9 @@ import {
   type ExecutionResult,
 } from "./types";
 import { getAgentRegistry } from "./registry";
-import { getModelRouter } from "../models/router";
+import { streamAIResponse } from "../models/ai-sdk";
+import { resolveProviderFromConfig } from "../../config/opencode";
+import type { AISDKProviderName } from "../models/ai-sdk/types";
 import { getTodoManager } from "./todo-manager";
 import { getBackgroundManager } from "./background";
 import logger from "../../shared/logger";
@@ -79,7 +81,6 @@ export function classifyRequest(request: string): RequestType {
 export class Coin implements Agent {
   readonly name = "coin" as const;
   readonly displayName = "Coin";
-  readonly model = "anthropic/claude-sonnet-4";
 
   readonly capabilities = [
     "planning",
@@ -116,7 +117,6 @@ export class Coin implements Agent {
 Provide clear status updates and final summaries.`;
 
   async execute(prompt: string, context?: AgentContext): Promise<AgentResult> {
-    const router = getModelRouter();
     const todoManager = getTodoManager();
     const classification = classifyRequest(prompt);
 
@@ -124,18 +124,22 @@ Provide clear status updates and final summaries.`;
 
     try {
       if (classification === RequestType.TRIVIAL || classification === RequestType.EXPLICIT) {
-        const response = await router.route({
+        const config = await resolveProviderFromConfig();
+        
+        const result = await streamAIResponse({
+          provider: config.provider as AISDKProviderName,
+          model: config.model,
+          temperature: config.temperature,
+          maxTokens: config.maxTokens,
           messages: [{ role: "user", content: prompt }],
           systemPrompt: this.systemPrompt,
-          temperature: 0.7,
-          maxTokens: 4096,
         });
 
         return {
           success: true,
-          content: response.content,
-          usage: response.usage,
-          model: this.model,
+          content: result.text,
+          usage: result.usage,
+          model: `${config.provider}/${config.model}`,
         };
       }
 
@@ -155,7 +159,7 @@ Provide clear status updates and final summaries.`;
       return {
         success: allSuccessful,
         content: this.formatResults(plan, results),
-        model: this.model,
+        model: "ollama/llama3:latest",
       };
     } catch (error) {
       return {
@@ -164,6 +168,7 @@ Provide clear status updates and final summaries.`;
       };
     }
   }
+
 
   private async createPlan(prompt: string, classification: RequestType): Promise<ExecutionPlan> {
     const tasks: Task[] = [];

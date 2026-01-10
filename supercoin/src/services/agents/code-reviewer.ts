@@ -1,10 +1,9 @@
 import type { Agent, AgentContext, AgentResult } from "./types";
-import { getModelRouter } from "../models/router";
+import { streamAIResponse } from "../models/ai-sdk";
 
 export class CodeReviewerAgent implements Agent {
   readonly name = "code_reviewer" as const;
   readonly displayName = "Code Reviewer";
-  readonly model = "anthropic/claude-opus-4-5";
 
   readonly capabilities = [
     "code_review",
@@ -45,10 +44,10 @@ Example: <code snippet>
 \`\`\``;
 
   async execute(prompt: string, _context?: AgentContext): Promise<AgentResult> {
-    const router = getModelRouter();
-
     try {
-      const response = await router.route({
+      const result = await streamAIResponse({
+        provider: "ollama",
+        model: "llama3:latest",
         messages: [{ role: "user", content: prompt }],
         systemPrompt: this.systemPrompt,
         temperature: 0.2,
@@ -57,9 +56,9 @@ Example: <code snippet>
 
       return {
         success: true,
-        content: response.content,
-        usage: response.usage,
-        model: this.model,
+        content: result.text,
+        usage: result.usage,
+        model: "ollama/llama3:latest",
       };
     } catch (error) {
       return {

@@ -1,10 +1,9 @@
 import type { Agent, AgentContext, AgentResult } from "./types";
-import { getModelRouter } from "../models/router";
+import { streamAIResponse } from "../models/ai-sdk";
 
 export class AnalystAgent implements Agent {
   readonly name = "analyst" as const;
   readonly displayName = "Analyst";
-  readonly model = "google/gemini-2.0-flash";
 
   readonly capabilities = [
     "large_context_analysis",
@@ -36,10 +35,10 @@ Always structure your analysis as:
 - Recommendations (prioritized)`;
 
   async execute(prompt: string, _context?: AgentContext): Promise<AgentResult> {
-    const router = getModelRouter();
-
     try {
-      const response = await router.route({
+      const result = await streamAIResponse({
+        provider: "ollama",
+        model: "llama3:latest",
         messages: [{ role: "user", content: prompt }],
         systemPrompt: this.systemPrompt,
         temperature: 0.3,
@@ -48,9 +47,9 @@ Always structure your analysis as:
 
       return {
         success: true,
-        content: response.content,
-        usage: response.usage,
-        model: this.model,
+        content: result.text,
+        usage: result.usage,
+        model: "ollama/llama3:latest",
       };
     } catch (error) {
       return {

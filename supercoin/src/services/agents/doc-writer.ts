@@ -1,10 +1,9 @@
 import type { Agent, AgentContext, AgentResult } from "./types";
-import { getModelRouter } from "../models/router";
+import { streamAIResponse } from "../models/ai-sdk";
 
 export class DocWriterAgent implements Agent {
   readonly name = "doc_writer" as const;
   readonly displayName = "Documentation Writer";
-  readonly model = "google/gemini-2.0-pro";
 
   readonly capabilities = [
     "documentation",
@@ -38,10 +37,10 @@ export class DocWriterAgent implements Agent {
 Provide documentation in Markdown format with proper headings, code blocks, and formatting.`;
 
   async execute(prompt: string, _context?: AgentContext): Promise<AgentResult> {
-    const router = getModelRouter();
-
     try {
-      const response = await router.route({
+      const result = await streamAIResponse({
+        provider: "ollama",
+        model: "llama3:latest",
         messages: [{ role: "user", content: prompt }],
         systemPrompt: this.systemPrompt,
         temperature: 0.5,
@@ -50,9 +49,9 @@ Provide documentation in Markdown format with proper headings, code blocks, and 
 
       return {
         success: true,
-        content: response.content,
-        usage: response.usage,
-        model: this.model,
+        content: result.text,
+        usage: result.usage,
+        model: "ollama/llama3:latest",
       };
     } catch (error) {
       return {
