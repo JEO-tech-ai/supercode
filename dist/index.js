@@ -1,9 +1,20 @@
+var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+}) : x)(function(x) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __commonJS = (cb, mod) => function __require2() {
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -17,10 +28,18 @@ var __copyProps = (to, from, except, desc) => {
   }
   return to;
 };
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // src/shared/logger.ts
-var DEBUG, logger, logger_default;
+var DEBUG, logger, Log, logger_default;
 var init_logger = __esm({
   "src/shared/logger.ts"() {
     "use strict";
@@ -47,6 +66,7 @@ var init_logger = __esm({
         console.log(`[supercoin] ${message}`);
       }
     };
+    Log = logger;
     logger_default = logger;
   }
 });
@@ -289,23 +309,1570 @@ var init_hooks2 = __esm({
   }
 });
 
-// src/core/tools/bash.ts
-import { exec as exec2 } from "child_process";
-import { promisify } from "util";
-var execAsync, bashTool;
-var init_bash = __esm({
-  "src/core/tools/bash.ts"() {
+// node_modules/node-pty/lib/utils.js
+var require_utils = __commonJS({
+  "node_modules/node-pty/lib/utils.js"(exports) {
     "use strict";
-    execAsync = promisify(exec2);
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.loadNativeModule = exports.assign = void 0;
+    function assign(target) {
+      var sources = [];
+      for (var _i = 1; _i < arguments.length; _i++) {
+        sources[_i - 1] = arguments[_i];
+      }
+      sources.forEach(function(source) {
+        return Object.keys(source).forEach(function(key) {
+          return target[key] = source[key];
+        });
+      });
+      return target;
+    }
+    exports.assign = assign;
+    function loadNativeModule(name) {
+      var dirs = ["build/Release", "build/Debug", "prebuilds/" + process.platform + "-" + process.arch];
+      var relative2 = ["..", "."];
+      var lastError;
+      for (var _i = 0, dirs_1 = dirs; _i < dirs_1.length; _i++) {
+        var d = dirs_1[_i];
+        for (var _a = 0, relative_1 = relative2; _a < relative_1.length; _a++) {
+          var r = relative_1[_a];
+          var dir = r + "/" + d + "/";
+          try {
+            return { dir, module: __require(dir + "/" + name + ".node") };
+          } catch (e) {
+            lastError = e;
+          }
+        }
+      }
+      throw new Error("Failed to load native module: " + name + ".node, checked: " + dirs.join(", ") + ": " + lastError);
+    }
+    exports.loadNativeModule = loadNativeModule;
+  }
+});
+
+// node_modules/node-pty/lib/eventEmitter2.js
+var require_eventEmitter2 = __commonJS({
+  "node_modules/node-pty/lib/eventEmitter2.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.EventEmitter2 = void 0;
+    var EventEmitter22 = (
+      /** @class */
+      (function() {
+        function EventEmitter23() {
+          this._listeners = [];
+        }
+        Object.defineProperty(EventEmitter23.prototype, "event", {
+          get: function() {
+            var _this = this;
+            if (!this._event) {
+              this._event = function(listener) {
+                _this._listeners.push(listener);
+                var disposable = {
+                  dispose: function() {
+                    for (var i = 0; i < _this._listeners.length; i++) {
+                      if (_this._listeners[i] === listener) {
+                        _this._listeners.splice(i, 1);
+                        return;
+                      }
+                    }
+                  }
+                };
+                return disposable;
+              };
+            }
+            return this._event;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        EventEmitter23.prototype.fire = function(data) {
+          var queue = [];
+          for (var i = 0; i < this._listeners.length; i++) {
+            queue.push(this._listeners[i]);
+          }
+          for (var i = 0; i < queue.length; i++) {
+            queue[i].call(void 0, data);
+          }
+        };
+        return EventEmitter23;
+      })()
+    );
+    exports.EventEmitter2 = EventEmitter22;
+  }
+});
+
+// node_modules/node-pty/lib/terminal.js
+var require_terminal = __commonJS({
+  "node_modules/node-pty/lib/terminal.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Terminal = exports.DEFAULT_ROWS = exports.DEFAULT_COLS = void 0;
+    var events_1 = __require("events");
+    var eventEmitter2_1 = require_eventEmitter2();
+    exports.DEFAULT_COLS = 80;
+    exports.DEFAULT_ROWS = 24;
+    var FLOW_CONTROL_PAUSE = "";
+    var FLOW_CONTROL_RESUME = "";
+    var Terminal = (
+      /** @class */
+      (function() {
+        function Terminal2(opt) {
+          this._pid = 0;
+          this._fd = 0;
+          this._cols = 0;
+          this._rows = 0;
+          this._readable = false;
+          this._writable = false;
+          this._onData = new eventEmitter2_1.EventEmitter2();
+          this._onExit = new eventEmitter2_1.EventEmitter2();
+          this._internalee = new events_1.EventEmitter();
+          this.handleFlowControl = !!(opt === null || opt === void 0 ? void 0 : opt.handleFlowControl);
+          this._flowControlPause = (opt === null || opt === void 0 ? void 0 : opt.flowControlPause) || FLOW_CONTROL_PAUSE;
+          this._flowControlResume = (opt === null || opt === void 0 ? void 0 : opt.flowControlResume) || FLOW_CONTROL_RESUME;
+          if (!opt) {
+            return;
+          }
+          this._checkType("name", opt.name ? opt.name : void 0, "string");
+          this._checkType("cols", opt.cols ? opt.cols : void 0, "number");
+          this._checkType("rows", opt.rows ? opt.rows : void 0, "number");
+          this._checkType("cwd", opt.cwd ? opt.cwd : void 0, "string");
+          this._checkType("env", opt.env ? opt.env : void 0, "object");
+          this._checkType("uid", opt.uid ? opt.uid : void 0, "number");
+          this._checkType("gid", opt.gid ? opt.gid : void 0, "number");
+          this._checkType("encoding", opt.encoding ? opt.encoding : void 0, "string");
+        }
+        Object.defineProperty(Terminal2.prototype, "onData", {
+          get: function() {
+            return this._onData.event;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(Terminal2.prototype, "onExit", {
+          get: function() {
+            return this._onExit.event;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(Terminal2.prototype, "pid", {
+          get: function() {
+            return this._pid;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(Terminal2.prototype, "cols", {
+          get: function() {
+            return this._cols;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(Terminal2.prototype, "rows", {
+          get: function() {
+            return this._rows;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        Terminal2.prototype.write = function(data) {
+          if (this.handleFlowControl) {
+            if (data === this._flowControlPause) {
+              this.pause();
+              return;
+            }
+            if (data === this._flowControlResume) {
+              this.resume();
+              return;
+            }
+          }
+          this._write(data);
+        };
+        Terminal2.prototype._forwardEvents = function() {
+          var _this = this;
+          this.on("data", function(e) {
+            return _this._onData.fire(e);
+          });
+          this.on("exit", function(exitCode, signal) {
+            return _this._onExit.fire({ exitCode, signal });
+          });
+        };
+        Terminal2.prototype._checkType = function(name, value, type, allowArray) {
+          if (allowArray === void 0) {
+            allowArray = false;
+          }
+          if (value === void 0) {
+            return;
+          }
+          if (allowArray) {
+            if (Array.isArray(value)) {
+              value.forEach(function(v, i) {
+                if (typeof v !== type) {
+                  throw new Error(name + "[" + i + "] must be a " + type + " (not a " + typeof v[i] + ")");
+                }
+              });
+              return;
+            }
+          }
+          if (typeof value !== type) {
+            throw new Error(name + " must be a " + type + " (not a " + typeof value + ")");
+          }
+        };
+        Terminal2.prototype.end = function(data) {
+          this._socket.end(data);
+        };
+        Terminal2.prototype.pipe = function(dest, options) {
+          return this._socket.pipe(dest, options);
+        };
+        Terminal2.prototype.pause = function() {
+          return this._socket.pause();
+        };
+        Terminal2.prototype.resume = function() {
+          return this._socket.resume();
+        };
+        Terminal2.prototype.setEncoding = function(encoding) {
+          if (this._socket._decoder) {
+            delete this._socket._decoder;
+          }
+          if (encoding) {
+            this._socket.setEncoding(encoding);
+          }
+        };
+        Terminal2.prototype.addListener = function(eventName, listener) {
+          this.on(eventName, listener);
+        };
+        Terminal2.prototype.on = function(eventName, listener) {
+          if (eventName === "close") {
+            this._internalee.on("close", listener);
+            return;
+          }
+          this._socket.on(eventName, listener);
+        };
+        Terminal2.prototype.emit = function(eventName) {
+          var args = [];
+          for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+          }
+          if (eventName === "close") {
+            return this._internalee.emit.apply(this._internalee, arguments);
+          }
+          return this._socket.emit.apply(this._socket, arguments);
+        };
+        Terminal2.prototype.listeners = function(eventName) {
+          return this._socket.listeners(eventName);
+        };
+        Terminal2.prototype.removeListener = function(eventName, listener) {
+          this._socket.removeListener(eventName, listener);
+        };
+        Terminal2.prototype.removeAllListeners = function(eventName) {
+          this._socket.removeAllListeners(eventName);
+        };
+        Terminal2.prototype.once = function(eventName, listener) {
+          this._socket.once(eventName, listener);
+        };
+        Terminal2.prototype._close = function() {
+          this._socket.readable = false;
+          this.write = function() {
+          };
+          this.end = function() {
+          };
+          this._writable = false;
+          this._readable = false;
+        };
+        Terminal2.prototype._parseEnv = function(env) {
+          var keys = Object.keys(env || {});
+          var pairs = [];
+          for (var i = 0; i < keys.length; i++) {
+            if (keys[i] === void 0) {
+              continue;
+            }
+            pairs.push(keys[i] + "=" + env[keys[i]]);
+          }
+          return pairs;
+        };
+        return Terminal2;
+      })()
+    );
+    exports.Terminal = Terminal;
+  }
+});
+
+// node_modules/node-pty/lib/shared/conout.js
+var require_conout = __commonJS({
+  "node_modules/node-pty/lib/shared/conout.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.getWorkerPipeName = void 0;
+    function getWorkerPipeName(conoutPipeName) {
+      return conoutPipeName + "-worker";
+    }
+    exports.getWorkerPipeName = getWorkerPipeName;
+  }
+});
+
+// node_modules/node-pty/lib/windowsConoutConnection.js
+var require_windowsConoutConnection = __commonJS({
+  "node_modules/node-pty/lib/windowsConoutConnection.js"(exports) {
+    "use strict";
+    var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
+      function adopt(value) {
+        return value instanceof P ? value : new P(function(resolve4) {
+          resolve4(value);
+        });
+      }
+      return new (P || (P = Promise))(function(resolve4, reject) {
+        function fulfilled(value) {
+          try {
+            step(generator.next(value));
+          } catch (e) {
+            reject(e);
+          }
+        }
+        function rejected(value) {
+          try {
+            step(generator["throw"](value));
+          } catch (e) {
+            reject(e);
+          }
+        }
+        function step(result) {
+          result.done ? resolve4(result.value) : adopt(result.value).then(fulfilled, rejected);
+        }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+      });
+    };
+    var __generator = exports && exports.__generator || function(thisArg, body) {
+      var _ = { label: 0, sent: function() {
+        if (t[0] & 1) throw t[1];
+        return t[1];
+      }, trys: [], ops: [] }, f, y, t, g;
+      return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() {
+        return this;
+      }), g;
+      function verb(n) {
+        return function(v) {
+          return step([n, v]);
+        };
+      }
+      function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+          if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+          if (y = 0, t) op = [op[0] & 2, t.value];
+          switch (op[0]) {
+            case 0:
+            case 1:
+              t = op;
+              break;
+            case 4:
+              _.label++;
+              return { value: op[1], done: false };
+            case 5:
+              _.label++;
+              y = op[1];
+              op = [0];
+              continue;
+            case 7:
+              op = _.ops.pop();
+              _.trys.pop();
+              continue;
+            default:
+              if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+                _ = 0;
+                continue;
+              }
+              if (op[0] === 3 && (!t || op[1] > t[0] && op[1] < t[3])) {
+                _.label = op[1];
+                break;
+              }
+              if (op[0] === 6 && _.label < t[1]) {
+                _.label = t[1];
+                t = op;
+                break;
+              }
+              if (t && _.label < t[2]) {
+                _.label = t[2];
+                _.ops.push(op);
+                break;
+              }
+              if (t[2]) _.ops.pop();
+              _.trys.pop();
+              continue;
+          }
+          op = body.call(thisArg, _);
+        } catch (e) {
+          op = [6, e];
+          y = 0;
+        } finally {
+          f = t = 0;
+        }
+        if (op[0] & 5) throw op[1];
+        return { value: op[0] ? op[1] : void 0, done: true };
+      }
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.ConoutConnection = void 0;
+    var worker_threads_1 = __require("worker_threads");
+    var conout_1 = require_conout();
+    var path_1 = __require("path");
+    var eventEmitter2_1 = require_eventEmitter2();
+    var FLUSH_DATA_INTERVAL = 1e3;
+    var ConoutConnection = (
+      /** @class */
+      (function() {
+        function ConoutConnection2(_conoutPipeName, _useConptyDll) {
+          var _this = this;
+          this._conoutPipeName = _conoutPipeName;
+          this._useConptyDll = _useConptyDll;
+          this._isDisposed = false;
+          this._onReady = new eventEmitter2_1.EventEmitter2();
+          var workerData = {
+            conoutPipeName: _conoutPipeName
+          };
+          var scriptPath = __dirname.replace("node_modules.asar", "node_modules.asar.unpacked");
+          this._worker = new worker_threads_1.Worker(path_1.join(scriptPath, "worker/conoutSocketWorker.js"), { workerData });
+          this._worker.on("message", function(message) {
+            switch (message) {
+              case 1:
+                _this._onReady.fire();
+                return;
+              default:
+                console.warn("Unexpected ConoutWorkerMessage", message);
+            }
+          });
+        }
+        Object.defineProperty(ConoutConnection2.prototype, "onReady", {
+          get: function() {
+            return this._onReady.event;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        ConoutConnection2.prototype.dispose = function() {
+          if (!this._useConptyDll && this._isDisposed) {
+            return;
+          }
+          this._isDisposed = true;
+          this._drainDataAndClose();
+        };
+        ConoutConnection2.prototype.connectSocket = function(socket) {
+          socket.connect(conout_1.getWorkerPipeName(this._conoutPipeName));
+        };
+        ConoutConnection2.prototype._drainDataAndClose = function() {
+          var _this = this;
+          if (this._drainTimeout) {
+            clearTimeout(this._drainTimeout);
+          }
+          this._drainTimeout = setTimeout(function() {
+            return _this._destroySocket();
+          }, FLUSH_DATA_INTERVAL);
+        };
+        ConoutConnection2.prototype._destroySocket = function() {
+          return __awaiter(this, void 0, void 0, function() {
+            return __generator(this, function(_a) {
+              switch (_a.label) {
+                case 0:
+                  return [4, this._worker.terminate()];
+                case 1:
+                  _a.sent();
+                  return [
+                    2
+                    /*return*/
+                  ];
+              }
+            });
+          });
+        };
+        return ConoutConnection2;
+      })()
+    );
+    exports.ConoutConnection = ConoutConnection;
+  }
+});
+
+// node_modules/node-pty/lib/windowsPtyAgent.js
+var require_windowsPtyAgent = __commonJS({
+  "node_modules/node-pty/lib/windowsPtyAgent.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.argsToCommandLine = exports.WindowsPtyAgent = void 0;
+    var fs7 = __require("fs");
+    var os = __require("os");
+    var path7 = __require("path");
+    var child_process_1 = __require("child_process");
+    var net_1 = __require("net");
+    var windowsConoutConnection_1 = require_windowsConoutConnection();
+    var utils_1 = require_utils();
+    var conptyNative;
+    var winptyNative;
+    var FLUSH_DATA_INTERVAL = 1e3;
+    var WindowsPtyAgent = (
+      /** @class */
+      (function() {
+        function WindowsPtyAgent2(file, args, env, cwd, cols, rows, debug, _useConpty, _useConptyDll, conptyInheritCursor) {
+          var _this = this;
+          if (_useConptyDll === void 0) {
+            _useConptyDll = false;
+          }
+          if (conptyInheritCursor === void 0) {
+            conptyInheritCursor = false;
+          }
+          this._useConpty = _useConpty;
+          this._useConptyDll = _useConptyDll;
+          this._pid = 0;
+          this._innerPid = 0;
+          if (this._useConpty === void 0 || this._useConpty === true) {
+            this._useConpty = this._getWindowsBuildNumber() >= 18309;
+          }
+          if (this._useConpty) {
+            if (!conptyNative) {
+              conptyNative = utils_1.loadNativeModule("conpty").module;
+            }
+          } else {
+            if (!winptyNative) {
+              winptyNative = utils_1.loadNativeModule("pty").module;
+            }
+          }
+          this._ptyNative = this._useConpty ? conptyNative : winptyNative;
+          cwd = path7.resolve(cwd);
+          var commandLine = argsToCommandLine(file, args);
+          var term;
+          if (this._useConpty) {
+            term = this._ptyNative.startProcess(file, cols, rows, debug, this._generatePipeName(), conptyInheritCursor, this._useConptyDll);
+          } else {
+            term = this._ptyNative.startProcess(file, commandLine, env, cwd, cols, rows, debug);
+            this._pid = term.pid;
+            this._innerPid = term.innerPid;
+          }
+          this._fd = term.fd;
+          this._pty = term.pty;
+          this._outSocket = new net_1.Socket();
+          this._outSocket.setEncoding("utf8");
+          this._conoutSocketWorker = new windowsConoutConnection_1.ConoutConnection(term.conout, this._useConptyDll);
+          this._conoutSocketWorker.onReady(function() {
+            _this._conoutSocketWorker.connectSocket(_this._outSocket);
+          });
+          this._outSocket.on("connect", function() {
+            _this._outSocket.emit("ready_datapipe");
+          });
+          var inSocketFD = fs7.openSync(term.conin, "w");
+          this._inSocket = new net_1.Socket({
+            fd: inSocketFD,
+            readable: false,
+            writable: true
+          });
+          this._inSocket.setEncoding("utf8");
+          if (this._useConpty) {
+            var connect = this._ptyNative.connect(this._pty, commandLine, cwd, env, this._useConptyDll, function(c) {
+              return _this._$onProcessExit(c);
+            });
+            this._innerPid = connect.pid;
+          }
+        }
+        Object.defineProperty(WindowsPtyAgent2.prototype, "inSocket", {
+          get: function() {
+            return this._inSocket;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(WindowsPtyAgent2.prototype, "outSocket", {
+          get: function() {
+            return this._outSocket;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(WindowsPtyAgent2.prototype, "fd", {
+          get: function() {
+            return this._fd;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(WindowsPtyAgent2.prototype, "innerPid", {
+          get: function() {
+            return this._innerPid;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(WindowsPtyAgent2.prototype, "pty", {
+          get: function() {
+            return this._pty;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        WindowsPtyAgent2.prototype.resize = function(cols, rows) {
+          if (this._useConpty) {
+            if (this._exitCode !== void 0) {
+              throw new Error("Cannot resize a pty that has already exited");
+            }
+            this._ptyNative.resize(this._pty, cols, rows, this._useConptyDll);
+            return;
+          }
+          this._ptyNative.resize(this._pid, cols, rows);
+        };
+        WindowsPtyAgent2.prototype.clear = function() {
+          if (this._useConpty) {
+            this._ptyNative.clear(this._pty, this._useConptyDll);
+          }
+        };
+        WindowsPtyAgent2.prototype.kill = function() {
+          var _this = this;
+          if (this._useConpty) {
+            if (!this._useConptyDll) {
+              this._inSocket.readable = false;
+              this._outSocket.readable = false;
+              this._getConsoleProcessList().then(function(consoleProcessList) {
+                consoleProcessList.forEach(function(pid) {
+                  try {
+                    process.kill(pid);
+                  } catch (e) {
+                  }
+                });
+              });
+              this._ptyNative.kill(this._pty, this._useConptyDll);
+              this._conoutSocketWorker.dispose();
+            } else {
+              this._inSocket.destroy();
+              this._ptyNative.kill(this._pty, this._useConptyDll);
+              this._outSocket.on("data", function() {
+                _this._conoutSocketWorker.dispose();
+              });
+            }
+          } else {
+            var processList = this._ptyNative.getProcessList(this._pid);
+            this._ptyNative.kill(this._pid, this._innerPid);
+            processList.forEach(function(pid) {
+              try {
+                process.kill(pid);
+              } catch (e) {
+              }
+            });
+          }
+        };
+        WindowsPtyAgent2.prototype._getConsoleProcessList = function() {
+          var _this = this;
+          return new Promise(function(resolve4) {
+            var agent = child_process_1.fork(path7.join(__dirname, "conpty_console_list_agent"), [_this._innerPid.toString()]);
+            agent.on("message", function(message) {
+              clearTimeout(timeout);
+              resolve4(message.consoleProcessList);
+            });
+            var timeout = setTimeout(function() {
+              agent.kill();
+              resolve4([_this._innerPid]);
+            }, 5e3);
+          });
+        };
+        Object.defineProperty(WindowsPtyAgent2.prototype, "exitCode", {
+          get: function() {
+            if (this._useConpty) {
+              return this._exitCode;
+            }
+            var winptyExitCode = this._ptyNative.getExitCode(this._innerPid);
+            return winptyExitCode === -1 ? void 0 : winptyExitCode;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        WindowsPtyAgent2.prototype._getWindowsBuildNumber = function() {
+          var osVersion = /(\d+)\.(\d+)\.(\d+)/g.exec(os.release());
+          var buildNumber = 0;
+          if (osVersion && osVersion.length === 4) {
+            buildNumber = parseInt(osVersion[3]);
+          }
+          return buildNumber;
+        };
+        WindowsPtyAgent2.prototype._generatePipeName = function() {
+          return "conpty-" + Math.random() * 1e7;
+        };
+        WindowsPtyAgent2.prototype._$onProcessExit = function(exitCode) {
+          var _this = this;
+          this._exitCode = exitCode;
+          if (!this._useConptyDll) {
+            this._flushDataAndCleanUp();
+            this._outSocket.on("data", function() {
+              return _this._flushDataAndCleanUp();
+            });
+          }
+        };
+        WindowsPtyAgent2.prototype._flushDataAndCleanUp = function() {
+          var _this = this;
+          if (this._useConptyDll) {
+            return;
+          }
+          if (this._closeTimeout) {
+            clearTimeout(this._closeTimeout);
+          }
+          this._closeTimeout = setTimeout(function() {
+            return _this._cleanUpProcess();
+          }, FLUSH_DATA_INTERVAL);
+        };
+        WindowsPtyAgent2.prototype._cleanUpProcess = function() {
+          if (this._useConptyDll) {
+            return;
+          }
+          this._inSocket.readable = false;
+          this._outSocket.readable = false;
+          this._outSocket.destroy();
+        };
+        return WindowsPtyAgent2;
+      })()
+    );
+    exports.WindowsPtyAgent = WindowsPtyAgent;
+    function argsToCommandLine(file, args) {
+      if (isCommandLine(args)) {
+        if (args.length === 0) {
+          return file;
+        }
+        return argsToCommandLine(file, []) + " " + args;
+      }
+      var argv = [file];
+      Array.prototype.push.apply(argv, args);
+      var result = "";
+      for (var argIndex = 0; argIndex < argv.length; argIndex++) {
+        if (argIndex > 0) {
+          result += " ";
+        }
+        var arg = argv[argIndex];
+        var hasLopsidedEnclosingQuote = xOr(arg[0] !== '"', arg[arg.length - 1] !== '"');
+        var hasNoEnclosingQuotes = arg[0] !== '"' && arg[arg.length - 1] !== '"';
+        var quote = arg === "" || (arg.indexOf(" ") !== -1 || arg.indexOf("	") !== -1) && (arg.length > 1 && (hasLopsidedEnclosingQuote || hasNoEnclosingQuotes));
+        if (quote) {
+          result += '"';
+        }
+        var bsCount = 0;
+        for (var i = 0; i < arg.length; i++) {
+          var p = arg[i];
+          if (p === "\\") {
+            bsCount++;
+          } else if (p === '"') {
+            result += repeatText("\\", bsCount * 2 + 1);
+            result += '"';
+            bsCount = 0;
+          } else {
+            result += repeatText("\\", bsCount);
+            bsCount = 0;
+            result += p;
+          }
+        }
+        if (quote) {
+          result += repeatText("\\", bsCount * 2);
+          result += '"';
+        } else {
+          result += repeatText("\\", bsCount);
+        }
+      }
+      return result;
+    }
+    exports.argsToCommandLine = argsToCommandLine;
+    function isCommandLine(args) {
+      return typeof args === "string";
+    }
+    function repeatText(text, count) {
+      var result = "";
+      for (var i = 0; i < count; i++) {
+        result += text;
+      }
+      return result;
+    }
+    function xOr(arg1, arg2) {
+      return arg1 && !arg2 || !arg1 && arg2;
+    }
+  }
+});
+
+// node_modules/node-pty/lib/windowsTerminal.js
+var require_windowsTerminal = __commonJS({
+  "node_modules/node-pty/lib/windowsTerminal.js"(exports) {
+    "use strict";
+    var __extends = exports && exports.__extends || /* @__PURE__ */ (function() {
+      var extendStatics = function(d, b) {
+        extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2) if (b2.hasOwnProperty(p)) d2[p] = b2[p];
+        };
+        return extendStatics(d, b);
+      };
+      return function(d, b) {
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      };
+    })();
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.WindowsTerminal = void 0;
+    var terminal_1 = require_terminal();
+    var windowsPtyAgent_1 = require_windowsPtyAgent();
+    var utils_1 = require_utils();
+    var DEFAULT_FILE = "cmd.exe";
+    var DEFAULT_NAME = "Windows Shell";
+    var WindowsTerminal = (
+      /** @class */
+      (function(_super) {
+        __extends(WindowsTerminal2, _super);
+        function WindowsTerminal2(file, args, opt) {
+          var _this = _super.call(this, opt) || this;
+          _this._checkType("args", args, "string", true);
+          args = args || [];
+          file = file || DEFAULT_FILE;
+          opt = opt || {};
+          opt.env = opt.env || process.env;
+          if (opt.encoding) {
+            console.warn("Setting encoding on Windows is not supported");
+          }
+          var env = utils_1.assign({}, opt.env);
+          _this._cols = opt.cols || terminal_1.DEFAULT_COLS;
+          _this._rows = opt.rows || terminal_1.DEFAULT_ROWS;
+          var cwd = opt.cwd || process.cwd();
+          var name = opt.name || env.TERM || DEFAULT_NAME;
+          var parsedEnv = _this._parseEnv(env);
+          _this._isReady = false;
+          _this._deferreds = [];
+          _this._agent = new windowsPtyAgent_1.WindowsPtyAgent(file, args, parsedEnv, cwd, _this._cols, _this._rows, false, opt.useConpty, opt.useConptyDll, opt.conptyInheritCursor);
+          _this._socket = _this._agent.outSocket;
+          _this._pid = _this._agent.innerPid;
+          _this._fd = _this._agent.fd;
+          _this._pty = _this._agent.pty;
+          _this._socket.on("ready_datapipe", function() {
+            _this._socket.once("data", function() {
+              if (!_this._isReady) {
+                _this._isReady = true;
+                _this._deferreds.forEach(function(fn) {
+                  fn.run();
+                });
+                _this._deferreds = [];
+              }
+            });
+            _this._socket.on("error", function(err) {
+              _this._close();
+              if (err.code) {
+                if (~err.code.indexOf("errno 5") || ~err.code.indexOf("EIO"))
+                  return;
+              }
+              if (_this.listeners("error").length < 2) {
+                throw err;
+              }
+            });
+            _this._socket.on("close", function() {
+              _this.emit("exit", _this._agent.exitCode);
+              _this._close();
+            });
+          });
+          _this._file = file;
+          _this._name = name;
+          _this._readable = true;
+          _this._writable = true;
+          _this._forwardEvents();
+          return _this;
+        }
+        WindowsTerminal2.prototype._write = function(data) {
+          this._defer(this._doWrite, data);
+        };
+        WindowsTerminal2.prototype._doWrite = function(data) {
+          this._agent.inSocket.write(data);
+        };
+        WindowsTerminal2.open = function(options) {
+          throw new Error("open() not supported on windows, use Fork() instead.");
+        };
+        WindowsTerminal2.prototype.resize = function(cols, rows) {
+          var _this = this;
+          if (cols <= 0 || rows <= 0 || isNaN(cols) || isNaN(rows) || cols === Infinity || rows === Infinity) {
+            throw new Error("resizing must be done using positive cols and rows");
+          }
+          this._deferNoArgs(function() {
+            _this._agent.resize(cols, rows);
+            _this._cols = cols;
+            _this._rows = rows;
+          });
+        };
+        WindowsTerminal2.prototype.clear = function() {
+          var _this = this;
+          this._deferNoArgs(function() {
+            _this._agent.clear();
+          });
+        };
+        WindowsTerminal2.prototype.destroy = function() {
+          var _this = this;
+          this._deferNoArgs(function() {
+            _this.kill();
+          });
+        };
+        WindowsTerminal2.prototype.kill = function(signal) {
+          var _this = this;
+          this._deferNoArgs(function() {
+            if (signal) {
+              throw new Error("Signals not supported on windows.");
+            }
+            _this._close();
+            _this._agent.kill();
+          });
+        };
+        WindowsTerminal2.prototype._deferNoArgs = function(deferredFn) {
+          var _this = this;
+          if (this._isReady) {
+            deferredFn.call(this);
+            return;
+          }
+          this._deferreds.push({
+            run: function() {
+              return deferredFn.call(_this);
+            }
+          });
+        };
+        WindowsTerminal2.prototype._defer = function(deferredFn, arg) {
+          var _this = this;
+          if (this._isReady) {
+            deferredFn.call(this, arg);
+            return;
+          }
+          this._deferreds.push({
+            run: function() {
+              return deferredFn.call(_this, arg);
+            }
+          });
+        };
+        Object.defineProperty(WindowsTerminal2.prototype, "process", {
+          get: function() {
+            return this._name;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(WindowsTerminal2.prototype, "master", {
+          get: function() {
+            throw new Error("master is not supported on Windows");
+          },
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(WindowsTerminal2.prototype, "slave", {
+          get: function() {
+            throw new Error("slave is not supported on Windows");
+          },
+          enumerable: false,
+          configurable: true
+        });
+        return WindowsTerminal2;
+      })(terminal_1.Terminal)
+    );
+    exports.WindowsTerminal = WindowsTerminal;
+  }
+});
+
+// node_modules/node-pty/lib/unixTerminal.js
+var require_unixTerminal = __commonJS({
+  "node_modules/node-pty/lib/unixTerminal.js"(exports) {
+    "use strict";
+    var __extends = exports && exports.__extends || /* @__PURE__ */ (function() {
+      var extendStatics = function(d, b) {
+        extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+          d2.__proto__ = b2;
+        } || function(d2, b2) {
+          for (var p in b2) if (b2.hasOwnProperty(p)) d2[p] = b2[p];
+        };
+        return extendStatics(d, b);
+      };
+      return function(d, b) {
+        extendStatics(d, b);
+        function __() {
+          this.constructor = d;
+        }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+      };
+    })();
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.UnixTerminal = void 0;
+    var fs7 = __require("fs");
+    var path7 = __require("path");
+    var tty = __require("tty");
+    var terminal_1 = require_terminal();
+    var utils_1 = require_utils();
+    var native = utils_1.loadNativeModule("pty");
+    var pty2 = native.module;
+    var helperPath = native.dir + "/spawn-helper";
+    helperPath = path7.resolve(__dirname, helperPath);
+    helperPath = helperPath.replace("app.asar", "app.asar.unpacked");
+    helperPath = helperPath.replace("node_modules.asar", "node_modules.asar.unpacked");
+    var DEFAULT_FILE = "sh";
+    var DEFAULT_NAME = "xterm";
+    var DESTROY_SOCKET_TIMEOUT_MS = 200;
+    var UnixTerminal = (
+      /** @class */
+      (function(_super) {
+        __extends(UnixTerminal2, _super);
+        function UnixTerminal2(file, args, opt) {
+          var _a, _b;
+          var _this = _super.call(this, opt) || this;
+          _this._boundClose = false;
+          _this._emittedClose = false;
+          if (typeof args === "string") {
+            throw new Error("args as a string is not supported on unix.");
+          }
+          args = args || [];
+          file = file || DEFAULT_FILE;
+          opt = opt || {};
+          opt.env = opt.env || process.env;
+          _this._cols = opt.cols || terminal_1.DEFAULT_COLS;
+          _this._rows = opt.rows || terminal_1.DEFAULT_ROWS;
+          var uid = (_a = opt.uid) !== null && _a !== void 0 ? _a : -1;
+          var gid = (_b = opt.gid) !== null && _b !== void 0 ? _b : -1;
+          var env = utils_1.assign({}, opt.env);
+          if (opt.env === process.env) {
+            _this._sanitizeEnv(env);
+          }
+          var cwd = opt.cwd || process.cwd();
+          env.PWD = cwd;
+          var name = opt.name || env.TERM || DEFAULT_NAME;
+          env.TERM = name;
+          var parsedEnv = _this._parseEnv(env);
+          var encoding = opt.encoding === void 0 ? "utf8" : opt.encoding;
+          var onexit = function(code, signal) {
+            if (!_this._emittedClose) {
+              if (_this._boundClose) {
+                return;
+              }
+              _this._boundClose = true;
+              var timeout_1 = setTimeout(function() {
+                timeout_1 = null;
+                _this._socket.destroy();
+              }, DESTROY_SOCKET_TIMEOUT_MS);
+              _this.once("close", function() {
+                if (timeout_1 !== null) {
+                  clearTimeout(timeout_1);
+                }
+                _this.emit("exit", code, signal);
+              });
+              return;
+            }
+            _this.emit("exit", code, signal);
+          };
+          var term = pty2.fork(file, args, parsedEnv, cwd, _this._cols, _this._rows, uid, gid, encoding === "utf8", helperPath, onexit);
+          _this._socket = new tty.ReadStream(term.fd);
+          if (encoding !== null) {
+            _this._socket.setEncoding(encoding);
+          }
+          _this._writeStream = new CustomWriteStream(term.fd, encoding || void 0);
+          _this._socket.on("error", function(err) {
+            if (err.code) {
+              if (~err.code.indexOf("EAGAIN")) {
+                return;
+              }
+            }
+            _this._close();
+            if (!_this._emittedClose) {
+              _this._emittedClose = true;
+              _this.emit("close");
+            }
+            if (err.code) {
+              if (~err.code.indexOf("errno 5") || ~err.code.indexOf("EIO")) {
+                return;
+              }
+            }
+            if (_this.listeners("error").length < 2) {
+              throw err;
+            }
+          });
+          _this._pid = term.pid;
+          _this._fd = term.fd;
+          _this._pty = term.pty;
+          _this._file = file;
+          _this._name = name;
+          _this._readable = true;
+          _this._writable = true;
+          _this._socket.on("close", function() {
+            if (_this._emittedClose) {
+              return;
+            }
+            _this._emittedClose = true;
+            _this._close();
+            _this.emit("close");
+          });
+          _this._forwardEvents();
+          return _this;
+        }
+        Object.defineProperty(UnixTerminal2.prototype, "master", {
+          get: function() {
+            return this._master;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(UnixTerminal2.prototype, "slave", {
+          get: function() {
+            return this._slave;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        UnixTerminal2.prototype._write = function(data) {
+          this._writeStream.write(data);
+        };
+        Object.defineProperty(UnixTerminal2.prototype, "fd", {
+          /* Accessors */
+          get: function() {
+            return this._fd;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        Object.defineProperty(UnixTerminal2.prototype, "ptsName", {
+          get: function() {
+            return this._pty;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        UnixTerminal2.open = function(opt) {
+          var self = Object.create(UnixTerminal2.prototype);
+          opt = opt || {};
+          if (arguments.length > 1) {
+            opt = {
+              cols: arguments[1],
+              rows: arguments[2]
+            };
+          }
+          var cols = opt.cols || terminal_1.DEFAULT_COLS;
+          var rows = opt.rows || terminal_1.DEFAULT_ROWS;
+          var encoding = opt.encoding === void 0 ? "utf8" : opt.encoding;
+          var term = pty2.open(cols, rows);
+          self._master = new tty.ReadStream(term.master);
+          if (encoding !== null) {
+            self._master.setEncoding(encoding);
+          }
+          self._master.resume();
+          self._slave = new tty.ReadStream(term.slave);
+          if (encoding !== null) {
+            self._slave.setEncoding(encoding);
+          }
+          self._slave.resume();
+          self._socket = self._master;
+          self._pid = -1;
+          self._fd = term.master;
+          self._pty = term.pty;
+          self._file = process.argv[0] || "node";
+          self._name = process.env.TERM || "";
+          self._readable = true;
+          self._writable = true;
+          self._socket.on("error", function(err) {
+            self._close();
+            if (self.listeners("error").length < 2) {
+              throw err;
+            }
+          });
+          self._socket.on("close", function() {
+            self._close();
+          });
+          return self;
+        };
+        UnixTerminal2.prototype.destroy = function() {
+          var _this = this;
+          this._close();
+          this._socket.once("close", function() {
+            _this.kill("SIGHUP");
+          });
+          this._socket.destroy();
+          this._writeStream.dispose();
+        };
+        UnixTerminal2.prototype.kill = function(signal) {
+          try {
+            process.kill(this.pid, signal || "SIGHUP");
+          } catch (e) {
+          }
+        };
+        Object.defineProperty(UnixTerminal2.prototype, "process", {
+          /**
+           * Gets the name of the process.
+           */
+          get: function() {
+            if (process.platform === "darwin") {
+              var title = pty2.process(this._fd);
+              return title !== "kernel_task" ? title : this._file;
+            }
+            return pty2.process(this._fd, this._pty) || this._file;
+          },
+          enumerable: false,
+          configurable: true
+        });
+        UnixTerminal2.prototype.resize = function(cols, rows) {
+          if (cols <= 0 || rows <= 0 || isNaN(cols) || isNaN(rows) || cols === Infinity || rows === Infinity) {
+            throw new Error("resizing must be done using positive cols and rows");
+          }
+          pty2.resize(this._fd, cols, rows);
+          this._cols = cols;
+          this._rows = rows;
+        };
+        UnixTerminal2.prototype.clear = function() {
+        };
+        UnixTerminal2.prototype._sanitizeEnv = function(env) {
+          delete env["TMUX"];
+          delete env["TMUX_PANE"];
+          delete env["STY"];
+          delete env["WINDOW"];
+          delete env["WINDOWID"];
+          delete env["TERMCAP"];
+          delete env["COLUMNS"];
+          delete env["LINES"];
+        };
+        return UnixTerminal2;
+      })(terminal_1.Terminal)
+    );
+    exports.UnixTerminal = UnixTerminal;
+    var CustomWriteStream = (
+      /** @class */
+      (function() {
+        function CustomWriteStream2(_fd, _encoding) {
+          this._fd = _fd;
+          this._encoding = _encoding;
+          this._writeQueue = [];
+        }
+        CustomWriteStream2.prototype.dispose = function() {
+          clearImmediate(this._writeImmediate);
+          this._writeImmediate = void 0;
+        };
+        CustomWriteStream2.prototype.write = function(data) {
+          var buffer = typeof data === "string" ? Buffer.from(data, this._encoding) : Buffer.from(data);
+          if (buffer.byteLength !== 0) {
+            this._writeQueue.push({ buffer, offset: 0 });
+            if (this._writeQueue.length === 1) {
+              this._processWriteQueue();
+            }
+          }
+        };
+        CustomWriteStream2.prototype._processWriteQueue = function() {
+          var _this = this;
+          this._writeImmediate = void 0;
+          if (this._writeQueue.length === 0) {
+            return;
+          }
+          var task = this._writeQueue[0];
+          fs7.write(this._fd, task.buffer, task.offset, function(err, written) {
+            if (err) {
+              if ("code" in err && err.code === "EAGAIN") {
+                _this._writeImmediate = setImmediate(function() {
+                  return _this._processWriteQueue();
+                });
+              } else {
+                _this._writeQueue.length = 0;
+                console.error("Unhandled pty write error", err);
+              }
+              return;
+            }
+            task.offset += written;
+            if (task.offset >= task.buffer.byteLength) {
+              _this._writeQueue.shift();
+            }
+            _this._processWriteQueue();
+          });
+        };
+        return CustomWriteStream2;
+      })()
+    );
+  }
+});
+
+// node_modules/node-pty/lib/index.js
+var require_lib = __commonJS({
+  "node_modules/node-pty/lib/index.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.native = exports.open = exports.createTerminal = exports.fork = exports.spawn = void 0;
+    var utils_1 = require_utils();
+    var terminalCtor;
+    if (process.platform === "win32") {
+      terminalCtor = require_windowsTerminal().WindowsTerminal;
+    } else {
+      terminalCtor = require_unixTerminal().UnixTerminal;
+    }
+    function spawn2(file, args, opt) {
+      return new terminalCtor(file, args, opt);
+    }
+    exports.spawn = spawn2;
+    function fork(file, args, opt) {
+      return new terminalCtor(file, args, opt);
+    }
+    exports.fork = fork;
+    function createTerminal(file, args, opt) {
+      return new terminalCtor(file, args, opt);
+    }
+    exports.createTerminal = createTerminal;
+    function open(options) {
+      return terminalCtor.open(options);
+    }
+    exports.open = open;
+    exports.native = process.platform !== "win32" ? utils_1.loadNativeModule("pty").module : null;
+  }
+});
+
+// src/services/pty/manager.ts
+import { EventEmitter as EventEmitter2 } from "events";
+var pty, PTYManager, ptyManager;
+var init_manager = __esm({
+  "src/services/pty/manager.ts"() {
+    "use strict";
+    pty = __toESM(require_lib(), 1);
+    init_logger();
+    PTYManager = class extends EventEmitter2 {
+      processes = /* @__PURE__ */ new Map();
+      activeProcesses = /* @__PURE__ */ new Set();
+      config;
+      constructor(config = {}) {
+        super();
+        this.config = {
+          maxConcurrent: 5,
+          idleTimeout: 3e5,
+          // 5 minutes
+          enableCaching: true,
+          logLevel: "info",
+          ...config
+        };
+      }
+      async spawn(options) {
+        const processId = crypto.randomUUID();
+        const process2 = this.createPTYProcess(processId, options);
+        this.activeProcesses.add(processId);
+        this.processes.set(processId, process2);
+        process2.onData((data) => {
+          process2.outputBuffer.push(data);
+          process2.lastActivity = /* @__PURE__ */ new Date();
+          this.emit("data", { type: "data", data, process: process2 });
+        });
+        process2.onExit((exitCode, signal) => {
+          this.handleExit(process2, exitCode, signal);
+        });
+        return process2;
+      }
+      async getProcess(processId) {
+        return this.processes.get(processId) || null;
+      }
+      async getProcessByCwd(cwd) {
+        return Array.from(this.processes.values()).find((p) => p.cwd === cwd && p.isAlive()) || null;
+      }
+      async kill(processId, signal = "SIGTERM") {
+        const process2 = this.processes.get(processId);
+        if (!process2) {
+          throw new PTYNotFoundError(processId);
+        }
+        if (!process2.isAlive()) {
+          Log.warn(`Process ${processId} already dead`);
+          this.processes.delete(processId);
+          return;
+        }
+        Log.info(`Killing process ${processId} with ${signal}`);
+        process2.kill(signal);
+      }
+      async shutdown(processId) {
+        const process2 = this.processes.get(processId);
+        if (!process2) return;
+        if (!process2.isAlive()) return;
+        Log.info(`Shutting down process ${processId}`);
+        process2.kill("SIGTERM");
+        await this.waitForExit(process2, 1e3);
+        if (process2.isAlive()) {
+          process2.kill("SIGKILL");
+          await this.waitForExit(process2, 500);
+        }
+        this.processes.delete(processId);
+        this.activeProcesses.delete(processId);
+      }
+      async shutdownAll() {
+        Log.info(`Shutting down all PTY processes (${this.processes.size})`);
+        const shutdownPromises = Array.from(this.processes.entries()).map(([id]) => this.shutdown(id));
+        await Promise.all(shutdownPromises);
+        this.processes.clear();
+        this.activeProcesses.clear();
+      }
+      handleExit(process2, exitCode, signal) {
+        Log.info(`Process ${process2.id} exited with code ${exitCode}, signal: ${signal}`);
+        this.activeProcesses.delete(process2.id);
+        this.emit("exit", {
+          type: "exit",
+          exitCode,
+          signal,
+          process: process2
+        });
+        process2.removeAllListeners();
+        this.processes.delete(process2.id);
+      }
+      async waitForExit(process2, timeout) {
+        const startTime = Date.now();
+        while (Date.now() - startTime < timeout && process2.isAlive()) {
+          await new Promise((resolve4) => setTimeout(resolve4, 100));
+        }
+      }
+      createPTYProcess(processId, options) {
+        const ptyProcess = pty.spawn(
+          options.shell || process.env.SHELL || "bash",
+          options.args || [],
+          {
+            name: "xterm-256color",
+            cols: options.cols || 80,
+            rows: options.rows || 24,
+            cwd: options.cwd || process.cwd(),
+            env: {
+              ...process.env,
+              ...options.env,
+              TERM: "xterm-256color",
+              COLORTERM: "xterm-256color"
+            },
+            useConpty: true
+          }
+        );
+        return {
+          id: processId,
+          pid: ptyProcess.pid,
+          shell: options.shell || "bash",
+          cwd: options.cwd || process.cwd(),
+          cols: options.cols || 80,
+          rows: options.rows || 24,
+          env: { ...process.env, ...options.env },
+          isAlive: () => ptyProcess.pid > 0 && !ptyProcess.killed,
+          kill: (signal) => ptyProcess.kill(signal),
+          resize: (cols, rows) => ptyProcess.resize(cols, rows),
+          write: (data) => ptyProcess.write(data),
+          onData: (callback) => ptyProcess.onData(callback),
+          onExit: (callback) => ptyProcess.onExit(callback),
+          onError: (callback) => ptyProcess.on("error", callback),
+          outputBuffer: [],
+          lastActivity: /* @__PURE__ */ new Date()
+        };
+      }
+      async cleanupStaleSessions() {
+        const now = Date.now();
+        const staleThreshold = this.config.idleTimeout;
+        let staleCount = 0;
+        for (const [id, process2] of this.processes.entries()) {
+          if (!process2.isAlive()) {
+            await this.shutdown(id);
+            staleCount++;
+          }
+        }
+        if (staleCount > 0) {
+          Log.info(`Cleaned up ${staleCount} stale sessions`);
+        }
+      }
+    };
+    ptyManager = new PTYManager();
+  }
+});
+
+// src/services/pty/prompt-detector.ts
+var PromptDetector, promptDetector;
+var init_prompt_detector = __esm({
+  "src/services/pty/prompt-detector.ts"() {
+    "use strict";
+    PromptDetector = class {
+      patterns = {
+        general: [
+          /\$\s*$/,
+          // bash $
+          />\s*$/,
+          // fish >
+          /\#\s*$/,
+          // root #
+          /%\s*$/,
+          // zsh %
+          /\?\s*$/
+          // command ?
+        ],
+        confirmation: [
+          /\[yYnN\]$/,
+          /\(y\/n\)$/,
+          /\[y\/n\]$/,
+          /Continue\?/,
+          /Proceed\?/
+        ],
+        password: [
+          /Password:\s*$/,
+          /password:\s*$/,
+          /Enter password:\s*$/
+        ],
+        multiLine: [
+          />\s*$/,
+          /\.\.\.\s*$/,
+          /"/
+        ]
+      };
+      detect(data) {
+        const trimmed = data.trim();
+        for (const pattern of this.patterns.password) {
+          if (pattern.test(trimmed)) {
+            return {
+              type: "password",
+              prompt: trimmed,
+              suggestions: ["Enter password (hidden input)"]
+            };
+          }
+        }
+        for (const pattern of this.patterns.confirmation) {
+          if (pattern.test(trimmed)) {
+            return {
+              type: "confirmation",
+              prompt: trimmed,
+              suggestions: ["[y] Yes", "[n] No", "[Ctrl+C] Cancel"]
+            };
+          }
+        }
+        for (const pattern of this.patterns.multiLine) {
+          if (pattern.test(trimmed)) {
+            return {
+              type: "multi-line",
+              prompt: trimmed,
+              suggestions: ["Continue typing", "[Ctrl+D] Submit", "[Ctrl+C] Cancel"]
+            };
+          }
+        }
+        for (const pattern of this.patterns.general) {
+          if (pattern.test(trimmed)) {
+            return {
+              type: "general",
+              prompt: trimmed,
+              suggestions: ["Enter command"]
+            };
+          }
+        }
+        return null;
+      }
+      stripANSIColors(data) {
+        const ansiRegex = /\x1b\[[0-9;]*m/g;
+        return data.replace(ansiRegex, "");
+      }
+    };
+    promptDetector = new PromptDetector();
+  }
+});
+
+// src/core/tools/bash-pty.ts
+var bashTool;
+var init_bash_pty = __esm({
+  "src/core/tools/bash-pty.ts"() {
+    "use strict";
+    init_manager();
+    init_prompt_detector();
     bashTool = {
       name: "bash",
-      description: "Execute a bash command",
+      description: "Execute bash command (supports interactive mode with PTY)",
       parameters: [
         {
           name: "command",
           type: "string",
           description: "The command to execute",
           required: true
+        },
+        {
+          name: "interactive",
+          type: "boolean",
+          description: "Enable interactive PTY mode for long-running commands",
+          required: false,
+          default: false
         },
         {
           name: "workdir",
@@ -316,18 +1883,80 @@ var init_bash = __esm({
         {
           name: "timeout",
           type: "number",
-          description: "Timeout in milliseconds",
+          description: "Timeout in milliseconds (default: 30000)",
           required: false,
-          default: 12e4
+          default: 3e4
         }
       ],
       async execute(args, context) {
         const command = args.command;
+        const interactive = args.interactive ?? false;
         const workdir = args.workdir || context.workdir;
-        const timeout = args.timeout || 12e4;
+        const timeout = args.timeout || 3e4;
+        if (interactive) {
+          return await this.executeInteractive(command, workdir, timeout);
+        } else {
+          return await this.executeNonInteractive(command, workdir, timeout);
+        }
+      },
+      async executeInteractive(command, cwd, timeout) {
         try {
-          const { stdout, stderr } = await execAsync(command, {
-            cwd: workdir,
+          const process2 = await ptyManager.spawn({
+            shell: "bash",
+            args: ["-i"],
+            cwd,
+            cols: 80,
+            rows: 24
+          });
+          let output = "";
+          let promptDetected = false;
+          const dataHandler = (data) => {
+            output += data;
+            const prompt = promptDetector.detect(data);
+            if (prompt) {
+              promptDetected = true;
+              output += `
+\u{1F514} Prompt detected: ${prompt.type}
+\u{1F4A1} Suggestions: ${prompt.suggestions.join(", ")}`;
+            }
+          };
+          process2.onData(dataHandler);
+          process2.write(`${command}
+`);
+          await new Promise((resolve4, reject) => {
+            const timer = setTimeout(() => {
+              resolve4();
+            }, timeout);
+            process2.onExit((exitCode, signal) => {
+              clearTimeout(timer);
+              resolve4();
+            });
+            process2.onError((error) => {
+              clearTimeout(timer);
+              reject(error);
+            });
+          });
+          process2.onData(() => {
+          });
+          return {
+            success: true,
+            output
+          };
+        } catch (error) {
+          return {
+            success: false,
+            output: "",
+            error: error instanceof Error ? error.message : String(error)
+          };
+        }
+      },
+      async executeNonInteractive(command, cwd, timeout) {
+        const { exec: exec3 } = await import("child_process");
+        const { promisify: promisify2 } = await import("util");
+        const execAsync2 = promisify2(exec3);
+        try {
+          const { stdout, stderr } = await execAsync2(command, {
+            cwd,
             timeout,
             maxBuffer: 10 * 1024 * 1024
           });
@@ -750,42 +2379,858 @@ ${formatted}`,
   }
 });
 
+// src/tools/registry.ts
+var registry_exports = {};
+__export(registry_exports, {
+  ToolRegistry: () => ToolRegistry2,
+  toolRegistry: () => toolRegistry
+});
+import { EventEmitter as EventEmitter3 } from "events";
+var ToolRegistry2, toolRegistry;
+var init_registry = __esm({
+  "src/tools/registry.ts"() {
+    "use strict";
+    init_logger();
+    ToolRegistry2 = class extends EventEmitter3 {
+      tools = /* @__PURE__ */ new Map();
+      toolCache = /* @__PURE__ */ new Map();
+      categories = /* @__PURE__ */ new Map();
+      register(schema, implementation) {
+        this.validateSchema(schema);
+        if (this.tools.has(schema.name)) {
+          Log.warn(`Tool ${schema.name} already registered, overwriting`);
+        }
+        this.tools.set(schema.name, schema);
+        this.toolCache.set(schema.name, implementation);
+        const categorySet = this.categories.get(schema.category) || /* @__PURE__ */ new Set();
+        categorySet.add(schema.name);
+        this.categories.set(schema.category, categorySet);
+        Log.info(`\u2705 Registered tool: ${schema.name} (${schema.category})`);
+        this.emit("tool:registered", { name: schema.name, category: schema.category });
+      }
+      unregister(name) {
+        const schema = this.tools.get(name);
+        if (!schema) {
+          return false;
+        }
+        this.tools.delete(name);
+        this.toolCache.delete(name);
+        const categorySet = this.categories.get(schema.category);
+        categorySet?.delete(name);
+        this.emit("tool:unregistered", { name });
+        Log.info(`\u{1F5D1}\uFE0F Unregistered tool: ${name}`);
+        return true;
+      }
+      get(name) {
+        return this.tools.get(name);
+      }
+      getAll() {
+        return Array.from(this.tools.values());
+      }
+      getByCategory(category) {
+        const names = this.categories.get(category);
+        if (!names) return [];
+        return Array.from(names).map((name) => this.tools.get(name)).filter((schema) => schema !== void 0);
+      }
+      search(query) {
+        const lowerQuery = query.toLowerCase();
+        return this.getAll().filter(
+          (schema) => schema.name.toLowerCase().includes(lowerQuery) || schema.description.toLowerCase().includes(lowerQuery) || schema.category.toLowerCase().includes(lowerQuery)
+        );
+      }
+      exists(name) {
+        return this.tools.has(name);
+      }
+      clear() {
+        this.tools.clear();
+        this.toolCache.clear();
+        this.categories.clear();
+        Log.info("\u{1F9F9} Cleared tool registry");
+      }
+      validateSchema(schema) {
+        if (!schema.name || typeof schema.name !== "string") {
+          throw new Error("Tool name is required and must be a string");
+        }
+        if (!schema.description || typeof schema.description !== "string") {
+          throw new Error("Tool description is required and must be a string");
+        }
+        if (!schema.category) {
+          throw new Error("Tool category is required");
+        }
+        if (!Array.isArray(schema.parameters)) {
+          throw new Error("Tool parameters must be an array");
+        }
+        for (const param of schema.parameters) {
+          if (!param.name || typeof param.name !== "string") {
+            throw new Error(`Parameter name is required for ${schema.name}`);
+          }
+          if (!param.type) {
+            throw new Error(`Parameter type is required for ${schema.name}.${param.name}`);
+          }
+        }
+      }
+    };
+    toolRegistry = new ToolRegistry2();
+  }
+});
+
+// src/core/tools/bash.ts
+import { exec as exec2 } from "child_process";
+import { promisify } from "util";
+var execAsync, bashTool2;
+var init_bash = __esm({
+  "src/core/tools/bash.ts"() {
+    "use strict";
+    execAsync = promisify(exec2);
+    bashTool2 = {
+      name: "bash",
+      description: "Execute a bash command",
+      parameters: [
+        {
+          name: "command",
+          type: "string",
+          description: "The command to execute",
+          required: true
+        },
+        {
+          name: "workdir",
+          type: "string",
+          description: "Working directory",
+          required: false
+        },
+        {
+          name: "timeout",
+          type: "number",
+          description: "Timeout in milliseconds",
+          required: false,
+          default: 12e4
+        }
+      ],
+      async execute(args, context) {
+        const command = args.command;
+        const workdir = args.workdir || context.workdir;
+        const timeout = args.timeout || 12e4;
+        try {
+          const { stdout, stderr } = await execAsync(command, {
+            cwd: workdir,
+            timeout,
+            maxBuffer: 10 * 1024 * 1024
+          });
+          return {
+            success: true,
+            output: stdout + (stderr ? `
+${stderr}` : "")
+          };
+        } catch (error) {
+          const execError = error;
+          return {
+            success: false,
+            output: execError.stdout || "",
+            error: execError.stderr || execError.message
+          };
+        }
+      }
+    };
+  }
+});
+
+// src/core/tools/adapter.ts
+function getToolRegistry2() {
+  return toolRegistry;
+}
+function convertToToolSchema(toolDef, category = "custom") {
+  return {
+    name: toolDef.name,
+    description: toolDef.description,
+    category,
+    parameters: toolDef.parameters.map((p) => ({
+      name: p.name,
+      type: p.type,
+      description: p.description,
+      required: p.required || false,
+      default: p.default
+    })),
+    returns: { type: "any", description: "Tool result" },
+    examples: [],
+    requiresAuth: false,
+    requiresPermission: [],
+    timeout: 3e4
+  };
+}
+function inferCategory(toolName) {
+  const nameLower = toolName.toLowerCase();
+  if (nameLower.includes("bash") || nameLower.includes("terminal") || nameLower.includes("command")) {
+    return "terminal";
+  }
+  if (nameLower.includes("read") || nameLower.includes("write") || nameLower.includes("edit") || nameLower.includes("file")) {
+    return "file";
+  }
+  if (nameLower.includes("grep") || nameLower.includes("glob") || nameLower.includes("search")) {
+    return "file";
+  }
+  if (nameLower.includes("todo")) {
+    return "system";
+  }
+  return "custom";
+}
+function initializeTools() {
+  const registry = getToolRegistry2();
+  const coreRegistry = getToolRegistry();
+  const tools = [
+    { tool: bashTool2 },
+    { tool: readTool },
+    { tool: writeTool },
+    { tool: editTool },
+    { tool: grepTool },
+    { tool: globTool },
+    { tool: TodoWriteTool },
+    { tool: TodoReadTool }
+  ];
+  tools.forEach(({ tool }) => {
+    try {
+      const category = inferCategory(tool.name);
+      const schema = convertToToolSchema(tool, category);
+      registry.register(schema, tool.execute);
+      coreRegistry.register(tool);
+      Log.info(`\u2705 Registered tool: ${tool.name} (${category})`);
+    } catch (error) {
+      Log.error(`Failed to register tool ${tool.name}: ${error.message}`);
+    }
+  });
+}
+var init_adapter = __esm({
+  "src/core/tools/adapter.ts"() {
+    "use strict";
+    init_registry();
+    init_tools();
+    init_bash();
+    init_file();
+    init_search();
+    init_todo();
+    init_logger();
+  }
+});
+
+// src/core/tools/command-executor.ts
+var CommandExecutor, commandExecutor;
+var init_command_executor = __esm({
+  "src/core/tools/command-executor.ts"() {
+    "use strict";
+    CommandExecutor = class {
+      rateLimits = /* @__PURE__ */ new Map();
+      config;
+      processTimeout;
+      constructor(config = {}) {
+        this.config = {
+          maxConcurrent: 5,
+          timeout: 3e4,
+          // 30 seconds default
+          enableRateLimiting: true,
+          logLevel: "info",
+          ...config
+        };
+        this.processTimeout = this.config.timeout;
+      }
+      async execute(toolName, parameters, context) {
+        const startTime = Date.now();
+        if (this.config.enableRateLimiting) {
+          const allowed = await this.checkRateLimit(toolName, context);
+          if (!allowed) {
+            return {
+              success: false,
+              output: null,
+              error: new Error(`Rate limit exceeded for ${toolName}`),
+              duration: Date.now() - startTime,
+              toolName
+            };
+          }
+        }
+        try {
+          const result = await Promise.race([
+            this.executeTool(toolName, parameters, context),
+            new Promise(
+              (_, reject) => setTimeout(
+                () => reject(new Error(`Execution timeout after ${this.processTimeout}ms`)),
+                this.processTimeout
+              )
+            )
+          ]);
+          return result;
+        } catch (error) {
+          return {
+            success: false,
+            output: null,
+            error: error instanceof Error ? error : new Error(String(error)),
+            duration: Date.now() - startTime,
+            toolName
+          };
+        }
+      }
+      async executeTool(toolName, parameters, context) {
+        const startTime = Date.now();
+        const { toolRegistry: toolRegistry2 } = await Promise.resolve().then(() => (init_registry(), registry_exports));
+        const registry = toolRegistry2;
+        const tool = registry.get(toolName);
+        if (!tool) {
+          return {
+            success: false,
+            output: null,
+            error: new Error(`Tool not found: ${toolName}`),
+            duration: Date.now() - startTime,
+            toolName
+          };
+        }
+        const implementation = toolRegistry2.toolCache?.get(toolName);
+        if (!implementation) {
+          return {
+            success: false,
+            output: null,
+            error: new Error(`Tool implementation not found: ${toolName}`),
+            duration: Date.now() - startTime,
+            toolName
+          };
+        }
+        const validation = this.validateParameters(tool, parameters);
+        if (!validation.valid) {
+          return {
+            success: false,
+            output: null,
+            error: new Error(`Parameter validation failed: ${validation.errors.join(", ")}`),
+            duration: Date.now() - startTime,
+            toolName
+          };
+        }
+        if (tool.requiresPermission && tool.requiresPermission.length > 0) {
+          const hasPermission = tool.requiresPermission.some(
+            (perm) => context.permissions.includes(perm)
+          );
+          if (!hasPermission) {
+            return {
+              success: false,
+              output: null,
+              error: new Error(`Missing required permissions: ${tool.requiresPermission.join(", ")}`),
+              duration: Date.now() - startTime,
+              toolName
+            };
+          }
+        }
+        const result = await implementation(parameters, context);
+        return {
+          success: true,
+          output: result,
+          duration: Date.now() - startTime,
+          toolName
+        };
+      }
+      validateParameters(schema, params) {
+        const errors = [];
+        for (const param of schema.parameters) {
+          if (param.required && !(param.name in params)) {
+            errors.push(`Missing required parameter: ${param.name}`);
+          }
+          if (param.name in params) {
+            const value = params[param.name];
+            switch (param.type) {
+              case "string":
+                if (typeof value !== "string") {
+                  errors.push(`Parameter ${param.name} must be a string`);
+                }
+                break;
+              case "number":
+                if (typeof value !== "number") {
+                  errors.push(`Parameter ${param.name} must be a number`);
+                }
+                if (param.minimum !== void 0 && value < param.minimum) {
+                  errors.push(`Parameter ${param.name} must be >= ${param.minimum}`);
+                }
+                if (param.maximum !== void 0 && value > param.maximum) {
+                  errors.push(`Parameter ${param.name} must be <= ${param.maximum}`);
+                }
+                break;
+              case "boolean":
+                if (typeof value !== "boolean") {
+                  errors.push(`Parameter ${param.name} must be a boolean`);
+                }
+                break;
+              case "array":
+                if (!Array.isArray(value)) {
+                  errors.push(`Parameter ${param.name} must be an array`);
+                }
+                break;
+              case "object":
+                if (typeof value !== "object" || value === null) {
+                  errors.push(`Parameter ${param.name} must be an object`);
+                }
+                break;
+              case "file":
+              case "directory":
+                if (typeof value !== "string") {
+                  errors.push(`Parameter ${param.name} must be a file/directory path (string)`);
+                }
+                break;
+            }
+            if (param.enum && !param.enum.includes(value)) {
+              errors.push(`Parameter ${param.name} must be one of: ${param.enum.join(", ")}`);
+            }
+          }
+        }
+        return {
+          valid: errors.length === 0,
+          errors
+        };
+      }
+      async checkRateLimit(toolName, context) {
+        const key = `${toolName}:${context.sessionId}`;
+        const now = Date.now();
+        const config = this.rateLimits.get(key);
+        if (!config) {
+          this.rateLimits.set(key, []);
+          return true;
+        }
+        const windowStart = now - 6e4;
+        const recentRequests = config.filter((time) => time > windowStart);
+        const rateLimit = 10;
+        if (recentRequests.length >= rateLimit) {
+          return false;
+        }
+        config.push(now);
+        if (config.length > rateLimit * 2) {
+          this.rateLimits.set(key, config.slice(-rateLimit));
+        }
+        return true;
+      }
+      updateConfig(key, timestamp) {
+        this.rateLimits.set(key, timestamp);
+      }
+      isRateLimited(key) {
+        const config = this.rateLimits.get(key);
+        if (!config) return false;
+        const now = Date.now();
+        const recentCount = config.filter((t) => now - t < 6e4).length;
+        return recentCount >= 10;
+      }
+      getStats() {
+        const stats = Array.from(this.rateLimits.entries()).map(([key, timestamps]) => ({
+          key,
+          count: timestamps.length,
+          isRateLimited: this.isRateLimited(key)
+        }));
+        return stats;
+      }
+      clearRateLimits() {
+        this.rateLimits.clear();
+      }
+    };
+    commandExecutor = new CommandExecutor();
+  }
+});
+
+// src/tools/discovery.ts
+import * as fs5 from "fs/promises";
+import * as path5 from "path";
+function getToolRegistry3() {
+  return toolRegistry;
+}
+var ToolDiscovery, toolDiscovery;
+var init_discovery = __esm({
+  "src/tools/discovery.ts"() {
+    "use strict";
+    init_logger();
+    init_registry();
+    ToolDiscovery = class {
+      discoveredTools = /* @__PURE__ */ new Map();
+      scanPaths = [];
+      constructor(scanPaths = []) {
+        this.scanPaths = scanPaths;
+      }
+      setScanPaths(paths) {
+        this.scanPaths = paths;
+      }
+      addScanPath(path7) {
+        if (!this.scanPaths.includes(path7)) {
+          this.scanPaths.push(path7);
+        }
+      }
+      async discover() {
+        Log.info("\u{1F50D} Starting tool discovery...");
+        const discovered = /* @__PURE__ */ new Map();
+        for (const scanPath of this.scanPaths) {
+          const toolsInPath = await this.scanPath(scanPath);
+          toolsInPath.forEach((tool, name) => {
+            discovered.set(name, tool);
+          });
+        }
+        this.discoveredTools = discovered;
+        Log.info(`\u2705 Discovered ${discovered.size} tools`);
+        return discovered;
+      }
+      async scanPath(dirPath) {
+        const tools = /* @__PURE__ */ new Map();
+        try {
+          const files = await this.getToolFiles(dirPath);
+          for (const file of files) {
+            const fileTools = await this.parseToolFile(file);
+            fileTools.forEach((tool, name) => {
+              tools.set(name, tool);
+            });
+          }
+        } catch (error) {
+          Log.warn(`Failed to scan path ${dirPath}: ${error.message}`);
+        }
+        return tools;
+      }
+      async getToolFiles(dirPath) {
+        const toolFiles = [];
+        async function scan(currentPath) {
+          const entries = await fs5.readdir(currentPath, { withFileTypes: true });
+          for (const entry of entries) {
+            const fullPath = path5.join(currentPath, entry.name);
+            if (entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "node_modules") {
+              await scan(fullPath);
+            } else if (entry.isFile() && entry.name.endsWith(".ts")) {
+              const content = await fs5.readFile(fullPath, "utf-8");
+              if (content.includes("ToolDefinition") || content.includes("ToolSchema")) {
+                toolFiles.push(fullPath);
+              }
+            }
+          }
+        }
+        await scan(dirPath);
+        return toolFiles;
+      }
+      async parseToolFile(filePath) {
+        const tools = /* @__PURE__ */ new Map();
+        try {
+          const content = await fs5.readFile(filePath, "utf-8");
+          const relativePath = path5.relative(process.cwd(), filePath);
+          const toolPatterns = [
+            /export\s+const\s+(\w+)\s*:\s*ToolDefinition\s*=\s*\{/g,
+            /export\s+const\s+(\w+)\s*=\s*\{\s*name:\s*["']([^"']+)["']/g
+          ];
+          for (const pattern of toolPatterns) {
+            let match;
+            pattern.lastIndex = 0;
+            while ((match = pattern.exec(content)) !== null) {
+              const variableName = match[1];
+              const toolName = match[2] || variableName;
+              if (!tools.has(toolName)) {
+                tools.set(toolName, {
+                  schema: await this.extractSchema(content, toolName),
+                  implementation: async () => {
+                    const module = await import(filePath);
+                    return module[variableName];
+                  },
+                  filePath: relativePath
+                });
+              }
+            }
+          }
+        } catch (error) {
+          Log.warn(`Failed to parse tool file ${filePath}: ${error.message}`);
+        }
+        return tools;
+      }
+      async extractSchema(content, toolName) {
+        const schema = {
+          name: toolName,
+          description: "",
+          category: "custom",
+          parameters: [],
+          returns: { type: "any", description: "Tool result" },
+          examples: []
+        };
+        const nameMatch = content.match(/name:\s*["']([^"']+)["']/);
+        if (nameMatch) schema.name = nameMatch[1];
+        const descriptionMatch = content.match(/description:\s*["']([^"']+)["']/);
+        if (descriptionMatch) schema.description = descriptionMatch[1];
+        const parametersMatch = content.match(/parameters:\s*\[(.*?)\]/s);
+        if (parametersMatch) {
+          schema.parameters = this.extractParameters(parametersMatch[1]);
+        }
+        return schema;
+      }
+      extractParameters(parametersBlock) {
+        const parameters = [];
+        const paramPattern = /\{\s*name:\s*["']([^"']+)["'],\s*type:\s*["']([^"']+)["'],\s*description:\s*["']([^"']+)["'][^}]*required:\s*(true|false)/g;
+        let match;
+        while ((match = paramPattern.exec(parametersBlock)) !== null) {
+          parameters.push({
+            name: match[1],
+            type: match[2],
+            description: match[3],
+            required: match[4] === "true"
+          });
+        }
+        return parameters;
+      }
+      async registerDiscoveredTools() {
+        const registry = getToolRegistry3();
+        let registeredCount = 0;
+        for (const [toolName, discoveredTool] of this.discoveredTools) {
+          try {
+            const implementation = await discoveredTool.implementation();
+            const toolDef = implementation.default || implementation;
+            if (toolDef && toolDef.name) {
+              registry.register({
+                name: toolDef.name,
+                description: toolDef.description || "",
+                category: discoveredTool.schema.category,
+                parameters: toolDef.parameters || [],
+                returns: discoveredTool.schema.returns,
+                examples: discoveredTool.schema.examples
+              }, toolDef.execute);
+              registeredCount++;
+              Log.info(`\u{1F4E6} Registered tool: ${toolName} from ${discoveredTool.filePath}`);
+            }
+          } catch (error) {
+            Log.warn(`Failed to register tool ${toolName}: ${error.message}`);
+          }
+        }
+        return registeredCount;
+      }
+      getDiscoveredTools() {
+        return this.discoveredTools;
+      }
+      search(query) {
+        const lowerQuery = query.toLowerCase();
+        return Array.from(this.discoveredTools.values()).filter(
+          (tool) => tool.schema.name.toLowerCase().includes(lowerQuery) || tool.schema.description.toLowerCase().includes(lowerQuery) || tool.schema.category.toLowerCase().includes(lowerQuery)
+        );
+      }
+      clear() {
+        this.discoveredTools.clear();
+      }
+    };
+    toolDiscovery = new ToolDiscovery();
+  }
+});
+
+// src/tools/generator.ts
+import * as fs6 from "fs/promises";
+import * as path6 from "path";
+var ToolGenerator, toolGenerator;
+var init_generator = __esm({
+  "src/tools/generator.ts"() {
+    "use strict";
+    init_logger();
+    ToolGenerator = class {
+      templatesPath;
+      outputPath;
+      constructor(templatesPath = "./tools/templates", outputPath = "./src/core/tools") {
+        this.templatesPath = path6.resolve(templatesPath);
+        this.outputPath = path6.resolve(outputPath);
+      }
+      async generateFromTemplate(templateName, config) {
+        const templatePath = path6.join(this.templatesPath, `${templateName}.ts`);
+        try {
+          const template = await fs6.readFile(templatePath, "utf-8");
+          const toolSchema = this.buildToolSchema(config);
+          const toolContent = this.fillTemplate(template, toolSchema);
+          const fileName = `${toolSchema.name}.ts`;
+          const filePath = path6.join(this.outputPath, fileName);
+          return {
+            content: toolContent,
+            fileName,
+            filePath
+          };
+        } catch (error) {
+          throw new Error(`Failed to generate tool from template: ${error.message}`);
+        }
+      }
+      async generateFromSchema(schema) {
+        const template = await this.getDefaultTemplate();
+        const toolContent = this.fillTemplate(template, schema);
+        const fileName = `${schema.name}.ts`;
+        const filePath = path6.join(this.outputPath, fileName);
+        return {
+          content: toolContent,
+          fileName,
+          filePath
+        };
+      }
+      async generateFromPrompt(prompt) {
+        const schema = await this.inferSchemaFromPrompt(prompt);
+        return this.generateFromSchema(schema);
+      }
+      buildToolSchema(config) {
+        return {
+          name: config.name || "new_tool",
+          description: config.description || "Description of the tool",
+          category: config.category || "custom",
+          parameters: config.parameters || [],
+          returns: config.returns || { type: "any", description: "Tool result" },
+          examples: config.examples || [],
+          requiresAuth: false,
+          requiresPermission: [],
+          timeout: 3e4,
+          rateLimit: { maxRequests: 10, windowMs: 6e4 }
+        };
+      }
+      fillTemplate(template, schema) {
+        let content = template;
+        content = content.replace(/\{\{TOOL_NAME\}\}/g, schema.name);
+        content = content.replace(/\{\{TOOL_DESCRIPTION\}\}/g, schema.description);
+        content = content.replace(/\{\{TOOL_CATEGORY\}\}/g, schema.category);
+        const parametersBlock = this.generateParametersBlock(schema.parameters);
+        content = content.replace(/\{\{PARAMETERS\}\}/g, parametersBlock);
+        const executeBody = this.generateExecuteBody(schema);
+        content = content.replace(/\{\{EXECUTE_BODY\}\}/g, executeBody);
+        return content;
+      }
+      generateParametersBlock(parameters) {
+        if (parameters.length === 0) {
+          return "[]";
+        }
+        const paramStrings = parameters.map((param) => {
+          const required = param.required ? "true" : "false";
+          const defaultStr = param.default !== void 0 ? `default: ${JSON.stringify(param.default)}` : "";
+          return `    {
+      name: "${param.name}",
+      type: "${param.type}",
+      description: "${param.description}",
+      required: ${required},
+      ${defaultStr}
+    }`;
+        });
+        return `[
+${paramStrings.join(",\n")}
+  ]`;
+      }
+      generateExecuteBody(schema) {
+        const args = [];
+        const destructure = [];
+        for (const param of schema.parameters) {
+          if (param.required) {
+            destructure.push(`${param.name}: args.${param.name} as ${param.type}`);
+          }
+        }
+        if (destructure.length > 0) {
+          args.push(`const { ${destructure.join(", ")} } = args`);
+        }
+        return `    // Implementation here
+    // ${args.join("\n    // ")}
+    
+    return {
+      success: true,
+      output: "Tool executed successfully"
+    }`;
+      }
+      async getDefaultTemplate() {
+        const defaultTemplate = `import type { ToolDefinition, ToolContext, ToolResult } from "../types";
+
+export const {{TOOL_NAME}}Tool: ToolDefinition = {
+  name: "{{TOOL_NAME}}",
+  description: "{{TOOL_DESCRIPTION}}",
+  parameters: {{PARAMETERS}},
+
+  async execute(args: Record<string, unknown>, context: ToolContext): Promise<ToolResult> {
+{{EXECUTE_BODY}}
+  },
+};
+`;
+        return defaultTemplate;
+      }
+      async inferSchemaFromPrompt(prompt) {
+        const promptLower = prompt.toLowerCase();
+        let category = "custom";
+        if (promptLower.includes("file")) category = "file";
+        else if (promptLower.includes("terminal") || promptLower.includes("bash") || promptLower.includes("command")) category = "terminal";
+        else if (promptLower.includes("network") || promptLower.includes("http") || promptLower.includes("api")) category = "network";
+        else if (promptLower.includes("database") || promptLower.includes("db")) category = "database";
+        else if (promptLower.includes("ai") || promptLower.includes("model")) category = "ai";
+        const schema = {
+          name: this.generateToolName(prompt),
+          description: prompt,
+          category,
+          parameters: [],
+          returns: { type: "any", description: "Tool result" },
+          examples: [],
+          requiresAuth: false,
+          requiresPermission: [],
+          timeout: 3e4
+        };
+        return schema;
+      }
+      generateToolName(prompt) {
+        const words = prompt.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((word) => word.length > 0);
+        if (words.length === 0) return "new_tool";
+        const name = words.join("_");
+        return name.endsWith("_tool") ? name : `${name}_tool`;
+      }
+      async saveTool(tool) {
+        const dir = path6.dirname(tool.filePath);
+        await fs6.mkdir(dir, { recursive: true });
+        await fs6.writeFile(tool.filePath, tool.content, "utf-8");
+        Log.info(`\u{1F4C4} Generated tool: ${tool.fileName} at ${tool.filePath}`);
+      }
+      async listTemplates() {
+        try {
+          const files = await fs6.readdir(this.templatesPath);
+          return files.filter((file) => file.endsWith(".ts")).map((file) => path6.basename(file, ".ts"));
+        } catch (error) {
+          Log.warn(`Failed to list templates: ${error.message}`);
+          return [];
+        }
+      }
+      async validateTool(tool) {
+        const errors = [];
+        try {
+          const content = await fs6.readFile(tool.filePath, "utf-8");
+          if (!content.includes("ToolDefinition")) {
+            errors.push("Tool must implement ToolDefinition interface");
+          }
+          if (!content.includes("name:")) {
+            errors.push("Tool must have a name property");
+          }
+          if (!content.includes("execute:")) {
+            errors.push("Tool must have an execute method");
+          }
+          if (!content.includes("ToolContext")) {
+            errors.push("Tool must use ToolContext");
+          }
+          if (!content.includes("ToolResult")) {
+            errors.push("Tool must return ToolResult");
+          }
+        } catch (error) {
+          errors.push(`Failed to validate: ${error.message}`);
+        }
+        return {
+          valid: errors.length === 0,
+          errors
+        };
+      }
+    };
+    toolGenerator = new ToolGenerator();
+  }
+});
+
 // src/core/tools/index.ts
 var tools_exports = {};
 __export(tools_exports, {
   TodoReadTool: () => TodoReadTool,
   TodoWriteTool: () => TodoWriteTool,
   bashTool: () => bashTool,
+  commandExecutor: () => commandExecutor,
   editTool: () => editTool,
   globTool: () => globTool,
   grepTool: () => grepTool,
   initializeTools: () => initializeTools,
   readTool: () => readTool,
+  toolDiscovery: () => toolDiscovery,
+  toolGenerator: () => toolGenerator,
   writeTool: () => writeTool
 });
-function initializeTools() {
-  const registry = getToolRegistry();
-  registry.register(bashTool);
-  registry.register(readTool);
-  registry.register(writeTool);
-  registry.register(editTool);
-  registry.register(grepTool);
-  registry.register(globTool);
-  registry.register(TodoWriteTool);
-  registry.register(TodoReadTool);
-}
 var init_tools2 = __esm({
   "src/core/tools/index.ts"() {
     "use strict";
-    init_bash();
+    init_bash_pty();
     init_file();
     init_search();
     init_todo();
-    init_tools();
-    init_bash();
-    init_file();
-    init_search();
-    init_todo();
+    init_adapter();
+    init_command_executor();
+    init_discovery();
+    init_generator();
   }
 });
 
@@ -1664,7 +4109,7 @@ var responseViaResponseObject = async (res, outgoing, options = {}) => {
         });
         if (!chunk) {
           if (i === 1) {
-            await new Promise((resolve3) => setTimeout(resolve3));
+            await new Promise((resolve4) => setTimeout(resolve4));
             maxReadCount = 3;
             continue;
           }
@@ -2034,7 +4479,7 @@ function createAuthCallbackRoutes() {
   return app;
 }
 function waitForCallback(provider, timeoutMs = 12e4) {
-  return new Promise((resolve3, reject) => {
+  return new Promise((resolve4, reject) => {
     const timer = setTimeout(() => {
       callbackEmitter.removeAllListeners(`callback:${provider}`);
       reject(new Error(`OAuth callback timeout for ${provider}`));
@@ -2042,7 +4487,7 @@ function waitForCallback(provider, timeoutMs = 12e4) {
     callbackEmitter.once(`callback:${provider}`, (result) => {
       clearTimeout(timer);
       if (result.success) {
-        resolve3({ code: result.code, state: result.state });
+        resolve4({ code: result.code, state: result.state });
       } else {
         reject(new Error(result.errorDescription || result.error || "OAuth failed"));
       }
@@ -3060,7 +5505,7 @@ var ModelRouter = class {
     throw lastError;
   }
   delay(ms) {
-    return new Promise((resolve3) => setTimeout(resolve3, ms));
+    return new Promise((resolve4) => setTimeout(resolve4, ms));
   }
 };
 var routerInstance = null;
@@ -3243,7 +5688,7 @@ var BackgroundManager = class {
       if (!task || task.status === "completed" || task.status === "failed" || task.status === "cancelled") {
         return;
       }
-      await new Promise((resolve3) => setTimeout(resolve3, 100));
+      await new Promise((resolve4) => setTimeout(resolve4, 100));
     }
     throw new Error(`Timeout waiting for task ${taskId}`);
   }
