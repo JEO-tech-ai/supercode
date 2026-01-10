@@ -32,7 +32,7 @@
     "test:coverage": "bun test --coverage",
     "lint": "tsc --noEmit",
     "typecheck": "node scripts/build.js && tsc --noEmit",
-    "prepare": "npm run build"
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.9",
