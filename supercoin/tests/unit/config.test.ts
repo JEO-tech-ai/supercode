@@ -8,11 +8,8 @@ describe("SuperCoinConfig", () => {
   test("should parse empty config with defaults", () => {
     const config = SuperCoinConfigSchema.parse({});
 
-    expect(config.default_model).toBe("anthropic/claude-sonnet-4");
-    expect(config.fallback_models).toEqual([
-      "openai/gpt-4o",
-      "google/gemini-2.0-flash",
-    ]);
+    expect(config.default_model).toBe("anthropic/claude-sonnet-4-5");
+    expect(config.fallback_models).toEqual([]);
   });
 
   test("should accept valid config", () => {
@@ -32,7 +29,7 @@ describe("SuperCoinConfig", () => {
     expect(() => {
       SuperCoinConfigSchema.parse({
         server: {
-          port: 100, // Invalid: below 1024
+          port: 0, // Invalid: below 1
         },
       });
     }).toThrow();

@@ -100,29 +100,53 @@ export class TokenStore {
   /**
    * Get token file path
    */
-  private getTokenFilePath(provider: AuthProviderName): string {
-    return path.join(this.configDir, `${provider}.token`);
+  private getTokenFilePath(provider: AuthProviderName, accountId?: string): string {
+    const fileName = accountId ? `${provider}_${accountId}.token` : `${provider}.token`;
+    return path.join(this.configDir, fileName);
+  }
+
+  /**
+   * Get all token files for a provider
+   */
+  private async getAllTokenFiles(provider: AuthProviderName): Promise<string[]> {
+    const files: string[] = [];
+    const { promises: fsp } = await import("fs");
+    
+    try {
+      const dirFiles = await fsp.readdir(this.configDir);
+      for (const file of dirFiles) {
+        if (file.startsWith(`${provider}_`) && file.endsWith(".token")) {
+          files.push(path.join(this.configDir, file));
+        } else if (file === `${provider}.token`) {
+          files.push(path.join(this.configDir, file));
+        }
+      }
+    } catch {
+      // Directory might not exist yet
+    }
+    
+    return files;
   }
 
   /**
    * Store token
    */
   async store(provider: AuthProviderName, tokens: TokenData): Promise<void> {
-    const filePath = this.getTokenFilePath(provider);
+    const filePath = this.getTokenFilePath(provider, tokens.accountId);
     const encrypted = await this.encrypt(JSON.stringify(tokens));
 
     await fs.writeFile(filePath, JSON.stringify(encrypted), {
       mode: 0o600,
     });
 
-    logger.debug(`Token stored for ${provider}`);
+    logger.debug(`Token stored for ${provider}${tokens.accountId ? ` (${tokens.accountId})` : ""}`);
   }
 
   /**
    * Retrieve token
    */
-  async retrieve(provider: AuthProviderName): Promise<TokenData | null> {
-    const filePath = this.getTokenFilePath(provider);
+  async retrieve(provider: AuthProviderName, accountId?: string): Promise<TokenData | null> {
+    const filePath = this.getTokenFilePath(provider, accountId);
 
     try {
       if (!existsSync(filePath)) {
@@ -135,38 +159,70 @@ export class TokenStore {
 
       return JSON.parse(decrypted) as TokenData;
     } catch (error) {
-      logger.error(`Failed to retrieve token for ${provider}`, error as Error);
+      logger.error(`Failed to retrieve token for ${provider}${accountId ? ` (${accountId})` : ""}`, error as Error);
       return null;
     }
   }
 
   /**
+   * Retrieve all tokens for a provider
+   */
+  async retrieveAll(provider: AuthProviderName): Promise<TokenData[]> {
+    const files = await this.getAllTokenFiles(provider);
+    const tokens: TokenData[] = [];
+
+    for (const filePath of files) {
+      try {
+        const content = await fs.readFile(filePath, "utf-8");
+        const encrypted: EncryptedData = JSON.parse(content);
+        const decrypted = await this.decrypt(encrypted);
+        tokens.push(JSON.parse(decrypted) as TokenData);
+      } catch (error) {
+        logger.error(`Failed to retrieve token from ${filePath}`, error as Error);
+      }
+    }
+
+    return tokens;
+  }
+
+  /**
    * Delete token
    */
-  async delete(provider: AuthProviderName): Promise<void> {
-    const filePath = this.getTokenFilePath(provider);
+  async delete(provider: AuthProviderName, accountId?: string): Promise<void> {
+    if (accountId === "*") {
+      const files = await this.getAllTokenFiles(provider);
+      for (const filePath of files) {
+        try {
+          await fs.unlink(filePath);
+        } catch (error) {
+          logger.error(`Failed to delete token file ${filePath}`, error as Error);
+        }
+      }
+      logger.debug(`All tokens deleted for ${provider}`);
+      return;
+    }
+
+    const filePath = this.getTokenFilePath(provider, accountId);
 
     try {
       if (existsSync(filePath)) {
         await fs.unlink(filePath);
-        logger.debug(`Token deleted for ${provider}`);
+        logger.debug(`Token deleted for ${provider}${accountId ? ` (${accountId})` : ""}`);
       }
     } catch (error) {
-      logger.error(`Failed to delete token for ${provider}`, error as Error);
+      logger.error(`Failed to delete token for ${provider}${accountId ? ` (${accountId})` : ""}`, error as Error);
     }
   }
 
   /**
    * Check if token is valid (not expired)
    */
-  async isValid(provider: AuthProviderName): Promise<boolean> {
-    const tokens = await this.retrieve(provider);
+  async isValid(provider: AuthProviderName, accountId?: string): Promise<boolean> {
+    const tokens = await this.retrieve(provider, accountId);
     if (!tokens) return false;
 
-    // API keys don't expire
     if (tokens.type === "api_key") return true;
 
-    // Check OAuth token expiry (with 5 minute buffer)
     const bufferMs = 5 * 60 * 1000;
     return tokens.expiresAt > Date.now() + bufferMs;
   }
@@ -174,14 +230,12 @@ export class TokenStore {
   /**
    * Check if token needs refresh
    */
-  async needsRefresh(provider: AuthProviderName): Promise<boolean> {
-    const tokens = await this.retrieve(provider);
+  async needsRefresh(provider: AuthProviderName, accountId?: string): Promise<boolean> {
+    const tokens = await this.retrieve(provider, accountId);
     if (!tokens) return false;
 
-    // API keys don't need refresh
     if (tokens.type === "api_key") return false;
 
-    // Check if within refresh window (15 minutes before expiry)
     const refreshWindowMs = 15 * 60 * 1000;
     return tokens.expiresAt < Date.now() + refreshWindowMs;
   }

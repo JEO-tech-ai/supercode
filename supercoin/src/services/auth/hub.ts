@@ -45,7 +45,6 @@ export class AuthHub {
       return [await provider.login(options)];
     }
 
-    // Login to all providers if none specified
     for (const [name, provider] of this.providers) {
       const result = await provider.login(options);
       results.push({ ...result, provider: name });
@@ -61,19 +60,32 @@ export class AuthHub {
     const statuses: AuthStatus[] = [];
 
     for (const [name, provider] of this.providers) {
-      const isAuthenticated = await provider.isAuthenticated();
-      const tokens = await this.tokenStore.retrieve(name);
-
-      statuses.push({
-        provider: name,
-        displayName: provider.displayName,
-        authenticated: isAuthenticated,
-        type: tokens?.type,
-        expiresAt: tokens?.expiresAt,
-        needsRefresh: tokens?.type === "oauth"
-          ? await this.tokenStore.needsRefresh(name)
-          : false,
-      });
+      const allTokens = await this.tokenStore.retrieveAll(name);
+      
+      if (allTokens.length === 0) {
+        statuses.push({
+          provider: name,
+          displayName: provider.displayName,
+          authenticated: false,
+          accountCount: 0,
+        });
+      } else {
+        for (const tokens of allTokens) {
+          const isAuthenticated = await provider.isAuthenticated(tokens.accountId);
+          statuses.push({
+            provider: name,
+            displayName: provider.displayName,
+            authenticated: isAuthenticated,
+            type: tokens.type,
+            expiresAt: tokens.expiresAt,
+            accountId: tokens.accountId,
+            accountCount: allTokens.length,
+            needsRefresh: tokens.type === "oauth"
+              ? await this.tokenStore.needsRefresh(name, tokens.accountId)
+              : false,
+          });
+        }
+      }
     }
 
     return statuses;
@@ -82,7 +94,7 @@ export class AuthHub {
   /**
    * Refresh tokens for specific provider or all
    */
-  async refresh(providerName?: AuthProviderName): Promise<AuthResult[]> {
+  async refresh(providerName?: AuthProviderName, accountId?: string): Promise<AuthResult[]> {
     const results: AuthResult[] = [];
 
     const providers = providerName
@@ -92,12 +104,13 @@ export class AuthHub {
     for (const [name, provider] of providers as [AuthProviderName, AuthProvider][]) {
       if (provider?.refresh) {
         try {
-          await provider.refresh();
-          results.push({ success: true, provider: name });
+          await provider.refresh(accountId);
+          results.push({ success: true, provider: name, accountId });
         } catch (error) {
           results.push({
             success: false,
             provider: name,
+            accountId,
             error: (error as Error).message,
           });
         }
@@ -105,6 +118,7 @@ export class AuthHub {
         results.push({
           success: true,
           provider: name,
+          accountId,
         });
       }
     }
@@ -115,37 +129,36 @@ export class AuthHub {
   /**
    * Logout from specific provider or all
    */
-  async logout(providerName?: AuthProviderName): Promise<void> {
+  async logout(providerName?: AuthProviderName, accountId?: string): Promise<void> {
     if (providerName) {
       const provider = this.providers.get(providerName);
       if (provider) {
-        await provider.logout();
+        await provider.logout(accountId);
       }
       return;
     }
 
-    // Logout from all providers
     for (const provider of this.providers.values()) {
-      await provider.logout();
+      await provider.logout(accountId);
     }
   }
 
   /**
    * Get token for specific provider
    */
-  async getToken(providerName: AuthProviderName): Promise<string | null> {
+  async getToken(providerName: AuthProviderName, accountId?: string): Promise<string | null> {
     const provider = this.providers.get(providerName);
     if (!provider) return null;
-    return provider.getToken();
+    return provider.getToken(accountId);
   }
 
   /**
    * Check if specific provider is authenticated
    */
-  async isAuthenticated(providerName: AuthProviderName): Promise<boolean> {
+  async isAuthenticated(providerName: AuthProviderName, accountId?: string): Promise<boolean> {
     const provider = this.providers.get(providerName);
     if (!provider) return false;
-    return provider.isAuthenticated();
+    return provider.isAuthenticated(accountId);
   }
 
   /**

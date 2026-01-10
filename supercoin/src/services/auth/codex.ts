@@ -72,17 +72,17 @@ export class CodexAuthProvider implements AuthProvider {
     }
   }
 
-  async logout(): Promise<void> {
-    await this.tokenStore.delete(this.name);
+  async logout(accountId?: string): Promise<void> {
+    await this.tokenStore.delete(this.name, accountId);
   }
 
-  async getToken(): Promise<string | null> {
-    const tokens = await this.tokenStore.retrieve(this.name);
+  async getToken(accountId?: string): Promise<string | null> {
+    const tokens = await this.tokenStore.retrieve(this.name, accountId);
     return tokens?.accessToken ?? null;
   }
 
-  async isAuthenticated(): Promise<boolean> {
-    return this.tokenStore.isValid(this.name);
+  async isAuthenticated(accountId?: string): Promise<boolean> {
+    return this.tokenStore.isValid(this.name, accountId);
   }
 
   private async validateApiKey(apiKey: string): Promise<boolean> {

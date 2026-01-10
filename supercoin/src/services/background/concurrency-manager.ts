@@ -62,7 +62,6 @@ export class ConcurrencyManager {
         anthropic: 3,
         openai: 5,
         google: 10,
-        antigravity: 5,
         ...config?.providerConcurrency,
       },
       modelConcurrency: {
@@ -248,7 +247,7 @@ export class ConcurrencyManager {
 
     // Note: Existing semaphores are not updated
     // New limits only apply to newly created semaphores
-    logger.info("Concurrency config updated", { config: this.config });
+    logger.debug("Concurrency config updated", { config: this.config });
   }
 }
 

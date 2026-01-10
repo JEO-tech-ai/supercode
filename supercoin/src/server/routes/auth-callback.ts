@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { html } from "hono/html";
 import { EventEmitter } from "events";
+import type { OAuthCallbackData } from "../../services/auth/types";
 
 export const callbackEmitter = new EventEmitter();
 
@@ -15,11 +16,17 @@ export function createAuthCallbackRoutes(): Hono {
     const errorDescription = c.req.query("error_description");
 
     if (error) {
+      const callbackData: OAuthCallbackData = {
+        code: "",
+        state: state || "",
+        error,
+        errorDescription,
+      };
+
       callbackEmitter.emit(`callback:${provider}`, {
         success: false,
         provider,
-        error,
-        errorDescription,
+        ...callbackData,
       });
 
       return c.html(html`
@@ -99,11 +106,51 @@ export function createAuthCallbackRoutes(): Hono {
       `);
     }
 
+    if (!state) {
+      return c.html(html`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Security Error</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                color: #fff;
+              }
+              .container {
+                text-align: center;
+                padding: 40px;
+                background: rgba(255,255,255,0.1);
+                border-radius: 12px;
+              }
+              h1 { color: #ff6b6b; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>🛡️ Security Error</h1>
+              <p>Missing state parameter (CSRF protection).</p>
+            </div>
+          </body>
+        </html>
+      `);
+    }
+
+    const callbackData: OAuthCallbackData = {
+      code,
+      state,
+    };
+
     callbackEmitter.emit(`callback:${provider}`, {
       success: true,
       provider,
-      code,
-      state,
+      ...callbackData,
     });
 
     return c.html(html`
@@ -165,7 +212,7 @@ export function createAuthCallbackRoutes(): Hono {
 export function waitForCallback(
   provider: string,
   timeoutMs: number = 120000
-): Promise<{ code: string; state?: string }> {
+): Promise<OAuthCallbackData> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       callbackEmitter.removeAllListeners(`callback:${provider}`);

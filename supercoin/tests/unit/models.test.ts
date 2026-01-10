@@ -38,7 +38,7 @@ describe("ModelRouter", () => {
     expect(gptInfo?.id).toBe("openai/gpt-4o");
 
     const geminiInfo = router.getModelInfo("gemini");
-    expect(geminiInfo?.id).toBe("google/gemini-2.0-flash");
+    expect(geminiInfo?.id).toBe("google/gemini-3-flash");
   });
 
   test("should get model info", () => {

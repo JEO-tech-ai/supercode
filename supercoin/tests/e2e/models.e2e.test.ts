@@ -5,8 +5,8 @@ import { getTokenStore } from "../../src/server/store/token-store";
 
 describe("E2E: Model Router", () => {
   const router = getModelRouter({
-    defaultModel: "anthropic/claude-sonnet-4",
-    fallbackModels: ["openai/gpt-4o", "google/gemini-2.0-flash"],
+    defaultModel: "anthropic/claude-sonnet-4-5",
+    fallbackModels: ["openai/gpt-5.2", "google/gemini-3-flash"],
   });
 
   describe("Model Listing", () => {
@@ -41,17 +41,17 @@ describe("E2E: Model Router", () => {
       const current = router.getCurrentModel();
 
       expect(current.provider).toBe("anthropic");
-      expect(current.model).toBe("claude-sonnet-4");
+      expect(current.model).toBe("claude-sonnet-4-5");
     });
 
     test("should resolve aliases correctly", () => {
       const aliases = [
         { alias: "opus", expected: "anthropic/claude-opus-4-5" },
-        { alias: "sonnet", expected: "anthropic/claude-sonnet-4" },
-        { alias: "haiku", expected: "anthropic/claude-haiku-3-5" },
+        { alias: "sonnet", expected: "anthropic/claude-sonnet-4-5" },
+        { alias: "haiku", expected: "anthropic/claude-haiku-4-5" },
         { alias: "gpt-4o", expected: "openai/gpt-4o" },
-        { alias: "gemini", expected: "google/gemini-2.0-flash" },
-        { alias: "flash", expected: "google/gemini-2.0-flash" },
+        { alias: "gemini", expected: "google/gemini-3-flash" },
+        { alias: "flash", expected: "google/gemini-3-flash" },
       ];
 
       for (const { alias, expected } of aliases) {
@@ -61,10 +61,10 @@ describe("E2E: Model Router", () => {
     });
 
     test("should get model info by full ID", () => {
-      const info = router.getModelInfo("anthropic/claude-sonnet-4");
+      const info = router.getModelInfo("anthropic/claude-sonnet-4-5");
 
       expect(info).not.toBeNull();
-      expect(info?.name).toBe("Claude Sonnet 4");
+      expect(info?.name).toBe("Claude Sonnet 4.5");
       expect(info?.contextWindow).toBe(200000);
       expect(info?.capabilities).toContain("chat");
     });
@@ -72,14 +72,14 @@ describe("E2E: Model Router", () => {
 
   describe("Provider Comparison", () => {
     test("should compare context windows", () => {
-      const claudeInfo = router.getModelInfo("anthropic/claude-sonnet-4");
-      const geminiInfo = router.getModelInfo("google/gemini-2.0-flash");
+      const claudeInfo = router.getModelInfo("anthropic/claude-sonnet-4-5");
+      const geminiInfo = router.getModelInfo("google/gemini-3-flash");
 
       expect(geminiInfo!.contextWindow).toBeGreaterThan(claudeInfo!.contextWindow);
     });
 
     test("should compare pricing", () => {
-      const haikuInfo = router.getModelInfo("anthropic/claude-haiku-3-5");
+      const haikuInfo = router.getModelInfo("anthropic/claude-haiku-4-5");
       const opusInfo = router.getModelInfo("anthropic/claude-opus-4-5");
 
       expect(haikuInfo!.pricing.input).toBeLessThan(opusInfo!.pricing.input);

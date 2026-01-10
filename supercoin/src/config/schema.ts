@@ -1,4 +1,3 @@
-import * as fs from "fs";
 import { z } from "zod";
 
 export const SuperCoinConfigSchema = z.object({
@@ -36,22 +35,6 @@ export const SuperCoinConfigSchema = z.object({
 });
 
 export type SuperCoinConfig = z.infer<typeof SuperCoinConfigSchema>;
-
-export function getConfig(): SuperCoinConfig {
-  const configPath = getConfigPath();
-  if (!existsSync(configPath)) {
-    return getDefaultConfig();
-  }
-
-  try {
-    const content = readFileSync(configPath, "utf-8");
-    const parsed = JSON.parse(content) as unknown;
-    return SuperCoinConfigSchema.parse(parsed);
-  } catch (error) {
-    console.error(`Failed to parse config: ${error}`);
-    return getDefaultConfig();
-  }
-}
 
 export function getDefaultConfig(): SuperCoinConfig {
   return {

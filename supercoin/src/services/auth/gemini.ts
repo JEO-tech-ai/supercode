@@ -3,19 +3,20 @@
  * Supports both API Key and OAuth with PKCE (via Antigravity)
  */
 import * as clack from "@clack/prompts";
-import * as crypto from "crypto";
-import { createServer } from "http";
 import { exec } from "child_process";
 import { getTokenStore } from "../../server/store/token-store";
+import { getOAuthStateStore } from "../../server/store/oauth-state-store";
+import { startServer, isServerRunning } from "../../server/index";
+import { waitForCallback } from "../../server/routes/auth-callback";
 import type {
   AuthProvider,
   TokenData,
   AuthResult,
   LoginOptions,
+  OAuthState,
 } from "./types";
 import logger from "../../shared/logger";
 
-// Antigravity Configuration (from OpenCode)
 const ANTIGRAVITY_CLIENT_ID = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com";
 const ANTIGRAVITY_CLIENT_SECRET = "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";
 const ANTIGRAVITY_SCOPES = [
@@ -24,31 +25,27 @@ const ANTIGRAVITY_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.profile",
   "https://www.googleapis.com/auth/cclog",
   "https://www.googleapis.com/auth/experimentsandconfigs",
+  "https://www.googleapis.com/auth/generative-language.retriever",
 ];
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-
-interface PKCEPair {
-  verifier: string;
-  challenge: string;
-}
+const DEFAULT_SERVER_PORT = 3100;
 
 export class GeminiAuthProvider implements AuthProvider {
   readonly name = "gemini" as const;
   readonly displayName = "Gemini (Google)";
 
   private tokenStore = getTokenStore();
+  private oauthStateStore = getOAuthStateStore();
 
   async login(options?: LoginOptions): Promise<AuthResult> {
     try {
-      // Check for API key in env or options first (Legacy/Direct mode)
       let apiKey = options?.apiKey || process.env.GOOGLE_API_KEY;
 
       if (apiKey) {
-        return await this.loginWithApiKey(apiKey);
+        return await this.loginWithApiKey(apiKey, options?.accountId);
       }
 
-      // Interactive Flow
       if (options?.interactive !== false) {
         const authMethod = await clack.select({
           message: "Select Gemini authentication method:",
@@ -73,9 +70,9 @@ export class GeminiAuthProvider implements AuthProvider {
           if (clack.isCancel(input)) {
             return { success: false, error: "Login cancelled" };
           }
-          return await this.loginWithApiKey(input as string);
+          return await this.loginWithApiKey(input as string, options?.accountId);
         } else {
-          return await this.loginWithOAuth();
+          return await this.loginWithOAuth(options?.accountId);
         }
       }
 
@@ -86,7 +83,7 @@ export class GeminiAuthProvider implements AuthProvider {
     }
   }
 
-  private async loginWithApiKey(apiKey: string): Promise<AuthResult> {
+  private async loginWithApiKey(apiKey: string, accountId?: string): Promise<AuthResult> {
     const isValid = await this.validateApiKey(apiKey);
     if (!isValid) {
       return { success: false, error: "Invalid API key" };
@@ -97,67 +94,84 @@ export class GeminiAuthProvider implements AuthProvider {
       provider: this.name,
       type: "api_key",
       expiresAt: Number.MAX_SAFE_INTEGER,
+      accountId: accountId || "default",
     };
 
     await this.tokenStore.store(this.name, tokenData);
-    return { success: true, provider: this.name };
+    return { success: true, provider: this.name, accountId: tokenData.accountId };
   }
 
-  private async loginWithOAuth(): Promise<AuthResult> {
-    // Start temporary callback server
-    const server = await this.startCallbackServer();
-    const redirectUri = `http://localhost:${server.port}/oauth-callback`;
-
-    // Generate PKCE
-    const { verifier, challenge } = this.generatePKCE();
-    const state = crypto.randomBytes(16).toString("hex");
-
-    // Build URL
-    const params = new URLSearchParams({
-      client_id: ANTIGRAVITY_CLIENT_ID,
-      response_type: "code",
-      redirect_uri: redirectUri,
-      scope: ANTIGRAVITY_SCOPES.join(" "),
-      code_challenge: challenge,
-      code_challenge_method: "S256",
-      state,
-      access_type: "offline",
-      prompt: "consent",
-    });
-
-    const authUrl = `${GOOGLE_AUTH_URL}?${params}`;
-
-    clack.note("Opening browser for authentication...");
-    this.openBrowser(authUrl);
-
+  private async loginWithOAuth(accountId?: string): Promise<AuthResult> {
     try {
-      const { code } = await server.waitForCallback();
+      if (!isServerRunning()) {
+        await startServer({ port: DEFAULT_SERVER_PORT, host: "127.0.0.1", autoStart: false });
+      }
+
+      const redirectUri = `http://localhost:${DEFAULT_SERVER_PORT}/callback/${this.name}`;
       
-      // Exchange code
-      const tokens = await this.exchangeCode(code, verifier, redirectUri);
-      
-      return { success: true, provider: this.name };
-    } finally {
-      server.close();
+      const { verifier, challenge } = this.oauthStateStore.generatePKCEPair();
+      const state = this.oauthStateStore.generateState();
+
+      const oauthState: OAuthState = {
+        provider: this.name,
+        state,
+        codeVerifier: verifier,
+        createdAt: Date.now(),
+        accountId: accountId || `account_${Date.now()}`,
+      };
+
+      await this.oauthStateStore.store(oauthState);
+
+      const params = new URLSearchParams({
+        client_id: ANTIGRAVITY_CLIENT_ID,
+        response_type: "code",
+        redirect_uri: redirectUri,
+        scope: ANTIGRAVITY_SCOPES.join(" "),
+        code_challenge: challenge,
+        code_challenge_method: "S256",
+        state,
+        access_type: "offline",
+        prompt: "consent",
+      });
+
+      const authUrl = `${GOOGLE_AUTH_URL}?${params}`;
+
+      clack.note(`Opening browser for authentication...\nIf browser doesn't open, visit:\n${authUrl}`);
+      this.openBrowser(authUrl);
+
+      const { code, state: returnedState } = await waitForCallback(this.name, 120000);
+
+      const storedState = await this.oauthStateStore.retrieve(returnedState);
+      if (!storedState || storedState.state !== returnedState) {
+        throw new Error("Invalid state parameter (CSRF protection)");
+      }
+
+      await this.exchangeCode(code, storedState.codeVerifier, redirectUri, storedState.accountId);
+      await this.oauthStateStore.delete(returnedState);
+
+      return { success: true, provider: this.name, accountId: storedState.accountId };
+    } catch (error) {
+      logger.error("OAuth flow failed", error as Error);
+      return { success: false, error: (error as Error).message };
     }
   }
 
-  async logout(): Promise<void> {
-    const tokens = await this.tokenStore.retrieve(this.name);
+  async logout(accountId?: string): Promise<void> {
+    const tokens = await this.tokenStore.retrieve(this.name, accountId);
     if (tokens?.type === "oauth" && tokens.accessToken) {
       try {
         await fetch(`https://oauth2.googleapis.com/revoke?token=${tokens.accessToken}`, {
           method: "POST",
         });
       } catch {
-        // Ignore
+        // Ignore revocation errors
       }
     }
-    await this.tokenStore.delete(this.name);
+    await this.tokenStore.delete(this.name, accountId);
   }
 
-  async refresh(): Promise<TokenData> {
-    const currentTokens = await this.tokenStore.retrieve(this.name);
+  async refresh(accountId?: string): Promise<TokenData> {
+    const currentTokens = await this.tokenStore.retrieve(this.name, accountId);
     if (!currentTokens?.refreshToken) {
       throw new Error("No refresh token available");
     }
@@ -177,10 +191,12 @@ export class GeminiAuthProvider implements AuthProvider {
       throw new Error("Token refresh failed");
     }
 
-    const data = await response.json() as { access_token: string; expires_in: number };
+    const data = await response.json() as { access_token: string; expires_in: number; refresh_token?: string };
+    
     const newTokenData: TokenData = {
       ...currentTokens,
       accessToken: data.access_token,
+      refreshToken: data.refresh_token || currentTokens.refreshToken,
       expiresAt: Date.now() + data.expires_in * 1000,
     };
 
@@ -188,15 +204,15 @@ export class GeminiAuthProvider implements AuthProvider {
     return newTokenData;
   }
 
-  async getToken(): Promise<string | null> {
-    const tokens = await this.tokenStore.retrieve(this.name);
+  async getToken(accountId?: string): Promise<string | null> {
+    const tokens = await this.tokenStore.retrieve(this.name, accountId);
     if (!tokens) return null;
 
     if (tokens.type === "oauth") {
-      const needsRefresh = await this.tokenStore.needsRefresh(this.name);
+      const needsRefresh = await this.tokenStore.needsRefresh(this.name, accountId);
       if (needsRefresh && tokens.refreshToken) {
         try {
-          const newTokens = await this.refresh();
+          const newTokens = await this.refresh(accountId);
           return newTokens.accessToken;
         } catch {
           return null;
@@ -206,8 +222,8 @@ export class GeminiAuthProvider implements AuthProvider {
     return tokens.accessToken;
   }
 
-  async isAuthenticated(): Promise<boolean> {
-    return this.tokenStore.isValid(this.name);
+  async isAuthenticated(accountId?: string): Promise<boolean> {
+    return this.tokenStore.isValid(this.name, accountId);
   }
 
   private async validateApiKey(apiKey: string): Promise<boolean> {
@@ -221,13 +237,7 @@ export class GeminiAuthProvider implements AuthProvider {
     }
   }
 
-  private generatePKCE(): PKCEPair {
-    const verifier = crypto.randomBytes(32).toString("base64url");
-    const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
-    return { verifier, challenge };
-  }
-
-  private async exchangeCode(code: string, verifier: string, redirectUri: string): Promise<TokenData> {
+  private async exchangeCode(code: string, verifier: string, redirectUri: string, accountId: string): Promise<TokenData> {
     const response = await fetch(GOOGLE_TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -258,54 +268,12 @@ export class GeminiAuthProvider implements AuthProvider {
       type: "oauth",
       expiresAt: Date.now() + data.expires_in * 1000,
       scopes: ANTIGRAVITY_SCOPES,
+      accountId,
     };
 
     await this.tokenStore.store(this.name, tokenData);
     return tokenData;
   }
-
-  private startCallbackServer(): Promise<{ port: number; waitForCallback: () => Promise<{ code: string }>; close: () => void }> {
-    return new Promise((resolve) => {
-      const server = createServer((req, res) => {
-        const url = new URL(req.url || "", `http://localhost:${(server.address() as any).port}`);
-        
-        if (url.pathname === "/oauth-callback") {
-          const code = url.searchParams.get("code");
-          const error = url.searchParams.get("error");
-
-          res.writeHead(200, { "Content-Type": "text/html" });
-          if (code) {
-            res.end("<html><body><h1>Login successful</h1><p>You can close this window.</p></body></html>");
-            if (this.callbackResolve) {
-              this.callbackResolve({ code });
-            }
-          } else {
-            res.end(`<html><body><h1>Login failed</h1><p>${error}</p></body></html>`);
-            if (this.callbackReject) {
-              this.callbackReject(new Error(error || "Unknown error"));
-            }
-          }
-        } else {
-          res.writeHead(404);
-          res.end("Not Found");
-        }
-      });
-
-      server.listen(0, () => {
-        resolve({
-          port: (server.address() as any).port,
-          waitForCallback: () => new Promise<{ code: string }>((res, rej) => {
-            this.callbackResolve = res;
-            this.callbackReject = rej;
-          }),
-          close: () => server.close(),
-        });
-      });
-    });
-  }
-
-  private callbackResolve?: (value: { code: string }) => void;
-  private callbackReject?: (reason: any) => void;
 
   private openBrowser(url: string) {
     const start = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";

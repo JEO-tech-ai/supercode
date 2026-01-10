@@ -6,8 +6,8 @@ import { RequestType } from "../../src/services/agents/types";
 
 describe("E2E: Full Workflow Integration", () => {
   const config = SuperCoinConfigSchema.parse({
-    default_model: "anthropic/claude-sonnet-4",
-    fallback_models: ["openai/gpt-4o", "google/gemini-2.0-flash"],
+    default_model: "anthropic/claude-sonnet-4-5",
+    fallback_models: ["openai/gpt-5.2", "google/gemini-3-flash"],
   });
 
   const supercoin = createSuperCoin(config, process.cwd());
@@ -36,11 +36,11 @@ describe("E2E: Full Workflow Integration", () => {
       expect(models.length).toBeGreaterThan(0);
 
       const providers = new Set(models.map((m: { provider: string }) => m.provider));
-      expect(providers.size).toBe(4); // anthropic, openai, google, antigravity
+      expect(providers.size).toBe(3); // anthropic, openai, google
     });
 
     test("should resolve aliases", () => {
-      const aliases = ["opus", "sonnet", "haiku", "gpt-4o", "gemini", "flash", "quantum", "ag-ultra"];
+      const aliases = ["opus", "sonnet", "haiku", "gpt-4o", "gemini", "flash"];
 
       for (const alias of aliases) {
         const info = supercoin.models.getModelInfo(alias);
@@ -143,10 +143,10 @@ describe("E2E: Full Workflow Integration", () => {
     test("should provide auth status", async () => {
       const statuses = await supercoin.auth.status();
 
-      expect(statuses.length).toBe(4);
+      expect(statuses.length).toBe(3);
 
       for (const status of statuses) {
-        expect(["claude", "codex", "gemini", "antigravity"]).toContain(status.provider);
+        expect(["claude", "codex", "gemini"]).toContain(status.provider);
       }
     });
   });
