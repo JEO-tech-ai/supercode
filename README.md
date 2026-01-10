@@ -44,11 +44,33 @@ npx supercoin
 
 ### Install from GitHub (Source)
 
-You can install directly from the repository without needing Bun installed:
+**Method 1: Clone and Install (Recommended)**
+
+```bash
+# Clone the repository
+git clone https://github.com/JEO-tech-ai/supercode.git
+cd supercode
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Link globally
+npm link
+
+# Now you can use it
+supercoin --help
+```
+
+**Method 2: Direct Install via npm (Requires npm 9+)**
 
 ```bash
 npm install -g git+https://github.com/JEO-tech-ai/supercode.git#main
 ```
+
+> **Note**: Direct npm install from git URL may have issues with build dependencies. If you encounter errors, use Method 1 (Clone and Install) instead.
 
 ### Prerequisites
 

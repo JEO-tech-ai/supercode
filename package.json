@@ -31,8 +31,7 @@
     "test": "bun test",
     "test:coverage": "bun test --coverage",
     "lint": "tsc --noEmit",
-    "typecheck": "node scripts/build.js && tsc --noEmit",
-    "postinstall": "npm run build || echo 'Build skipped (dist may already exist)'"
+    "typecheck": "node scripts/build.js && tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.9",
