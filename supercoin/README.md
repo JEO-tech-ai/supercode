@@ -21,9 +21,9 @@ Unified AI CLI hub for Claude, Codex, Gemini, and localhost models.
 
 
 - **Todo Management**: Built-in todowrite/todoread tools for task tracking
-- **Agent Dashboard**: Real-time TUI dashboard for monitoring agent status and task progress
-- **UltraWork Mode**: Automatic detection of complex tasks requiring multi-agent coordination
-- **Ralph Loop**: Continuation hooks that enable agents to work autonomously until tasks complete
+- **Agent Dashboard**: Real-time Ink-based TUI dashboard for monitoring agent status and task progress
+- **UltraWork Mode**: High-performance mode for complex tasks using high-IQ models and continuous loops
+- **Ralph Loop**: Autonomous self-referential development loop that persists until task completion
 
 ## Installation
 
@@ -223,6 +223,28 @@ supercoin --no-tui
 | `--no-tui` | Disable interactive UI | `--no-tui` |
 | `-v, --verbose` | Show token usage | `-v` |
 | `-q, --quiet` | Minimal output | `-q` |
+
+## ⚡ Advanced Capabilities
+
+### UltraWork Mode
+For tasks requiring maximum precision and multi-step reasoning, activate **UltraWork Mode**.
+- **Activation**: Include `ultrawork`, `ulw`, or `@ultrawork` in your prompt to trigger high-intensity orchestration.
+- **High-IQ Models**: Automatically upgrades the model selection to high-performance providers (e.g., Claude 3.5 Opus, Gemini 1.5 Pro).
+- **Maximum Parallelism**: Spawns multiple background agents in parallel to handle independent sub-tasks simultaneously.
+- **Extended Autonomy**: Increases the loop limit up to 50 iterations for deep research and complex implementations.
+
+### Agent Dashboard
+Monitor your AI workforce in real-time with the sleek, Ink-based TUI dashboard.
+- **Command**: `supercoin dashboard` or select `📊 Dashboard` from the interactive menu.
+- **Live Visualization**: Real-time tracking of agent states (idle, running, completed, failed).
+- **Task Summary**: Instant overview of Todo progress, system logs, and token usage.
+- **Interactive**: Refresh and manage the session directly from the TUI.
+
+### Ralph Loop
+The **Ralph Loop** is SuperCoin's autonomous development engine that ensures goals are met through continuous iteration.
+- **Self-Referential Planning**: After each execution, the agent triggers a `session.idle` hook to evaluate the remaining Todo items.
+- **Continuous Execution**: If tasks are still pending, the agent autonomously plans the next steps and re-enters the loop.
+- **Zero-Intervention**: Capable of handling end-to-end development workflows—from architecture analysis to implementation and verification—without user input between steps.
 
 ## Commands
 
