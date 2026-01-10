@@ -25,14 +25,14 @@
   },
   "homepage": "https://github.com/JEO-tech-ai/supercode/tree/main/supercoin#readme",
   "scripts": {
-    "build": "bun run scripts/build.ts",
+    "build": "node scripts/build.js",
     "dev": "bun run scripts/dev.ts",
     "dev:setup": "bun run scripts/dev-setup.ts",
     "start": "bun src/cli/index.ts",
     "test": "bun test",
     "test:coverage": "bun test --coverage",
     "lint": "tsc --noEmit",
-    "typecheck": "bun run scripts/build.ts && tsc --noEmit"
+    "typecheck": "node scripts/build.js && tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.9",

@@ -29,22 +29,32 @@ Unified AI CLI hub for Claude, Codex, Gemini, and localhost models.
 
 ### Install from npm (Recommended)
 
+> **Note**: This package must be published to npm before it can be installed via `npm install -g supercoin`.
+
 ```bash
-# Install globally
+# Publish first (if you are the maintainer)
+npm publish
+
+# Then install globally
 npm install -g supercoin
 
-# Or use with npx (no installation needed)
+# Or use with npx
 npx supercoin
+```
 
-# Verify installation
-supercoin --version
+### Install from GitHub (Source)
+
+You can install directly from the repository without needing Bun installed:
+
+```bash
+npm install -g git+https://github.com/JEO-tech-ai/supercode.git#main
 ```
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org) v18+ (for npm installation)
-- [Bun](https://bun.sh) v1.0+ (for development)
+- [Node.js](https://nodejs.org) v18+
 - [Ollama](https://ollama.com) (recommended for local models)
+- [Bun](https://bun.sh) (optional, for development only)
 
 ### Install from GitHub (Development)
 
