@@ -35,27 +35,65 @@ bun dev
 
 ### Authentication
 
+SuperCoin supports both **API Key** and **OAuth 2.0 + PKCE** authentication with multi-account management for rate limit avoidance.
+
 ```bash
-# Interactive login
+# Interactive login (choose OAuth or API Key)
 supercoin auth login
 
 # Login to specific provider
-supercoin auth login --claude
-supercoin auth login --codex
-supercoin auth login --gemini
+supercoin auth login --claude      # API Key only (OAuth has known issues)
+supercoin auth login --codex       # API Key only
+supercoin auth login --gemini      # OAuth (Antigravity) or API Key
 
-# Login with API key
+# Login with API key directly
 supercoin auth login --claude --api-key <your-key>
+supercoin auth login --codex --api-key <your-key>
+supercoin auth login --gemini --api-key <your-key>
 
-# Check authentication status
+# Check authentication status (shows all accounts)
 supercoin auth status
 
-# Refresh tokens
+# Refresh OAuth tokens
 supercoin auth refresh
+supercoin auth refresh --gemini
 
 # Logout
 supercoin auth logout --all
+supercoin auth logout --gemini
 ```
+
+#### Multi-Account Support
+
+Store up to 10 accounts per provider to avoid rate limits:
+
+```bash
+# Each OAuth login creates a unique account ID
+supercoin auth login --gemini  # Creates account_1234567890
+
+# View all accounts
+supercoin auth status
+# Output shows accountId and accountCount for each provider
+
+# Accounts are automatically load-balanced when making API requests
+```
+
+#### OAuth Authentication (Gemini)
+
+Gemini supports OAuth 2.0 with PKCE for secure browser-based authentication:
+
+1. Run `supercoin auth login --gemini`
+2. Select "OAuth with Antigravity (Recommended)"
+3. Browser opens to Google OAuth consent page
+4. Grant permissions
+5. Return to CLI - authentication complete!
+
+**Security Features:**
+- PKCE (S256 challenge method) prevents authorization code interception
+- State parameter validation protects against CSRF attacks
+- Tokens encrypted with AES-256-GCM
+- Automatic refresh token rotation
+- Secure state cleanup (10-minute expiry)
 
 ### Models
 
