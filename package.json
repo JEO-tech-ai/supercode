@@ -17,13 +17,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/JEO-tech-ai/supercode.git",
-    "directory": "supercoin"
+    "url": "https://github.com/JEO-tech-ai/supercode.git"
   },
   "bugs": {
     "url": "https://github.com/JEO-tech-ai/supercode/issues"
   },
-  "homepage": "https://github.com/JEO-tech-ai/supercode/tree/main/supercoin#readme",
+  "homepage": "https://github.com/JEO-tech-ai/supercode#readme",
   "scripts": {
     "build": "node scripts/build.js",
     "dev": "bun run scripts/dev.ts",
