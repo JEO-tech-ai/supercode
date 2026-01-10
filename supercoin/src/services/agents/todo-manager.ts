@@ -1,21 +1,24 @@
 import type { Todo, TaskStatus } from "./types";
 
 export interface ITodoManager {
-  create(input: { content: string; priority?: "high" | "medium" | "low" }): Promise<Todo>;
+  create(input: { sessionId: string; content: string; priority?: "high" | "medium" | "low" }): Promise<Todo>;
   updateStatus(id: string, status: TaskStatus): Promise<void>;
   get(id: string): Todo | undefined;
-  list(): Todo[];
-  listPending(): Todo[];
-  hasPending(): boolean;
-  clear(): void;
+  list(sessionId?: string): Todo[];
+  listPending(sessionId?: string): Todo[];
+  hasPending(sessionId?: string): boolean;
+  clear(sessionId?: string): void;
+  // New: Support bulk update from todowrite tool
+  setTodos(sessionId: string, todos: Todo[]): void;
 }
 
 class TodoManager implements ITodoManager {
   private todos: Map<string, Todo> = new Map();
 
-  async create(input: { content: string; priority?: "high" | "medium" | "low" }): Promise<Todo> {
+  async create(input: { sessionId: string; content: string; priority?: "high" | "medium" | "low" }): Promise<Todo> {
     const todo: Todo = {
       id: crypto.randomUUID(),
+      sessionId: input.sessionId,
       content: input.content,
       status: "pending",
       priority: input.priority || "medium",
@@ -39,20 +42,38 @@ class TodoManager implements ITodoManager {
     return this.todos.get(id);
   }
 
-  list(): Todo[] {
-    return Array.from(this.todos.values());
+  list(sessionId?: string): Todo[] {
+    const allTodos = Array.from(this.todos.values());
+    if (sessionId) {
+      return allTodos.filter((t) => t.sessionId === sessionId);
+    }
+    return allTodos;
   }
 
-  listPending(): Todo[] {
-    return this.list().filter((t) => t.status === "pending" || t.status === "in_progress");
+  listPending(sessionId?: string): Todo[] {
+    return this.list(sessionId).filter((t) => t.status === "pending" || t.status === "in_progress");
   }
 
-  hasPending(): boolean {
-    return this.listPending().length > 0;
+  hasPending(sessionId?: string): boolean {
+    return this.listPending(sessionId).length > 0;
   }
 
-  clear(): void {
-    this.todos.clear();
+  clear(sessionId?: string): void {
+    if (sessionId) {
+      const toDelete = this.list(sessionId).map((t) => t.id);
+      for (const id of toDelete) {
+        this.todos.delete(id);
+      }
+    } else {
+      this.todos.clear();
+    }
+  }
+
+  setTodos(sessionId: string, todos: Todo[]): void {
+    this.clear(sessionId);
+    for (const todo of todos) {
+      this.todos.set(todo.id, { ...todo, sessionId });
+    }
   }
 }
 

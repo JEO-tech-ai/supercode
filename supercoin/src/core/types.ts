@@ -67,6 +67,13 @@ export interface Session {
   workdir: string;
   model: string;
   messages: SessionMessage[];
+  mode?: "normal" | "ultrawork";
+  loop?: {
+    iteration: number;
+    maxIterations: number;
+    stagnantCount: number;
+    lastPendingHash?: string;
+  };
 }
 
 export interface SessionMessage {

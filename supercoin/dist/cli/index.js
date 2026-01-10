@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // src/cli/index.ts
-import * as clack5 from "@clack/prompts";
+import * as clack6 from "@clack/prompts";
 import { Command as Command6 } from "commander";
 
 // src/config/loader.ts
@@ -2353,6 +2353,183 @@ async function checkConfigFile() {
   };
 }
 
+// src/cli/commands/dashboard.ts
+import * as clack5 from "@clack/prompts";
+
+// src/services/agents/todo-manager.ts
+var TodoManager = class {
+  todos = /* @__PURE__ */ new Map();
+  async create(input) {
+    const todo = {
+      id: crypto.randomUUID(),
+      sessionId: input.sessionId,
+      content: input.content,
+      status: "pending",
+      priority: input.priority || "medium",
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.todos.set(todo.id, todo);
+    return todo;
+  }
+  async updateStatus(id, status) {
+    const todo = this.todos.get(id);
+    if (todo) {
+      todo.status = status;
+      todo.updatedAt = /* @__PURE__ */ new Date();
+    }
+  }
+  get(id) {
+    return this.todos.get(id);
+  }
+  list(sessionId) {
+    const allTodos = Array.from(this.todos.values());
+    if (sessionId) {
+      return allTodos.filter((t) => t.sessionId === sessionId);
+    }
+    return allTodos;
+  }
+  listPending(sessionId) {
+    return this.list(sessionId).filter((t) => t.status === "pending" || t.status === "in_progress");
+  }
+  hasPending(sessionId) {
+    return this.listPending(sessionId).length > 0;
+  }
+  clear(sessionId) {
+    if (sessionId) {
+      const toDelete = this.list(sessionId).map((t) => t.id);
+      for (const id of toDelete) {
+        this.todos.delete(id);
+      }
+    } else {
+      this.todos.clear();
+    }
+  }
+  setTodos(sessionId, todos) {
+    this.clear(sessionId);
+    for (const todo of todos) {
+      this.todos.set(todo.id, { ...todo, sessionId });
+    }
+  }
+};
+var todoManagerInstance = null;
+function getTodoManager() {
+  if (!todoManagerInstance) {
+    todoManagerInstance = new TodoManager();
+  }
+  return todoManagerInstance;
+}
+
+// src/core/session.ts
+var SessionManager = class {
+  sessions = /* @__PURE__ */ new Map();
+  currentSessionId = null;
+  create(workdir, model) {
+    const session = {
+      id: crypto.randomUUID(),
+      startedAt: /* @__PURE__ */ new Date(),
+      workdir,
+      model,
+      messages: []
+    };
+    this.sessions.set(session.id, session);
+    this.currentSessionId = session.id;
+    return session;
+  }
+  get(id) {
+    return this.sessions.get(id);
+  }
+  getCurrent() {
+    if (!this.currentSessionId) return void 0;
+    return this.sessions.get(this.currentSessionId);
+  }
+  setCurrent(id) {
+    if (!this.sessions.has(id)) return false;
+    this.currentSessionId = id;
+    return true;
+  }
+  addMessage(sessionId, message) {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.messages.push({
+        ...message,
+        timestamp: /* @__PURE__ */ new Date()
+      });
+    }
+  }
+  getMessages(sessionId) {
+    const session = this.sessions.get(sessionId);
+    return session?.messages || [];
+  }
+  end(id) {
+    const session = this.sessions.get(id);
+    if (!session) return false;
+    if (this.currentSessionId === id) {
+      this.currentSessionId = null;
+    }
+    this.sessions.delete(id);
+    return true;
+  }
+  list() {
+    return Array.from(this.sessions.values());
+  }
+  clear() {
+    this.sessions.clear();
+    this.currentSessionId = null;
+  }
+};
+var sessionManagerInstance = null;
+function getSessionManager() {
+  if (!sessionManagerInstance) {
+    sessionManagerInstance = new SessionManager();
+  }
+  return sessionManagerInstance;
+}
+
+// src/cli/commands/dashboard.ts
+async function createDashboardCommand() {
+  return {
+    name: "dashboard",
+    description: "Show agent status dashboard",
+    async action() {
+      await runDashboard();
+    }
+  };
+}
+async function runDashboard() {
+  const currentSession = getSessionManager().get();
+  const todoManager = getTodoManager();
+  clack5.intro("\u{1F4CA} SuperCoin Agent Dashboard");
+  console.log();
+  const todos = todoManager.list();
+  const pending = todoManager.listPending();
+  clack5.note(`Todo Progress (${pending.length} pending)`, "Summary");
+  if (pending.length === 0) {
+    console.log("  \u2705 No pending tasks");
+  } else {
+    pending.forEach((todo) => {
+      const statusIcon = todo.status === "in_progress" ? "\u{1F504}" : "\u25CB";
+      const priorityBadge = todo.priority === "high" ? "\u{1F534}" : todo.priority === "medium" ? "\u{1F7E1}" : "\u{1F7E2}";
+      console.log(`  ${statusIcon} ${priorityBadge} ${todo.content}`);
+    });
+  }
+  console.log();
+  const action = await clack5.select({
+    message: "What would you like to do?",
+    options: [
+      { value: "refresh", label: "\u{1F504} Refresh" },
+      { value: "exit", label: "\u270B Exit" }
+    ]
+  });
+  if (clack5.isCancel(action)) {
+    clack5.cancel("Operation cancelled");
+    return;
+  }
+  if (action === "refresh") {
+    await runDashboard();
+  }
+}
+
 // src/config/opencode.ts
 import { z as z2 } from "zod";
 import { readFile as readFile2 } from "fs/promises";
@@ -2390,14 +2567,25 @@ function getDefaultModel(provider) {
   };
   return defaults[provider];
 }
-async function resolveProviderFromConfig(cwd) {
+async function resolveProviderFromConfig(cwd, mode = "normal") {
   const config = await loadOpenCodeConfig(cwd);
+  const provider = config.provider;
+  let model = config.model || getDefaultModel(provider);
+  let temperature = config.temperature;
+  let maxTokens = config.maxTokens;
+  if (mode === "ultrawork") {
+    if (provider === "anthropic") model = "claude-3-5-sonnet-latest";
+    if (provider === "openai") model = "gpt-4o";
+    if (provider === "google") model = "gemini-2.0-flash-exp";
+    temperature = 0.2;
+    maxTokens = 8192;
+  }
   return {
-    provider: config.provider,
-    model: config.model || getDefaultModel(config.provider),
+    provider,
+    model,
     baseURL: config.baseURL,
-    temperature: config.temperature,
-    maxTokens: config.maxTokens
+    temperature,
+    maxTokens
   };
 }
 
@@ -2644,8 +2832,8 @@ async function checkLocalhostAvailability(provider, baseURL) {
 // src/cli/index.ts
 var VERSION = "0.1.0";
 async function runInteractiveMode() {
-  clack5.intro("\u{1FA99} SuperCoin - Unified AI CLI Hub");
-  const action = await clack5.select({
+  clack6.intro("\u{1FA99} SuperCoin - Unified AI CLI Hub");
+  const action = await clack6.select({
     message: "What would you like to do?",
     options: [
       { value: "chat", label: "\u{1F4AC} Start Chat", hint: "Chat with AI models" },
@@ -2653,11 +2841,12 @@ async function runInteractiveMode() {
       { value: "models", label: "\u{1F916} Models", hint: "List and manage AI models" },
       { value: "config", label: "\u2699\uFE0F  Configuration", hint: "View and edit settings" },
       { value: "server", label: "\u{1F310} Server", hint: "Manage local auth server" },
-      { value: "doctor", label: "\u{1FA7A} Doctor", hint: "Run system diagnostics" }
+      { value: "doctor", label: "\u{1FA7A} Doctor", hint: "Run system diagnostics" },
+      { value: "dashboard", label: "\u{1F4CA} Dashboard", hint: "View agent status and progress" }
     ]
   });
-  if (clack5.isCancel(action)) {
-    clack5.cancel("Operation cancelled");
+  if (clack6.isCancel(action)) {
+    clack6.cancel("Operation cancelled");
     process.exit(0);
   }
   switch (action) {
@@ -2679,12 +2868,15 @@ async function runInteractiveMode() {
     case "doctor":
       await runDoctorFlow();
       break;
+    case "dashboard":
+      await runDashboardFlow();
+      break;
   }
-  clack5.outro("\u2728 Done!");
+  clack6.outro("\u2728 Done!");
 }
 async function runChatFlow() {
   const projectConfig = await resolveProviderFromConfig();
-  const provider = await clack5.select({
+  const provider = await clack6.select({
     message: "Select AI provider",
     options: [
       { value: "ollama", label: "\u{1F999} Ollama (Local)", hint: "Privacy-first, cost-free" },
@@ -2696,13 +2888,13 @@ async function runChatFlow() {
     ],
     initialValue: projectConfig.provider
   });
-  if (clack5.isCancel(provider)) {
-    clack5.cancel("Operation cancelled");
+  if (clack6.isCancel(provider)) {
+    clack6.cancel("Operation cancelled");
     return;
   }
   const isLocalhost = ["ollama", "lmstudio", "llamacpp"].includes(provider);
   if (isLocalhost) {
-    const s2 = clack5.spinner();
+    const s2 = clack6.spinner();
     s2.start(`Checking ${provider} availability...`);
     const available = await checkLocalhostAvailability(
       provider,
@@ -2710,48 +2902,48 @@ async function runChatFlow() {
     );
     if (!available) {
       s2.stop(`${provider} is not available`);
-      clack5.log.error(`Please start ${provider} first.`);
+      clack6.log.error(`Please start ${provider} first.`);
       if (provider === "ollama") {
-        clack5.log.info("Install: curl -fsSL https://ollama.com/install.sh | sh");
-        clack5.log.info("Run: ollama pull llama3");
+        clack6.log.info("Install: curl -fsSL https://ollama.com/install.sh | sh");
+        clack6.log.info("Run: ollama pull llama3");
       }
       return;
     }
     s2.stop(`${provider} is ready`);
   }
   let model = projectConfig.model;
-  const customizeModel = await clack5.confirm({
+  const customizeModel = await clack6.confirm({
     message: "Customize model?",
     initialValue: false
   });
-  if (clack5.isCancel(customizeModel)) {
-    clack5.cancel("Operation cancelled");
+  if (clack6.isCancel(customizeModel)) {
+    clack6.cancel("Operation cancelled");
     return;
   }
   if (customizeModel) {
-    const modelInput = await clack5.text({
+    const modelInput = await clack6.text({
       message: "Model name",
       placeholder: model,
       defaultValue: model
     });
-    if (clack5.isCancel(modelInput)) {
-      clack5.cancel("Operation cancelled");
+    if (clack6.isCancel(modelInput)) {
+      clack6.cancel("Operation cancelled");
       return;
     }
     model = modelInput;
   }
-  const prompt = await clack5.text({
+  const prompt = await clack6.text({
     message: "Your prompt",
     placeholder: "Ask me anything...",
     validate: (value) => {
       if (!value) return "Prompt is required";
     }
   });
-  if (clack5.isCancel(prompt)) {
-    clack5.cancel("Operation cancelled");
+  if (clack6.isCancel(prompt)) {
+    clack6.cancel("Operation cancelled");
     return;
   }
-  const s = clack5.spinner();
+  const s = clack6.spinner();
   s.start(`${provider} (${model}) is thinking...`);
   console.log();
   try {
@@ -2767,17 +2959,17 @@ async function runChatFlow() {
     console.log("\n");
     s.stop("Complete");
     if (result.usage) {
-      clack5.log.info(
+      clack6.log.info(
         `Tokens: ${result.usage.promptTokens} in / ${result.usage.completionTokens} out`
       );
     }
   } catch (error) {
     s.stop("Failed");
-    clack5.log.error(error.message);
+    clack6.log.error(error.message);
   }
 }
 async function runAuthFlow() {
-  const authAction = await clack5.select({
+  const authAction = await clack6.select({
     message: "Authentication action",
     options: [
       { value: "status", label: "\u{1F4CA} Status", hint: "Check authentication status" },
@@ -2786,28 +2978,28 @@ async function runAuthFlow() {
       { value: "refresh", label: "\u{1F504} Refresh", hint: "Refresh OAuth tokens" }
     ]
   });
-  if (clack5.isCancel(authAction)) {
-    clack5.cancel("Operation cancelled");
+  if (clack6.isCancel(authAction)) {
+    clack6.cancel("Operation cancelled");
     return;
   }
-  clack5.log.info(`Run: supercoin auth ${authAction} --help`);
-  clack5.note("Use command-line for auth operations", "Authentication");
+  clack6.log.info(`Run: supercoin auth ${authAction} --help`);
+  clack6.note("Use command-line for auth operations", "Authentication");
 }
 async function runModelsFlow() {
-  clack5.log.info("Run: supercoin models list");
-  clack5.note("Use command-line for model operations", "Models");
+  clack6.log.info("Run: supercoin models list");
+  clack6.note("Use command-line for model operations", "Models");
 }
 async function runConfigFlow() {
-  clack5.log.info("Run: supercoin config show");
-  clack5.note("Use command-line for config operations", "Configuration");
+  clack6.log.info("Run: supercoin config show");
+  clack6.note("Use command-line for config operations", "Configuration");
 }
 async function runServerFlow() {
-  clack5.log.info("Run: supercoin server start");
-  clack5.note("Use command-line for server operations", "Server");
+  clack6.log.info("Run: supercoin server start");
+  clack6.note("Use command-line for server operations", "Server");
 }
 async function runDoctorFlow() {
-  clack5.log.info("Run: supercoin doctor");
-  clack5.note("Use command-line for diagnostics", "Doctor");
+  clack6.log.info("Run: supercoin doctor");
+  clack6.note("Use command-line for diagnostics", "Doctor");
 }
 async function main() {
   const program = new Command6();
@@ -2818,6 +3010,7 @@ async function main() {
   program.addCommand(createServerCommand(config));
   program.addCommand(createConfigCommand(config));
   program.addCommand(createDoctorCommand(config));
+  program.addCommand(createDashboardCommand(config));
   program.argument("[prompt...]", "Prompt for AI").action(async (promptParts, options) => {
     const prompt = promptParts.join(" ");
     if (!prompt && options.tui !== false) {

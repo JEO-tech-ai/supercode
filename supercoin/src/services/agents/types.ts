@@ -58,6 +58,7 @@ export type TaskType = "analysis" | "execution" | "code_review" | "documentation
 
 export interface Todo {
   id: string;
+  sessionId: string;
   content: string;
   status: TaskStatus;
   priority: "high" | "medium" | "low";

@@ -8,7 +8,6 @@ Unified AI CLI hub for Claude, Codex, Gemini, and localhost models.
 
 **Privacy-first • Cost-free • Multi-provider • Open Source**
 
-## Features
 
 - **Multi-Provider Support**: Seamlessly switch between Claude (Anthropic), Codex (OpenAI), Gemini (Google), and localhost models (Ollama, LM Studio, llama.cpp)
 - **Localhost-First**: Default provider is Ollama for privacy and cost-free local development
@@ -18,6 +17,13 @@ Unified AI CLI hub for Claude, Codex, Gemini, and localhost models.
 - **Interactive TUI**: Beautiful command-line interface powered by @clack/prompts
 - **Project Configuration**: Per-project settings via `opencode.json`
 - **Extensible**: Hook system and agent configuration
+
+
+
+- **Todo Management**: Built-in todowrite/todoread tools for task tracking
+- **Agent Dashboard**: Real-time TUI dashboard for monitoring agent status and task progress
+- **UltraWork Mode**: Automatic detection of complex tasks requiring multi-agent coordination
+- **Ralph Loop**: Continuation hooks that enable agents to work autonomously until tasks complete
 
 ## Installation
 

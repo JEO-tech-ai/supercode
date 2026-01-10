@@ -7,7 +7,6 @@ import { createModelsCommand } from "./commands/models";
 import { createServerCommand } from "./commands/server";
 import { createConfigCommand } from "./commands/config";
 import { createDoctorCommand } from "./commands/doctor";
-import { createDashboardCommand } from "./commands/dashboard";
 import { resolveProviderFromConfig } from "../config/opencode";
 import { streamAIResponse, checkLocalhostAvailability } from "../services/models/ai-sdk";
 import type { AISDKProviderName } from "../services/models/ai-sdk/types";
@@ -27,7 +26,6 @@ async function runInteractiveMode() {
       { value: "config", label: "⚙️  Configuration", hint: "View and edit settings" },
       { value: "server", label: "🌐 Server", hint: "Manage local auth server" },
       { value: "doctor", label: "🩺 Doctor", hint: "Run system diagnostics" },
-      { value: "dashboard", label: "📊 Dashboard", hint: "View agent status and progress" },
     ],
   });
 
@@ -54,9 +52,6 @@ async function runInteractiveMode() {
       break;
     case "doctor":
       await runDoctorFlow();
-      break;
-    case "dashboard":
-      await runDashboardFlow();
       break;
   }
 
@@ -242,7 +237,6 @@ async function main() {
   program.addCommand(createServerCommand(config));
   program.addCommand(createConfigCommand(config));
   program.addCommand(createDoctorCommand(config));
-  program.addCommand(createDashboardCommand(config));
 
   program
     .argument("[prompt...]", "Prompt for AI")

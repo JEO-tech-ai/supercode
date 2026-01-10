@@ -14,11 +14,15 @@ import { resolveProviderFromConfig } from "../../config/opencode";
 import type { AISDKProviderName } from "../models/ai-sdk/types";
 import { getTodoManager } from "./todo-manager";
 import { getBackgroundManager } from "./background";
+import { getSessionManager } from "../../core/session";
+import { getHookRegistry } from "../../core/hooks";
 import logger from "../../shared/logger";
 
 export function classifyRequest(request: string): RequestType {
+  if (/ultrawork|ulw|울트라워크/i.test(request)) {
+    return RequestType.COMPLEX;
+  }
   // Complex patterns: multi-step tasks with "and" or "then"
-  // Check FIRST because they may contain other pattern keywords
   if (/\s+and\s+(then\s+)?/i.test(request) || /\s+then\s+/i.test(request)) {
     return RequestType.COMPLEX;
   }
@@ -65,6 +69,10 @@ export function classifyRequest(request: string): RequestType {
   }
 
   // Trivial patterns: simple questions, explanations
+  // UltraWork mode patterns (high priority)
+  const ultraworkPatterns = [/\s*(ultrawork|ulw|울트라워크|울트라워크|@ultrawork|@ulw)\s*/i, /maximize.*effort/i, /parallel.*agents/i];
+
+
   const trivialPatterns = [
     /^(what|why|when)\s+(is|are|do|does)/i,
     /^(explain|describe|tell me about)/i,
@@ -72,7 +80,13 @@ export function classifyRequest(request: string): RequestType {
   ];
 
   for (const pattern of trivialPatterns) {
-    if (pattern.test(request)) return RequestType.TRIVIAL;
+    if (pattern.test(request)) // Check UltraWork mode first
+  for (const pattern of ultraworkPatterns) {
+    if (pattern.test(request)) return RequestType.ULTRAWORK;
+  }
+
+
+  return RequestType.TRIVIAL;
   }
 
   return RequestType.TRIVIAL;
@@ -117,15 +131,30 @@ export class Coin implements Agent {
 Provide clear status updates and final summaries.`;
 
   async execute(prompt: string, context?: AgentContext): Promise<AgentResult> {
+    const sessionId = context?.sessionId || "default";
+    const workdir = context?.workdir || process.cwd();
     const todoManager = getTodoManager();
+    const sessionManager = getSessionManager();
+    const hookRegistry = getHookRegistry();
     const classification = classifyRequest(prompt);
 
-    logger.debug(`Request classified as: ${classification}`);
+    const isUltraWork = /ultrawork|ulw|울트라워크/i.test(prompt);
+    const session = sessionManager.get(sessionId);
+    if (session) {
+      session.mode = isUltraWork ? "ultrawork" : "normal";
+      session.loop = {
+        iteration: 0,
+        maxIterations: isUltraWork ? 50 : 10,
+        stagnantCount: 0,
+      };
+    }
+
+    logger.debug(`Request classified as: ${classification} (ULW: ${isUltraWork})`);
 
     try {
-      if (classification === RequestType.TRIVIAL || classification === RequestType.EXPLICIT) {
-        const config = await resolveProviderFromConfig();
-        
+      const mode = session?.mode || "normal";
+      if (mode === "normal" && (classification === RequestType.TRIVIAL || classification === RequestType.EXPLICIT)) {
+        const config = await resolveProviderFromConfig(workdir, mode);
         const result = await streamAIResponse({
           provider: config.provider as AISDKProviderName,
           model: config.model,
@@ -147,18 +176,43 @@ Provide clear status updates and final summaries.`;
 
       for (const task of plan.tasks) {
         await todoManager.create({
+          sessionId,
           content: task.description,
           priority: task.critical ? "high" : "medium",
         });
       }
 
-      const results = await this.executePlan(plan, context);
+      let currentPrompt = prompt;
+      let finalContent = "";
+      let iterations = 0;
+      const maxIterations = session?.loop?.maxIterations || 10;
 
-      const allSuccessful = results.every((r) => r.success);
+      while (iterations < maxIterations) {
+        iterations++;
+        if (session?.loop) session.loop.iteration = iterations;
+
+        const results = await this.executePlan(plan, context);
+        finalContent += this.formatResults(plan, results) + "\n";
+
+        const continuation = await hookRegistry.trigger("session.idle", {
+          sessionId,
+          workdir,
+          event: "session.idle",
+          data: { iterations, classification, isUltraWork },
+        });
+
+        const result = continuation[0] as any;
+        if (!result?.continue) {
+          break;
+        }
+
+        currentPrompt = result.prompt || currentPrompt;
+        logger.info(`Looping: iteration ${iterations}/${maxIterations}`);
+      }
 
       return {
-        success: allSuccessful,
-        content: this.formatResults(plan, results),
+        success: true,
+        content: finalContent || "Tasks completed",
         model: "ollama/llama3:latest",
       };
     } catch (error) {
@@ -215,12 +269,13 @@ Provide clear status updates and final summaries.`;
 
   private async executePlan(plan: ExecutionPlan, context?: AgentContext): Promise<ExecutionResult[]> {
     const registry = getAgentRegistry();
+    const sessionId = context?.sessionId || "default";
     const todoManager = getTodoManager();
     const backgroundManager = getBackgroundManager();
     const results: ExecutionResult[] = [];
 
     for (const task of plan.tasks) {
-      const todos = todoManager.list();
+      const todos = todoManager.list(sessionId);
       const todo = todos.find((t) => t.content === task.description);
       if (todo) {
         await todoManager.updateStatus(todo.id, "in_progress");

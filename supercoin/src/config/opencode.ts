@@ -47,7 +47,7 @@ export function getDefaultModel(provider: AISDKProviderName): string {
   return defaults[provider];
 }
 
-export async function resolveProviderFromConfig(cwd?: string): Promise<{
+export async function resolveProviderFromConfig(cwd?: string, mode: "normal" | "ultrawork" = "normal"): Promise<{
   provider: AISDKProviderName;
   model: string;
   baseURL?: string;
@@ -56,11 +56,25 @@ export async function resolveProviderFromConfig(cwd?: string): Promise<{
 }> {
   const config = await loadOpenCodeConfig(cwd);
   
+  const provider = config.provider as AISDKProviderName;
+  let model = config.model || getDefaultModel(provider);
+  let temperature = config.temperature;
+  let maxTokens = config.maxTokens;
+
+  if (mode === "ultrawork") {
+    if (provider === "anthropic") model = "claude-3-5-sonnet-latest";
+    if (provider === "openai") model = "gpt-4o";
+    if (provider === "google") model = "gemini-2.0-flash-exp";
+    
+    temperature = 0.2;
+    maxTokens = 8192;
+  }
+
   return {
-    provider: config.provider as AISDKProviderName,
-    model: config.model || getDefaultModel(config.provider as AISDKProviderName),
+    provider,
+    model,
     baseURL: config.baseURL,
-    temperature: config.temperature,
-    maxTokens: config.maxTokens,
+    temperature,
+    maxTokens,
   };
 }
