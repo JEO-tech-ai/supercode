@@ -5,7 +5,7 @@
 import { expect, test, describe, beforeAll, mock } from "bun:test";
 import { createSuperCoin } from "../../src/supercoin";
 import { SuperCoinConfigSchema } from "../../src/config/schema";
-import { classifyRequest } from "../../src/services/agents/orchestrator";
+import { classifyRequest } from "../../src/services/agents/coin";
 import { RequestType } from "../../src/services/agents/types";
 import { getAgentRegistry, initializeAgents } from "../../src/services/agents";
 
@@ -30,7 +30,7 @@ describe("E2E: Multi-Agent Workflow", () => {
       const registry = getAgentRegistry();
 
       const coreAgents = [
-        "orchestrator",
+        "coin",
         "explorer",
         "analyst",
         "executor",

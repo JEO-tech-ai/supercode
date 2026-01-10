@@ -1,6 +1,6 @@
 import type { AIRequest, AIResponse } from "../models/types";
 
-export type AgentName = "orchestrator" | "analyst" | "executor" | "code_reviewer" | "doc_writer" | "explorer";
+export type AgentName = "coin" | "analyst" | "executor" | "code_reviewer" | "doc_writer" | "explorer";
 export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled" | "failed";
 
 export enum RequestType {

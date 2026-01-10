@@ -6,7 +6,7 @@ import {
   getBackgroundManager,
   RequestType,
 } from "../../src/services/agents";
-import { classifyRequest } from "../../src/services/agents/orchestrator";
+import { classifyRequest } from "../../src/services/agents/coin";
 
 describe("E2E: Agent System", () => {
   beforeAll(() => {
@@ -17,7 +17,7 @@ describe("E2E: Agent System", () => {
     test("should have all agents registered", () => {
       const registry = getAgentRegistry();
 
-      expect(registry.has("orchestrator")).toBe(true);
+      expect(registry.has("coin")).toBe(true);
       expect(registry.has("explorer")).toBe(true);
       expect(registry.has("analyst")).toBe(true);
       expect(registry.has("executor")).toBe(true);

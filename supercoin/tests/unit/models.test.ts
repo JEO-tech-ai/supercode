@@ -13,11 +13,6 @@ describe("ModelRouter", () => {
     expect(current.model).toBe("claude-sonnet-4-5");
   });
 
-    const current = router.getCurrentModel();
-    expect(current.provider).toBe("anthropic");
-    expect(current.model).toBe("claude-sonnet-4");
-  });
-
   test("should list all models", () => {
     const router = getModelRouter();
     const models = router.listModels();

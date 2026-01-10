@@ -1,13 +1,13 @@
 import { expect, test, describe } from "bun:test";
 import { getAgentRegistry, initializeAgents, RequestType } from "../../src/services/agents";
-import { classifyRequest } from "../../src/services/agents/orchestrator";
+import { classifyRequest } from "../../src/services/agents/coin";
 
 describe("Agent Registry", () => {
   test("should register all agents", () => {
     initializeAgents();
     const registry = getAgentRegistry();
 
-    expect(registry.has("orchestrator")).toBe(true);
+    expect(registry.has("coin")).toBe(true);
     expect(registry.has("explorer")).toBe(true);
     expect(registry.has("analyst")).toBe(true);
     expect(registry.has("executor")).toBe(true);

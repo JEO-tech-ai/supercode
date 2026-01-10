@@ -76,9 +76,9 @@ export function classifyRequest(request: string): RequestType {
   return RequestType.TRIVIAL;
 }
 
-export class Orchestrator implements Agent {
-  readonly name = "orchestrator" as const;
-  readonly displayName = "Orchestrator";
+export class Coin implements Agent {
+  readonly name = "coin" as const;
+  readonly displayName = "Coin";
   readonly model = "anthropic/claude-sonnet-4";
 
   readonly capabilities = [
@@ -88,7 +88,7 @@ export class Orchestrator implements Agent {
     "coordination",
   ];
 
-  private readonly systemPrompt = `You are an AI orchestrator that coordinates multiple specialized agents to complete complex tasks.
+  private readonly systemPrompt = `You are Coin, an AI orchestrator that coordinates multiple specialized agents to complete complex tasks.
 
 ## Your Responsibilities
 1. Analyze user requests and classify their type

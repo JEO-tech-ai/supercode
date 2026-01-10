@@ -1,7 +1,7 @@
 import { expect, test, describe, beforeAll } from "bun:test";
 import { createSuperCoin } from "../../src/supercoin";
 import { SuperCoinConfigSchema } from "../../src/config/schema";
-import { classifyRequest } from "../../src/services/agents/orchestrator";
+import { classifyRequest } from "../../src/services/agents/coin";
 import { RequestType } from "../../src/services/agents/types";
 
 describe("E2E: Full Workflow Integration", () => {
@@ -51,7 +51,7 @@ describe("E2E: Full Workflow Integration", () => {
 
   describe("Agent System", () => {
     test("should have all agents registered", () => {
-      const agentNames = ["orchestrator", "explorer", "analyst", "executor", "code_reviewer", "doc_writer"];
+      const agentNames = ["coin", "explorer", "analyst", "executor", "code_reviewer", "doc_writer"];
 
       for (const name of agentNames) {
         expect(supercoin.agents.has(name as any)).toBe(true);

@@ -31,14 +31,14 @@
 
 **분석 결과**:
 - 총 48,800+ lines TypeScript
-- 7개 전문 에이전트 (Sisyphus, Oracle, Librarian, Explore, Frontend, DocWriter, Multimodal)
+- 7개 전문 에이전트 (Coin, Oracle, Librarian, Explore, Frontend, DocWriter, Multimodal)
 - 22개 Hook 시스템
 - 15+ 커스텀 Tool (LSP 11개 포함)
 - 고급 Background Task 관리
 - Claude Code 완전 호환
 
 **핵심 기능 식별**:
-1. Multi-agent orchestration (Sisyphus-style)
+1. Multi-agent orchestration (Coin-style)
 2. Background task with concurrency management
 3. Hierarchical context injection (AGENTS.md)
 4. LSP tools for IDE-grade refactoring

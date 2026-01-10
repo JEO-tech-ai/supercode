@@ -11,14 +11,14 @@ oh-my-opencode 프로젝트의 핵심 기능들을 supercoin에 통합하여 mul
 
 ## 1. Multi-Agent Orchestration 시스템
 
-### 1.1 Sisyphus-style Orchestrator
+### 1.1 Coin-style Orchestrator
 
-oh-my-opencode의 Sisyphus 에이전트처럼 작업을 전문 에이전트에게 위임하는 orchestrator를 구현합니다.
+oh-my-opencode의 Coin 에이전트처럼 작업을 전문 에이전트에게 위임하는 orchestrator를 구현합니다.
 
 **현재 supercoin 구조**:
 ```typescript
-// src/services/agents/orchestrator.ts
-export class Orchestrator implements Agent {
+// src/services/agents/coin.ts
+export class Coin implements Agent {
   readonly capabilities = ["planning", "delegation", "verification", "coordination"];
 }
 ```
@@ -31,7 +31,7 @@ export class ConductorAgent implements Agent {
   readonly model = "anthropic/claude-opus-4-5";
   readonly temperature = 0.1;
 
-  // Sisyphus처럼 extended thinking 지원
+  // Coin처럼 extended thinking 지원
   readonly thinkingBudget = 32000;
 
   // 전문 에이전트 위임

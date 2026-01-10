@@ -122,7 +122,7 @@ export class SuperCoin {
   }
 
   async runAgent(
-    agentName: "orchestrator" | "explorer" | "analyst" | "executor" | "code_reviewer" | "doc_writer",
+    agentName: "coin" | "explorer" | "analyst" | "executor" | "code_reviewer" | "doc_writer",
     prompt: string
   ): Promise<{ success: boolean; content?: string; error?: string }> {
     await this.initialize();
