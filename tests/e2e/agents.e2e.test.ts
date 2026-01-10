@@ -90,8 +90,8 @@ describe("E2E: Agent System", () => {
       const manager = getTodoManager();
       manager.clear();
 
-      const todo1 = await manager.create({ content: "Task 1", priority: "high" });
-      const todo2 = await manager.create({ content: "Task 2", priority: "medium" });
+      const todo1 = await manager.create({ sessionId: "test-session", content: "Task 1", priority: "high" });
+      const todo2 = await manager.create({ sessionId: "test-session", content: "Task 2", priority: "medium" });
 
       expect(manager.list().length).toBe(2);
       expect(manager.hasPending()).toBe(true);
@@ -107,7 +107,7 @@ describe("E2E: Agent System", () => {
       const manager = getTodoManager();
       manager.clear();
 
-      const todo = await manager.create({ content: "Test task" });
+      const todo = await manager.create({ sessionId: "test-session", content: "Test task" });
 
       expect(todo.status).toBe("pending");
 

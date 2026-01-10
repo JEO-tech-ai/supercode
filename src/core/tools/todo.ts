@@ -21,6 +21,7 @@ export const TodoWriteTool: ToolDefinition = {
       // Convert array format to Todo format
       const todoItems: Todo[] = todosArray.map((item) => ({
         id: item.id || crypto.randomUUID(),
+        sessionId: context.sessionId,
         content: item.content,
         status: item.status as TaskStatus,
         priority: item.priority as "high" | "medium" | "low",
@@ -29,7 +30,7 @@ export const TodoWriteTool: ToolDefinition = {
       }));
 
       // Use new setTodos method to replace entire list
-      todoManager.setTodos(todoItems);
+      todoManager.setTodos(context.sessionId, todoItems);
 
       const pending = todoManager.listPending();
 

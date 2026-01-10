@@ -191,7 +191,7 @@ Provide clear status updates and final summaries.`;
           data: { iterations, classification, isUltraWork },
         });
 
-        const result = continuation[0] as any;
+        const result = continuation as any;
         if (!result?.continue) {
           break;
         }

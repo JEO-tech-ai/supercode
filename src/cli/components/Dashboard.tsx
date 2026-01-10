@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Text, Newline } from 'ink';
-import type { Session, Todo } from '../../core/types';
-import type { AgentName, TaskStatus } from '../../services/agents/types';
+import type { Session, Todo, TaskStatus } from '../../core/types';
+import type { AgentName } from '../../services/agents/types';
 
 interface AgentStatus {
   name: AgentName;

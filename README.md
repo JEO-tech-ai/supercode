@@ -61,7 +61,7 @@ npm install -g git+https://github.com/JEO-tech-ai/supercode.git#main
 ```bash
 # Clone the repository
 git clone https://github.com/JEO-tech-ai/supercode.git
-cd supercode/supercoin
+cd supercode
 
 # Install dependencies
 bun install
@@ -499,7 +499,7 @@ supercoin --provider llamacpp --base-url http://localhost:8080/v1 "Your prompt"
 ## Project Structure
 
 ```
-supercoin/
+supercode/
 ├── src/
 │   ├── cli/                    # CLI entry point and commands
 │   ├── config/                 # Configuration schema and loaders

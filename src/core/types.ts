@@ -86,3 +86,15 @@ export interface SessionMessage {
     result?: string;
   }>;
 }
+
+export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled" | "failed";
+
+export interface Todo {
+  id: string;
+  sessionId: string;
+  content: string;
+  status: TaskStatus;
+  priority: "high" | "medium" | "low";
+  createdAt: Date;
+  updatedAt: Date;
+}

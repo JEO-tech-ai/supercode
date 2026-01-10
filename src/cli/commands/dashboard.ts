@@ -27,7 +27,7 @@ export function createDashboardCommand(config: SuperCoinConfig): Command {
 }
 
 async function runDashboard() {
-  const currentSession = getSessionManager().get();
+  const currentSession = getSessionManager().getCurrent();
   const todoManager = getTodoManager();
 
   clack.intro("📊 SuperCoin Agent Dashboard");

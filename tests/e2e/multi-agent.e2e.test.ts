@@ -174,7 +174,7 @@ describe("E2E: Multi-Agent Workflow", () => {
 
       // Create all workflow steps
       for (const step of steps) {
-        const todo = await supercoin.todos.create(step);
+        const todo = await supercoin.todos.create({ ...step, sessionId: "test-session" });
         todoIds.push(todo.id);
         expect(todo.status).toBe("pending");
       }
@@ -242,6 +242,7 @@ describe("E2E: Multi-Agent Workflow", () => {
       supercoin.todos.clear();
 
       const todo = await supercoin.todos.create({
+        sessionId: "test-session",
         content: "@ultrawork:priority Critical security fix",
         priority: "high",
       });

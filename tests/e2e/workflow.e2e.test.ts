@@ -71,7 +71,7 @@ describe("E2E: Full Workflow Integration", () => {
     test("should track task lifecycle", async () => {
       supercoin.todos.clear();
 
-      const todo = await supercoin.todos.create({ content: "Test task", priority: "high" });
+      const todo = await supercoin.todos.create({ sessionId: "test-session", content: "Test task", priority: "high" });
       expect(todo.status).toBe("pending");
 
       await supercoin.todos.updateStatus(todo.id, "in_progress");

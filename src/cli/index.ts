@@ -218,6 +218,11 @@ async function runDoctorFlow() {
   clack.note("Use command-line for diagnostics", "Doctor");
 }
 
+async function runDashboardFlow() {
+  clack.log.info("Run: supercoin dashboard");
+  clack.note("Use command-line for dashboard", "Dashboard");
+}
+
 async function main() {
   const program = new Command();
   const config = await loadConfig();
