@@ -39,6 +39,10 @@ export function createDoctorCommand(config: SuperCoinConfig): Command {
       console.log("\n[Server]");
       results.push(await checkServerConfig(config));
 
+      // Ollama check
+      console.log("\n[Ollama]");
+      results.push(await checkOllamaStatus());
+
       // Config checks
       console.log("\n[Configuration]");
       results.push(await checkConfigFile());
@@ -50,9 +54,13 @@ export function createDoctorCommand(config: SuperCoinConfig): Command {
       const warned = results.filter((r) => r.status === "warn").length;
 
       if (failed === 0) {
-        console.log(`\nAll checks passed! (${passed} passed, ${warned} warnings)`);
+        console.log(
+          `\nAll checks passed! (${passed} passed, ${warned} warnings)`
+        );
       } else {
-        console.log(`\n${failed} checks failed, ${warned} warnings, ${passed} passed`);
+        console.log(
+          `\n${failed} checks failed, ${warned} warnings, ${passed} passed`
+        );
       }
 
       if (options.json) {
@@ -64,7 +72,7 @@ export function createDoctorCommand(config: SuperCoinConfig): Command {
 }
 
 async function checkBunVersion(): Promise<CheckResult> {
-  try {
+  if (typeof Bun !== "undefined") {
     const version = Bun.version;
     console.log(`  Bun version: v${version}`);
     return {
@@ -72,14 +80,14 @@ async function checkBunVersion(): Promise<CheckResult> {
       status: "pass",
       message: `v${version}`,
     };
-  } catch {
-    console.log("  Bun version: Not available");
-    return {
-      name: "bun_version",
-      status: "warn",
-      message: "Not available",
-    };
   }
+
+  console.log("  Bun version: Not active (Node.js runtime)");
+  return {
+    name: "bun_version",
+    status: "warn",
+    message: "Not active",
+  };
 }
 
 async function checkNodeVersion(): Promise<CheckResult> {
@@ -103,11 +111,25 @@ async function checkOS(): Promise<CheckResult> {
   };
 }
 
-async function checkAuth(provider: string, envVar: string): Promise<CheckResult> {
+async function checkAuth(
+  provider: string,
+  envVar: string
+): Promise<CheckResult> {
   const hasEnv = !!process.env[envVar];
+  // Verify token files if env var is missing
+  if (!hasEnv) {
+    // This is a simplified check. Ideally we'd check the token store, but that requires async access
+    // and importing the store. For now, we'll stick to env vars as the primary "easy" check,
+    // but we can look for token files if we want to be more thorough.
+    // However, the original code only checked env vars, so we'll stick to that for consistency
+    // unless we want to do a full token store check.
+  }
+
   const status = hasEnv ? "pass" : "warn";
   const icon = hasEnv ? "[OK]" : "[--]";
-  const message = hasEnv ? "Environment variable set" : "Not configured";
+  const message = hasEnv
+    ? "Environment variable set"
+    : "Not configured via Env";
 
   console.log(`  ${provider.padEnd(8)}: ${icon} ${message}`);
 
@@ -118,18 +140,78 @@ async function checkAuth(provider: string, envVar: string): Promise<CheckResult>
   };
 }
 
-async function checkServerConfig(config: SuperCoinConfig): Promise<CheckResult> {
+async function checkOllamaStatus(): Promise<CheckResult> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+    const response = await fetch("http://localhost:11434/api/version", {
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      const data = (await response.json()) as { version: string };
+      console.log(`  Status    : [OK] Running v${data.version}`);
+      return {
+        name: "ollama_status",
+        status: "pass",
+        message: `Running v${data.version}`,
+      };
+    } else {
+      throw new Error(`Status ${response.status}`);
+    }
+  } catch (error) {
+    console.log(
+      `  Status    : [!!] Not running or unreachable (${
+        (error as Error).message
+      })`
+    );
+    return {
+      name: "ollama_status",
+      status: "fail", // Fail is appropriate here as it's a critical local dependency
+      message: "Not running",
+    };
+  }
+}
+
+async function checkServerConfig(
+  config: SuperCoinConfig
+): Promise<CheckResult> {
   const port = config.server?.port || 3100;
   const host = config.server?.host || "127.0.0.1";
+  const url = `http://${host}:${port}/health`; // Assuming a health endpoint exists or we check root
 
   console.log(`  Server config: http://${host}:${port}`);
-  console.log(`  Server status: Not running (placeholder)`);
 
-  return {
-    name: "server",
-    status: "warn",
-    message: "Server not running",
-  };
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1000);
+
+    // Just try to fetch root or health. If we get a response (even 404), something is listening.
+    // Ideally the server has a /health endpoint.
+    const response = await fetch(url, {
+      method: "GET",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log(`  Server status: [OK] Running`);
+    return {
+      name: "server_status",
+      status: "pass",
+      message: "Running",
+    };
+  } catch {
+    console.log(`  Server status: [--] Not running`);
+    return {
+      name: "server_status",
+      status: "warn", // Warn because it's not strictly required for CLI usage
+      message: "Not running",
+    };
+  }
 }
 
 async function checkConfigFile(): Promise<CheckResult> {
@@ -155,6 +237,7 @@ async function checkConfigFile(): Promise<CheckResult> {
   return {
     name: "config_files",
     status: hasUserConfig || hasProjectConfig ? "pass" : "warn",
-    message: hasUserConfig || hasProjectConfig ? "Config found" : "Using defaults",
+    message:
+      hasUserConfig || hasProjectConfig ? "Config found" : "Using defaults",
   };
 }
