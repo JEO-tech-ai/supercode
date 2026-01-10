@@ -8,7 +8,10 @@
     "supercoin": "./dist/cli/index.js"
   },
   "files": [
-    "dist",
+    "dist/cli/index.js",
+    "dist/cli/index.js.map",
+    "dist/index.js",
+    "dist/index.js.map",
     "README.md",
     "LICENSE"
   ],
@@ -23,7 +26,7 @@
     "url": "https://github.com/JEO-tech-ai/supercode/issues"
   },
   "homepage": "https://github.com/JEO-tech-ai/supercode#readme",
-   "scripts": {
+  "scripts": {
     "build": "node scripts/build.js",
     "dev": "bun run scripts/dev.ts",
     "dev:setup": "bun run scripts/dev-setup.ts",

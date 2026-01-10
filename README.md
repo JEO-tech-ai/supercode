@@ -66,19 +66,39 @@ npm link
 supercoin --help
 ```
 
-**Method 2: Direct Install via npm (Requires npm 9+)**
-
-```bash
-npm install -g git+https://github.com/JEO-tech-ai/supercode.git#main
-```
-
-> **Note**: Direct npm install from git URL may have issues with build dependencies. If you encounter errors, use Method 1 (Clone and Install) instead.
-
 ### Prerequisites
 
 - [Node.js](https://nodejs.org) v18+
 - [Ollama](https://ollama.com) (recommended for local models)
 - [Bun](https://bun.sh) (optional, for development only)
+
+### Installation Methods
+
+**Method 1: Clone and Install (Recommended)**
+
+```bash
+# Clone repository
+git clone https://github.com/JEO-tech-ai/supercode.git
+cd supercode
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Install globally (use sudo if needed)
+sudo npm install -g .
+# Or if you have npm global write permission:
+npm link
+
+# Verify installation
+supercoin --help
+```
+
+> **Note**: This method is recommended as it avoids potential build issues that can occur with direct npm install from git URL.
+https://github.com/JEO-tech-ai/supercode
+```
 
 ### Install from GitHub (Development)
 
