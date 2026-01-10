@@ -1,13 +1,16 @@
 # SuperCoin
 
-Unified AI CLI hub for Claude, Codex, and Gemini.
+Unified AI CLI hub for Claude, Codex, Gemini, and localhost models.
 
 ## Features
 
-- **Multi-Provider Support**: Seamlessly switch between Claude (Anthropic), Codex (OpenAI), and Gemini (Google)
-- **Unified Authentication**: Single hub for managing all provider credentials
+- **Multi-Provider Support**: Seamlessly switch between Claude (Anthropic), Codex (OpenAI), Gemini (Google), and localhost models (Ollama, LM Studio, llama.cpp)
+- **Localhost-First**: Default provider is Ollama for privacy and cost-free local development
+- **Unified Authentication**: Single hub for managing all provider credentials with OAuth 2.0 + PKCE support
 - **Model Router**: Intelligent model selection with automatic fallback
+- **AI SDK Integration**: Universal provider abstraction powered by Vercel AI SDK
 - **Interactive TUI**: Beautiful command-line interface powered by @clack/prompts
+- **Project Configuration**: Per-project settings via `opencode.json`
 - **Extensible**: Hook system and agent configuration
 
 ## Installation
@@ -23,13 +26,91 @@ bun install
 
 ## Quick Start
 
-```bash
-# Run CLI
-bun start
+### Using Localhost Models (Recommended)
 
-# Development mode with hot reload
-bun dev
+```bash
+# Install Ollama (macOS/Linux)
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Pull a model
+ollama pull llama3
+
+# Start chatting
+bun src/cli/index.ts "Hello, what is 2+2?"
+# Output: Provider: ollama | Model: llama3:latest
+#         The answer is 4.
+
+# Or with flags
+bun src/cli/index.ts --provider ollama -m llama3 "Explain AI"
 ```
+
+### Using API-Based Providers
+
+```bash
+# Login to providers
+supercoin auth login --gemini      # OAuth or API Key
+supercoin auth login --claude      # API Key
+supercoin auth login --codex       # API Key
+
+# Chat with specific provider
+bun src/cli/index.ts --provider anthropic -m claude-opus-4-5 "Hello"
+bun src/cli/index.ts --provider google -m gemini-2.0-flash "Hello"
+```
+
+### Project Configuration
+
+Create `opencode.json` in your project root:
+
+```json
+{
+  "provider": "ollama",
+  "model": "llama3:latest",
+  "temperature": 0.7,
+  "maxTokens": 2048
+}
+```
+
+Alternative filenames: `.opencode.json` or `supercoin.json`
+
+Then simply:
+
+```bash
+bun src/cli/index.ts "Your prompt here"
+```
+
+## CLI Usage
+
+### Basic Chat
+
+```bash
+# Use default provider (ollama)
+bun src/cli/index.ts "What is TypeScript?"
+
+# Specify provider and model
+bun src/cli/index.ts --provider anthropic -m claude-opus-4-5 "Explain AI"
+bun src/cli/index.ts -p google -m gemini-2.0-flash "Hello world"
+
+# Adjust parameters
+bun src/cli/index.ts -t 0.9 --max-tokens 1000 "Creative writing prompt"
+
+# Verbose output (shows token usage)
+bun src/cli/index.ts -v "Your question"
+
+# Quiet mode (no provider info)
+bun src/cli/index.ts -q "Your question"
+```
+
+### Available Flags
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `-p, --provider` | AI provider | `--provider ollama` |
+| `-m, --model` | Model ID | `-m llama3:latest` |
+| `-t, --temperature` | Temperature (0-2) | `-t 0.7` |
+| `--max-tokens` | Max output tokens | `--max-tokens 2048` |
+| `--base-url` | Custom base URL | `--base-url http://localhost:11434/v1` |
+| `-v, --verbose` | Show token usage | `-v` |
+| `-q, --quiet` | Minimal output | `-q` |
 
 ## Commands
 
@@ -149,64 +230,156 @@ supercoin doctor
 
 ## Configuration
 
-SuperCoin uses a TOML configuration file located at `~/.config/supercoin/config.toml`.
+### Global Configuration
 
-```toml
-# Default model
-default_model = "anthropic/claude-sonnet-4"
+SuperCoin uses a configuration file located at `~/.config/supercoin/config.json`.
 
-# Fallback models
-fallback_models = [
-  "openai/gpt-4o",
-  "google/gemini-2.0-flash"
-]
-
-# Provider settings
-[providers.anthropic]
-enabled = true
-
-[providers.openai]
-enabled = true
-
-[providers.google]
-enabled = true
-
-# Server settings
-[server]
-port = 3100
-host = "127.0.0.1"
-autoStart = true
-
-# Experimental features
-[experimental]
-preemptive_compaction = false
-parallel_agents = true
+```json
+{
+  "default_model": "anthropic/claude-sonnet-4-5",
+  "fallback_models": [
+    "openai/gpt-5.2",
+    "google/gemini-3-flash"
+  ],
+  "providers": {
+    "anthropic": { "enabled": true },
+    "openai": { "enabled": true },
+    "google": { "enabled": true },
+    "ollama": {
+      "enabled": true,
+      "baseUrl": "http://localhost:11434/v1",
+      "defaultModel": "llama3:latest"
+    },
+    "lmstudio": {
+      "enabled": true,
+      "baseUrl": "http://localhost:1234/v1"
+    }
+  },
+  "server": {
+    "port": 3100,
+    "host": "127.0.0.1"
+  }
+}
 ```
+
+### Project Configuration
+
+Create `opencode.json`, `.opencode.json`, or `supercoin.json` in your project:
+
+```json
+{
+  "provider": "ollama",
+  "model": "llama3:latest",
+  "temperature": 0.7,
+  "maxTokens": 4096,
+  "streaming": true
+}
+```
+
+**Configuration Hierarchy** (highest priority first):
+1. CLI flags (`--provider`, `--model`, etc.)
+2. Project config (`opencode.json`)
+3. Global config (`~/.config/supercoin/config.json`)
+4. Defaults (provider: `ollama`, model: `llama3.2`)
 
 ## Supported Models
 
+### API Providers
+
 | Provider | Model ID | Context |
 |----------|----------|---------|
-| Anthropic | anthropic/claude-opus-4 | 200K |
-| Anthropic | anthropic/claude-sonnet-4 | 200K |
-| OpenAI | openai/gpt-4o | 128K |
-| OpenAI | openai/o1 | 200K |
-| Google | google/gemini-2.5-pro | 1M |
-| Google | google/gemini-2.0-flash | 1M |
+| Anthropic | claude-opus-4-5 | 200K |
+| Anthropic | claude-sonnet-4-5 | 200K |
+| Anthropic | claude-haiku-4-5 | 200K |
+| OpenAI | gpt-5.2 | 200K |
+| OpenAI | gpt-4o | 128K |
+| OpenAI | o3 | 200K |
+| OpenAI | o1 | 128K |
+| Google | gemini-3-pro | 2M |
+| Google | gemini-3-flash | 1M |
+| Google | gemini-2.0-flash | 1M |
+
+### Localhost Providers
+
+| Provider | Setup | Models |
+|----------|-------|--------|
+| **Ollama** | `curl -fsSL https://ollama.com/install.sh \| sh` | llama3, gemma2, qwen, phi, mistral, and 100+ more |
+| **LM Studio** | Download from [lmstudio.ai](https://lmstudio.ai) | All GGUF models |
+| **llama.cpp** | Build from [source](https://github.com/ggerganov/llama.cpp) | All GGUF models |
+
+#### Ollama Quick Start
+
+```bash
+# Install
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Popular models
+ollama pull llama3           # Meta Llama 3 (8B)
+ollama pull gemma2:2b        # Google Gemma 2 (2B)
+ollama pull qwen3:4b         # Alibaba Qwen (4B)
+ollama pull phi3             # Microsoft Phi-3 (3.8B)
+
+# List installed models
+ollama list
+
+# Use with SuperCoin
+bun src/cli/index.ts --provider ollama -m llama3 "Your prompt"
+```
+
+#### LM Studio Setup
+
+```bash
+# 1. Download from https://lmstudio.ai
+# 2. Start local server (default: http://localhost:1234)
+# 3. Load a model in the UI
+
+# Use with SuperCoin
+bun src/cli/index.ts --provider lmstudio -m your-model "Your prompt"
+```
+
+#### llama.cpp Setup
+
+```bash
+# Build llama.cpp server
+git clone https://github.com/ggerganov/llama.cpp
+cd llama.cpp
+make server
+
+# Start server (default: http://localhost:8080)
+./build/bin/llama-server -m models/your-model.gguf
+
+# Use with SuperCoin
+bun src/cli/index.ts --provider llamacpp --base-url http://localhost:8080/v1 "Your prompt"
+```
 
 ## Project Structure
 
 ```
 supercoin/
 ├── src/
-│   ├── cli/           # CLI entry point and commands
-│   ├── config/        # Configuration schema and loader
-│   ├── core/          # Core functionality (tools, hooks, session)
-│   ├── server/        # Local auth server (Hono)
-│   ├── services/      # Auth and model services
-│   └── shared/        # Shared utilities (logger, errors)
-├── tests/             # Test files
-└── examples/          # Usage examples
+│   ├── cli/                    # CLI entry point and commands
+│   ├── config/                 # Configuration schema and loaders
+│   │   ├── loader.ts          # Global config
+│   │   ├── opencode.ts        # Project config (opencode.json)
+│   │   └── schema.ts          # Zod schemas
+│   ├── core/                   # Core functionality (tools, hooks, session)
+│   ├── server/                 # Local auth server (Hono)
+│   │   ├── store/             # Token and OAuth state storage
+│   │   └── routes/            # HTTP routes
+│   ├── services/
+│   │   ├── auth/              # Authentication (OAuth, API keys)
+│   │   ├── models/
+│   │   │   ├── ai-sdk/        # AI SDK integration
+│   │   │   │   ├── types.ts   # Provider types
+│   │   │   │   ├── registry.ts # Provider registry
+│   │   │   │   └── stream.ts  # Streaming service
+│   │   │   └── providers/     # Legacy direct API implementations
+│   │   └── agents/            # Agent system
+│   └── shared/                 # Shared utilities (logger, errors)
+├── tests/                      # Test files (142 tests)
+│   ├── unit/                  # Unit tests
+│   └── e2e/                   # End-to-end tests
+└── examples/                   # Usage examples
 ```
 
 ## Development
@@ -228,11 +401,22 @@ bun run build
 ## Tech Stack
 
 - **Runtime**: [Bun](https://bun.sh)
+- **AI SDK**: [Vercel AI SDK](https://sdk.vercel.ai) - Universal provider abstraction
 - **CLI Framework**: [Commander.js](https://github.com/tj/commander.js)
 - **Interactive UI**: [@clack/prompts](https://github.com/natemoo-re/clack)
 - **HTTP Server**: [Hono](https://hono.dev)
 - **Validation**: [Zod](https://zod.dev)
 - **Language**: TypeScript
+
+### AI SDK Providers
+
+SuperCoin uses Vercel AI SDK for universal provider support:
+
+- `@ai-sdk/anthropic` - Claude models
+- `@ai-sdk/openai` - OpenAI, Codex, Ollama, LM Studio, llama.cpp (OpenAI-compatible)
+- `@ai-sdk/google` - Gemini models
+
+This architecture allows adding 75+ providers with minimal code.
 
 ## License
 
