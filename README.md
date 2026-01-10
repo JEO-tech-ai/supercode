@@ -57,10 +57,12 @@ npm install
 # Build the project
 npm run build
 
-# Link globally
+# Install globally (use sudo if needed)
+sudo npm install -g .
+# Or if you have npm global write permission:
 npm link
 
-# Now you can use it
+# Verify installation
 supercoin --help
 ```
 
