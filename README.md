@@ -343,13 +343,16 @@ supercoin models current
 
 ```bash
 # Show current configuration
-supercoin config show
+supercoin config list
 
 # Get specific config value
 supercoin config get default_model
 
 # Set config value
 supercoin config set default_model anthropic/claude-opus-4
+
+# Show configuration file paths
+supercoin config path
 ```
 
 ### Server
@@ -520,7 +523,7 @@ supercode/
 │   │   │   └── providers/     # Legacy direct API implementations
 │   │   └── agents/            # Agent system
 │   └── shared/                 # Shared utilities (logger, errors)
-├── tests/                      # Test files (142 tests)
+├── tests/                      # Test files (143 tests)
 │   ├── unit/                  # Unit tests
 │   └── e2e/                   # End-to-end tests
 └── examples/                   # Usage examples
