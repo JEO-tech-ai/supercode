@@ -42,7 +42,6 @@
     "@types/react": "^19.2.7",
     "ai": "^6.0.26",
     "commander": "^12.0.0",
-    "esbuild": "^0.27.2",
     "hono": "^4.0.0",
     "ink": "^6.6.0",
     "lucide-react": "^0.562.0",
@@ -51,6 +50,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "esbuild": "^0.27.2",
     "typescript": "^5.3.3"
   },
   "keywords": [
