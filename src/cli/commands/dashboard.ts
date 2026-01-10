@@ -1,15 +1,29 @@
+/**
+ * Dashboard Command
+ * Show agent status and progress dashboard
+ */
+import { Command } from "commander";
 import * as clack from "@clack/prompts";
+import type { SuperCoinConfig } from "../../config/schema";
 import { getTodoManager } from "../../services/agents/todo-manager";
 import { getSessionManager } from "../../core/session";
 
-export async function createDashboardCommand() {
-  return {
-    name: "dashboard",
-    description: "Show agent status dashboard",
-    async action() {
+export function createDashboardCommand(config: SuperCoinConfig): Command {
+  const dashboard = new Command("dashboard")
+    .description("Show agent status dashboard")
+    .option("--json", "Output as JSON")
+    .action(async function(this: Command) {
+      const options = this.optsWithGlobals();
+      if (options.json) {
+        const todoManager = getTodoManager();
+        const todos = todoManager.list();
+        console.log(JSON.stringify({ todos }, null, 2));
+        return;
+      }
       await runDashboard();
-    },
-  };
+    });
+
+  return dashboard;
 }
 
 async function runDashboard() {

@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import * as clack from "@clack/prompts";
 import { Command } from "commander";
 import { loadConfig } from "../config/loader.js";
