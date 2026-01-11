@@ -1,0 +1,75 @@
+{
+  "_sidebar-einHe0E2.js": {
+    "file": "assets/sidebar-einHe0E2.js",
+    "name": "sidebar",
+    "imports": [
+      "_theme-CVLqWykU.js"
+    ]
+  },
+  "_theme-CVLqWykU.js": {
+    "file": "assets/theme-CVLqWykU.js",
+    "name": "theme"
+  },
+  "src/routes/agents/index.tsx?pick=default&pick=$css": {
+    "file": "assets/index-B9LD-gYd.js",
+    "name": "index",
+    "src": "src/routes/agents/index.tsx?pick=default&pick=$css",
+    "isEntry": true,
+    "isDynamicEntry": true,
+    "imports": [
+      "_theme-CVLqWykU.js",
+      "_sidebar-einHe0E2.js"
+    ]
+  },
+  "src/routes/index.tsx?pick=default&pick=$css": {
+    "file": "assets/index-CxCvUa7W.js",
+    "name": "index",
+    "src": "src/routes/index.tsx?pick=default&pick=$css",
+    "isEntry": true,
+    "isDynamicEntry": true,
+    "imports": [
+      "_theme-CVLqWykU.js",
+      "_sidebar-einHe0E2.js"
+    ]
+  },
+  "src/routes/models/index.tsx?pick=default&pick=$css": {
+    "file": "assets/index-CnsptRuy.js",
+    "name": "index",
+    "src": "src/routes/models/index.tsx?pick=default&pick=$css",
+    "isEntry": true,
+    "isDynamicEntry": true,
+    "imports": [
+      "_theme-CVLqWykU.js",
+      "_sidebar-einHe0E2.js"
+    ]
+  },
+  "src/routes/settings/index.tsx?pick=default&pick=$css": {
+    "file": "assets/index-ClPRpPTX.js",
+    "name": "index",
+    "src": "src/routes/settings/index.tsx?pick=default&pick=$css",
+    "isEntry": true,
+    "isDynamicEntry": true,
+    "imports": [
+      "_theme-CVLqWykU.js",
+      "_sidebar-einHe0E2.js"
+    ]
+  },
+  "virtual:$vinxi/handler/client": {
+    "file": "assets/client-SrRtGryf.js",
+    "name": "client",
+    "src": "virtual:$vinxi/handler/client",
+    "isEntry": true,
+    "imports": [
+      "_theme-CVLqWykU.js"
+    ],
+    "dynamicImports": [
+      "src/routes/agents/index.tsx?pick=default&pick=$css",
+      "src/routes/index.tsx?pick=default&pick=$css",
+      "src/routes/models/index.tsx?pick=default&pick=$css",
+      "src/routes/settings/index.tsx?pick=default&pick=$css"
+    ],
+    "css": [
+      "assets/client-eAiMNyRJ.css"
+    ]
+  }
+}

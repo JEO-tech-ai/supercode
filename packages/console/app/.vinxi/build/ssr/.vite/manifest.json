@@ -1,0 +1,110 @@
+{
+  "_sidebar-CESMpzIE.js": {
+    "file": "assets/sidebar-CESMpzIE.js",
+    "name": "sidebar",
+    "imports": [
+      "_theme-DxICwFO7.js"
+    ]
+  },
+  "_theme-DxICwFO7.js": {
+    "file": "assets/theme-DxICwFO7.js",
+    "name": "theme"
+  },
+  "src/routes/agents/index.tsx?pick=default&pick=$css": {
+    "file": "index.js",
+    "name": "index",
+    "src": "src/routes/agents/index.tsx?pick=default&pick=$css",
+    "isEntry": true,
+    "isDynamicEntry": true,
+    "imports": [
+      "_sidebar-CESMpzIE.js",
+      "_theme-DxICwFO7.js"
+    ]
+  },
+  "src/routes/api/[...path].ts?pick=GET": {
+    "file": "_...path_.js",
+    "name": "_...path_",
+    "src": "src/routes/api/[...path].ts?pick=GET",
+    "isEntry": true,
+    "isDynamicEntry": true
+  },
+  "src/routes/api/[...path].ts?pick=POST": {
+    "file": "_...path_2.js",
+    "name": "_...path_",
+    "src": "src/routes/api/[...path].ts?pick=POST",
+    "isEntry": true,
+    "isDynamicEntry": true
+  },
+  "src/routes/api/health.ts?pick=GET": {
+    "file": "health.js",
+    "name": "health",
+    "src": "src/routes/api/health.ts?pick=GET",
+    "isEntry": true,
+    "isDynamicEntry": true
+  },
+  "src/routes/index.tsx?pick=default&pick=$css": {
+    "file": "index2.js",
+    "name": "index",
+    "src": "src/routes/index.tsx?pick=default&pick=$css",
+    "isEntry": true,
+    "isDynamicEntry": true,
+    "imports": [
+      "_sidebar-CESMpzIE.js",
+      "_theme-DxICwFO7.js"
+    ]
+  },
+  "src/routes/models/index.tsx?pick=default&pick=$css": {
+    "file": "index3.js",
+    "name": "index",
+    "src": "src/routes/models/index.tsx?pick=default&pick=$css",
+    "isEntry": true,
+    "isDynamicEntry": true,
+    "imports": [
+      "_sidebar-CESMpzIE.js",
+      "_theme-DxICwFO7.js"
+    ]
+  },
+  "src/routes/settings/index.tsx?pick=default&pick=$css": {
+    "file": "index4.js",
+    "name": "index",
+    "src": "src/routes/settings/index.tsx?pick=default&pick=$css",
+    "isEntry": true,
+    "isDynamicEntry": true,
+    "imports": [
+      "_sidebar-CESMpzIE.js",
+      "_theme-DxICwFO7.js"
+    ]
+  },
+  "virtual:$vinxi/handler/ssr": {
+    "file": "ssr.js",
+    "name": "ssr",
+    "src": "virtual:$vinxi/handler/ssr",
+    "isEntry": true,
+    "imports": [
+      "_theme-DxICwFO7.js"
+    ],
+    "dynamicImports": [
+      "src/routes/agents/index.tsx?pick=default&pick=$css",
+      "src/routes/agents/index.tsx?pick=default&pick=$css",
+      "src/routes/api/[...path].ts?pick=GET",
+      "src/routes/api/[...path].ts?pick=GET",
+      "src/routes/api/[...path].ts?pick=GET",
+      "src/routes/api/[...path].ts?pick=GET",
+      "src/routes/api/[...path].ts?pick=POST",
+      "src/routes/api/[...path].ts?pick=POST",
+      "src/routes/api/health.ts?pick=GET",
+      "src/routes/api/health.ts?pick=GET",
+      "src/routes/api/health.ts?pick=GET",
+      "src/routes/api/health.ts?pick=GET",
+      "src/routes/index.tsx?pick=default&pick=$css",
+      "src/routes/index.tsx?pick=default&pick=$css",
+      "src/routes/models/index.tsx?pick=default&pick=$css",
+      "src/routes/models/index.tsx?pick=default&pick=$css",
+      "src/routes/settings/index.tsx?pick=default&pick=$css",
+      "src/routes/settings/index.tsx?pick=default&pick=$css"
+    ],
+    "css": [
+      "assets/ssr-eAiMNyRJ.css"
+    ]
+  }
+}

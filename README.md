@@ -269,6 +269,7 @@ For tasks requiring maximum precision and multi-step reasoning, activate **Ultra
 Monitor your AI workforce in real-time with the sleek, Ink-based TUI dashboard.
 - **Command**: `supercoin dashboard` or select `📊 Dashboard` from the interactive menu.
 - **Live Visualization**: Real-time tracking of agent states (idle, running, completed, failed).
+- **UltraWork Support**: Visual distinction for UltraWork mode (Yellow accent vs Blue).
 - **Task Summary**: Instant overview of Todo progress, system logs, and token usage.
 - **Interactive**: Refresh and manage the session directly from the TUI.
 
