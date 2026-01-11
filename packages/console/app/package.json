@@ -1,0 +1,26 @@
+{
+  "name": "@supercoin/console-app",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vinxi dev",
+    "build": "vinxi build",
+    "start": "vinxi start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solidjs/router": "^0.15.4",
+    "@solidjs/start": "^1.1.1",
+    "@supercoin/ui": "workspace:*",
+    "solid-js": "^1.9.10",
+    "vinxi": "^0.5.10"
+  },
+  "devDependencies": {
+    "@supercoin/tsconfig": "workspace:*",
+    "@tailwindcss/vite": "^4.1.11",
+    "tailwindcss": "^4.1.11",
+    "typescript": "^5.3.3",
+    "vite": "^6.0.0",
+    "vite-plugin-solid": "^2.11.6"
+  }
+}

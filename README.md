@@ -539,10 +539,68 @@ supercoin/
 │   │   │   └── providers/     # Legacy direct API implementations
 │   │   └── agents/            # Agent system
 │   └── shared/                 # Shared utilities (logger, errors)
-├── tests/                      # Test files (143 tests)
-│   ├── unit/                  # Unit tests
-│   └── e2e/                   # End-to-end tests
-└── examples/                   # Usage examples
+│   ├── tests/                      # Test files (143 tests)
+│   │   ├── unit/                  # Unit tests
+│   │   └── e2e/                   # End-to-end tests
+│   └── examples/                   # Usage examples
+│   └── examples/                   # Usage examples
+```
+
+## OpenCode Monorepo (New)
+
+New packages introduced for the OpenCode-aligned architecture:
+
+- `packages/console/app` - SolidStart web console
+- `packages/console/core` - Console business logic
+- `packages/ui` - SolidJS UI component library
+- `packages/shared` - Shared utilities
+- `packages/database` - Drizzle ORM + SQLite/D1 schemas
+- `packages/auth` - GitHub OAuth + session management
+- `packages/server` - Hono API worker for Cloudflare
+- `packages/desktop` - Tauri 2.x desktop wrapper
+- `infra/` + `sst.config.ts` - SST v3 Cloudflare infrastructure
+
+### Monorepo Development
+
+```bash
+# Install dependencies
+bun install
+
+# Typecheck all packages
+bun turbo typecheck
+
+# Run web console
+cd packages/console/app
+bun run dev
+
+# Database (SQLite)
+cd packages/database
+bun run db:generate
+bun run db:push
+
+# Desktop (requires Rust)
+cd packages/desktop
+bun run dev
+```
+
+### Infrastructure (SST v3)
+
+```bash
+# Required Cloudflare credentials
+export CLOUDFLARE_API_TOKEN=...
+export CLOUDFLARE_ACCOUNT_ID=...
+export CLOUDFLARE_D1_DATABASE_ID=...
+
+# Required auth secrets
+export GITHUB_CLIENT_ID=...
+export GITHUB_CLIENT_SECRET=...
+export JWT_SECRET=...
+
+# Local simulation
+bunx sst dev --stage dev
+
+# Deploy
+bunx sst deploy --stage staging
 ```
 
 ## Publishing to npm

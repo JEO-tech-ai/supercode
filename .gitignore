@@ -17,5 +17,15 @@ opencode.json
 supercoin.json
 
 # Build
-dist/
-build/
+ dist/
+ build/
+
+# Monorepo tooling
+.sst/
+.turbo/
+packages/desktop/src-tauri/target/
+packages/database/.data/
+
+# TypeScript
+*.tsbuildinfo
+

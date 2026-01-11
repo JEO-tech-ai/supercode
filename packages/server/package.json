@@ -1,0 +1,21 @@
+{
+  "name": "@supercoin/server",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supercoin/database": "workspace:*",
+    "@supercoin/shared": "workspace:*",
+    "drizzle-orm": "^0.38.0",
+    "hono": "^4.7.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "@supercoin/tsconfig": "workspace:*",
+    "typescript": "^5.3.3"
+  }
+}

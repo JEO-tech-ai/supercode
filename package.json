@@ -1,19 +1,14 @@
 {
   "name": "supercoin",
   "version": "0.1.0",
+  "private": true,
   "description": "Unified AI CLI hub for Claude, Codex, Gemini, and localhost models",
   "type": "module",
-  "main": "dist/index.js",
-  "bin": {
-    "supercoin": "./dist/cli/index.js"
-  },
-  "files": [
-    "dist/cli/index.js",
-    "dist/cli/index.js.map",
-    "dist/index.js",
-    "dist/index.js.map",
-    "README.md",
-    "LICENSE"
+  "packageManager": "bun@1.3.5",
+  "workspaces": [
+    "packages/*",
+    "packages/config/*",
+    "packages/console/*"
   ],
   "engines": {
     "node": ">=18.0.0"
@@ -27,34 +22,18 @@
   },
   "homepage": "https://github.com/JEO-tech-ai/supercoin#readme",
   "scripts": {
-    "build": "node scripts/build.js",
-    "dev": "bun run scripts/dev.ts",
-    "dev:setup": "bun run scripts/dev-setup.ts",
-    "start": "bun src/cli/index.ts",
-    "test": "bun test",
-    "test:coverage": "bun test --coverage",
-    "lint": "tsc --noEmit",
-    "typecheck": "node scripts/build.js && tsc --noEmit"
-  },
-  "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.9",
-    "@ai-sdk/google": "^3.0.6",
-    "@ai-sdk/openai": "^3.0.7",
-    "@clack/prompts": "^0.7.0",
-    "@hono/node-server": "^1.19.8",
-    "@types/react": "^19.2.7",
-    "ai": "^6.0.26",
-    "commander": "^12.0.0",
-    "hono": "^4.0.0",
-    "ink": "^6.6.0",
-    "lucide-react": "^0.562.0",
-    "node-pty": "^1.1.0",
-    "react": "^19.2.3",
-    "zod": "^3.22.4"
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "start": "bun packages/cli/src/index.ts",
+    "cli": "bun packages/cli/src/index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "esbuild": "^0.27.2",
+    "sst": "^3.17.25",
+    "turbo": "^2.5.0",
     "typescript": "^5.3.3"
   },
   "keywords": [
@@ -63,7 +42,8 @@
     "claude",
     "codex",
     "gemini",
-    "supercoin"
+    "supercoin",
+    "monorepo"
   ],
   "author": "JEO-tech-ai",
   "license": "MIT"
