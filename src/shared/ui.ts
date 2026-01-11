@@ -1,7 +1,21 @@
 /**
  * UI Utilities
  * Terminal UI helpers inspired by opencode's UI module
+ *
+ * This module provides:
+ * - Theme system with color tokens
+ * - Toast notifications
+ * - Dialog system (prompts, confirms, selects)
+ * - Keybinding system
+ * - Basic ANSI styling helpers
  */
+
+export * from "./theme";
+export * from "./toast";
+export * from "./dialog";
+export * from "./keybind";
+
+import { AnsiCode } from "./theme";
 
 /**
  * CancelledError - Thrown when user cancels an operation
@@ -15,24 +29,25 @@ export class CancelledError extends Error {
 
 /**
  * Style constants for terminal output
+ * @deprecated Use Theme.AnsiCode instead for new code
  */
 export const Style = {
   /** Dim text (gray) */
-  TEXT_DIM: "\x1b[90m",
+  TEXT_DIM: AnsiCode.BRIGHT_BLACK,
   /** Reset all styles */
-  RESET: "\x1b[0m",
+  RESET: AnsiCode.RESET,
   /** Bold text */
-  BOLD: "\x1b[1m",
+  BOLD: AnsiCode.BOLD,
   /** Green text */
-  GREEN: "\x1b[32m",
+  GREEN: AnsiCode.GREEN,
   /** Yellow text */
-  YELLOW: "\x1b[33m",
+  YELLOW: AnsiCode.YELLOW,
   /** Red text */
-  RED: "\x1b[31m",
+  RED: AnsiCode.RED,
   /** Blue text */
-  BLUE: "\x1b[34m",
+  BLUE: AnsiCode.BLUE,
   /** Cyan text */
-  CYAN: "\x1b[36m",
+  CYAN: AnsiCode.CYAN,
 } as const;
 
 /**

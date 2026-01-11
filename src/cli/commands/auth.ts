@@ -1,12 +1,8 @@
-/**
- * Auth Command
- * Manage authentication for AI providers
- */
 import { Command } from "commander";
 import * as clack from "@clack/prompts";
 import type { SuperCoinConfig } from "../../config/schema";
 import { getAuthHub, type AuthProviderName, type AuthStatus } from "../../services/auth";
-import { UI, CancelledError } from "../../shared/ui";
+import { UI, CancelledError, Dialog, Toast } from "../../shared/ui";
 import logger from "../../shared/logger";
 
 export function createAuthCommand(config: SuperCoinConfig): Command {
@@ -31,12 +27,11 @@ export function createAuthCommand(config: SuperCoinConfig): Command {
       if (options.codex) providers.push("codex");
       if (options.gemini) providers.push("gemini");
 
-      // If no specific provider, show interactive selection
       if (providers.length === 0 && options.tui !== false) {
         UI.empty();
-        clack.intro("SuperCoin Authentication");
+        Dialog.intro("SuperCoin Authentication");
 
-        const selected = await clack.multiselect({
+        const selected = await Dialog.multiselect<AuthProviderName>({
           message: "Select providers to authenticate:",
           options: [
             { value: "claude", label: "Claude (Anthropic)", hint: "API Key" },
@@ -46,41 +41,34 @@ export function createAuthCommand(config: SuperCoinConfig): Command {
           required: true,
         });
 
-        if (clack.isCancel(selected)) {
-          throw new CancelledError();
-        }
-
-        providers.push(...(selected as AuthProviderName[]));
+        providers.push(...selected);
       }
 
-      // Login to each provider
       for (const provider of providers) {
-        const s = clack.spinner();
-        s.start(`Authenticating with ${provider}...`);
-
         try {
-          const results = await authHub.login(provider, {
-            apiKey: options.apiKey,
-            interactive: options.tui !== false,
-          });
+          const results = await Dialog.withSpinner(
+            `Authenticating with ${provider}...`,
+            () => authHub.login(provider, {
+              apiKey: options.apiKey,
+              interactive: options.tui !== false,
+            }),
+            `Successfully authenticated with ${provider}`
+          );
 
           const result = results[0];
-          if (result.success) {
-            s.stop(`Successfully authenticated with ${provider}`);
-          } else {
-            s.stop(`Failed to authenticate with ${provider}: ${result.error}`);
+          if (!result.success) {
+            Toast.warning(`${provider}: ${result.error}`);
           }
         } catch (error) {
-          s.stop(`Failed to authenticate with ${provider}`);
+          Toast.error(`Failed to authenticate with ${provider}`);
           logger.error(`Auth error for ${provider}`, error as Error);
         }
       }
 
-      // Show final status
       console.log("");
       await showAuthStatus(authHub);
 
-      clack.outro("Authentication complete!");
+      Dialog.outro("Authentication complete!");
     });
 
   // Status command
@@ -119,20 +107,19 @@ export function createAuthCommand(config: SuperCoinConfig): Command {
       }
 
       for (const provider of providers) {
-        const s = clack.spinner();
-        s.start(`Refreshing ${provider} token...`);
-
         try {
-          const results = await authHub.refresh(provider);
+          const results = await Dialog.withSpinner(
+            `Refreshing ${provider} token...`,
+            () => authHub.refresh(provider),
+            `${provider} token refreshed`
+          );
+          
           const result = results[0];
-
-          if (result.success) {
-            s.stop(`${provider} token refreshed`);
-          } else {
-            s.stop(`${provider}: ${result.error || "Already up to date"}`);
+          if (!result.success) {
+            Toast.info(`${provider}: ${result.error || "Already up to date"}`);
           }
         } catch (error) {
-          s.stop(`${provider}: ${(error as Error).message}`);
+          Toast.error(`${provider}: ${(error as Error).message}`);
         }
       }
     });
@@ -148,7 +135,7 @@ export function createAuthCommand(config: SuperCoinConfig): Command {
     .action(async (options) => {
       if (options.all) {
         await authHub.logout();
-        clack.outro("Logged out from all providers");
+        Dialog.outro("Logged out from all providers");
         return;
       }
 
@@ -170,20 +157,19 @@ async function showAuthStatus(authHub: ReturnType<typeof getAuthHub>): Promise<v
   const statuses = await authHub.status();
 
   UI.empty();
-  clack.intro("Credentials");
+  Dialog.intro("Credentials");
 
   for (const status of statuses) {
-    const icon = status.authenticated ? "[OK]" : "[--]";
     const typeText = status.type ? UI.dim(`(${status.type})`) : "";
     const statusText = status.authenticated ? "Authenticated" : "Not logged in";
     
     if (status.authenticated) {
-      clack.log.success(`${status.provider} ${typeText}`);
+      Toast.success(`${status.provider} ${typeText}`);
     } else {
-      clack.log.info(`${status.provider} ${UI.dim(statusText)}`);
+      Toast.info(`${status.provider} ${UI.dim(statusText)}`);
     }
   }
 
   const authCount = statuses.filter(s => s.authenticated).length;
-  clack.outro(`${authCount} of ${statuses.length} providers authenticated`);
+  Dialog.outro(`${authCount} of ${statuses.length} providers authenticated`);
 }
