@@ -27,8 +27,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "lint": "turbo run lint",
-    "start": "bun packages/cli/src/index.ts",
-    "cli": "bun packages/cli/src/index.ts"
+    "start": "bun src/cli/index.ts",
+    "cli": "bun src/cli/index.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.9",
@@ -37,6 +37,7 @@
     "@clack/prompts": "^0.7.0",
     "@hono/node-server": "^1.19.8",
     "ai": "^6.0.26",
+    "commander": "^14.0.2",
     "hono": "^4.7.0",
     "node-pty": "^1.1.0",
     "zod": "^3.22.4"
