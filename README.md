@@ -107,21 +107,31 @@ bun run build
 # Simply run supercoin without arguments
 supercoin
 
-# You'll see an interactive menu:
+# You'll see an OpenCode-style ASCII logo and interactive menu:
+#
+#                      ▄     
+# █▀▀ █░░█ █▀▀█ █▀▀▀ █▀▀█  █▀▀▀ █▀▀█ ░▀█▀░ █▀▀▄
+# ▀▀█ █░░█ █░░█ █▀▀▀ █▄▄▀  █░░░ █░░█ ░░█░░ █░░█
+# ▀▀▀ ░▀▀▀ █▀▀▀ ▀▀▀▀ ▀░▀▀  ▀▀▀▀ ▀▀▀▀ ▀▀▀▀▀ ▀  ▀
+#
 # 🪙 SuperCoin - Unified AI CLI Hub
 #
 # What would you like to do?
 # ❯ 💬 Start Chat
+#   ▶️  Run (OpenCode-style)
 #   🔐 Authentication
 #   🤖 Models
 #   ⚙️  Configuration
 #   🌐 Server
 #   🩺 Doctor
+#   📊 Dashboard
 ```
 
 **Interactive Features**:
+- OpenCode-style ASCII logo display
 - Beautiful terminal UI powered by @clack/prompts
 - Provider selection with visual indicators
+- **Run mode**: Quick AI query with OpenCode-style output formatting
 - Model customization prompts
 - Real-time streaming responses
 - Progress spinners and status updates
@@ -204,14 +214,17 @@ supercoin "Your prompt here"
 # Run without arguments to launch interactive TUI
 supercoin
 
+# You'll see the OpenCode-style ASCII logo followed by menu:
 # Navigate with arrow keys and Enter
 # Select from:
 # - 💬 Start Chat
+# - ▶️  Run (quick query with OpenCode-style output)
 # - 🔐 Authentication
 # - 🤖 Models
 # - ⚙️  Configuration
 # - 🌐 Server
 # - 🩺 Doctor
+# - 📊 Dashboard
 ```
 
 ### Basic Chat (Command-Line)
@@ -673,13 +686,15 @@ bun run build
 
 ### TUI Architecture
 
-SuperCoin features a dual-mode CLI interface:
+SuperCoin features a dual-mode CLI interface with OpenCode-inspired styling:
 
 1. **Interactive Mode** (default): Rich terminal UI with `@clack/prompts`
+   - OpenCode-style ASCII logo display on startup
    - Provider selection with visual indicators
    - Real-time spinners and progress updates
    - Consistent cancel handling via `CancelledError`
    - Styled output with UI utilities (`src/shared/ui.ts`)
+   - **Run mode**: Quick query with OpenCode-style output formatting
 
 2. **Command-Line Mode**: Direct execution with flags
    - Full control via `--provider`, `--model`, etc.

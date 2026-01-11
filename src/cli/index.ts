@@ -12,17 +12,28 @@ import { streamAIResponse, checkLocalhostAvailability } from "../services/models
 import type { AISDKProviderName } from "../services/models/ai-sdk/types";
 import { UI, CancelledError } from "../shared/ui";
 import logger from "../shared/logger";
+import { EOL } from "os";
 
 const VERSION = "0.1.0";
 
+process.on("unhandledRejection", (e) => {
+  logger.error("rejection", e instanceof Error ? e : new Error(String(e)));
+});
+
+process.on("uncaughtException", (e) => {
+  logger.error("exception", e);
+});
+
 async function runInteractiveMode() {
   UI.empty();
+  process.stderr.write(UI.logo() + EOL + EOL);
   clack.intro("🪙 SuperCoin - Unified AI CLI Hub");
 
   const action = await clack.select({
     message: "What would you like to do?",
     options: [
       { value: "chat", label: "💬 Start Chat", hint: "Chat with AI models" },
+      { value: "run", label: "▶️  Run", hint: "Run with a prompt (OpenCode-style)" },
       { value: "auth", label: "🔐 Authentication", hint: "Manage provider authentication" },
       { value: "models", label: "🤖 Models", hint: "List and manage AI models" },
       { value: "config", label: "⚙️  Configuration", hint: "View and edit settings" },
@@ -39,6 +50,9 @@ async function runInteractiveMode() {
   switch (action) {
     case "chat":
       await runChatFlow();
+      break;
+    case "run":
+      await runRunFlow();
       break;
     case "auth":
       await runAuthFlow();
@@ -61,6 +75,61 @@ async function runInteractiveMode() {
   }
 
   clack.outro("✨ Done!");
+}
+
+async function runRunFlow() {
+  const prompt = await clack.text({
+    message: "Enter your message",
+    placeholder: "Ask me anything...",
+    validate: (value) => {
+      if (!value?.trim()) return "Message is required";
+    },
+  });
+
+  if (clack.isCancel(prompt)) {
+    throw new CancelledError();
+  }
+
+  const projectConfig = await resolveProviderFromConfig();
+  const provider = projectConfig.provider as AISDKProviderName;
+  const model = projectConfig.model;
+
+  UI.println(
+    UI.Style.TEXT_INFO_BOLD + "|",
+    UI.Style.TEXT_DIM + " Provider",
+    "",
+    UI.Style.TEXT_NORMAL + `${provider}/${model}`
+  );
+
+  const isLocalhost = ["ollama", "lmstudio", "llamacpp"].includes(provider);
+  if (isLocalhost) {
+    const available = await checkLocalhostAvailability(
+      provider as "ollama" | "lmstudio" | "llamacpp",
+      projectConfig.baseURL
+    );
+    if (!available) {
+      UI.error(`${provider} is not available. Make sure it's running.`);
+      return;
+    }
+  }
+
+  UI.println();
+
+  try {
+    await streamAIResponse({
+      provider,
+      model,
+      baseURL: projectConfig.baseURL,
+      temperature: projectConfig.temperature,
+      maxTokens: projectConfig.maxTokens,
+      messages: [{ role: "user", content: prompt }],
+      onChunk: (text) => process.stdout.write(text),
+    });
+
+    process.stdout.write(EOL);
+  } catch (error) {
+    UI.error((error as Error).message);
+  }
 }
 
 async function runChatFlow() {
