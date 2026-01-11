@@ -3,6 +3,7 @@ import { Command } from "commander";
 import { render } from "ink";
 import type { SuperCoinConfig } from "../../config/schema";
 import { getTodoManager } from "../../services/agents/todo-manager";
+import { sessionManager } from "../../core/session/manager";
 import { LiveDashboard } from "../components/LiveDashboard";
 
 export function createDashboardCommand(config: SuperCoinConfig): Command {
@@ -17,13 +18,8 @@ export function createDashboardCommand(config: SuperCoinConfig): Command {
         console.log(JSON.stringify({ todos }, null, 2));
         return;
       }
-      await runDashboard();
+      render(<LiveDashboard />);
     });
 
   return dashboard;
-}
-
-async function runDashboard() {
-  const { waitUntilExit } = render(<LiveDashboard />);
-  await waitUntilExit();
 }
