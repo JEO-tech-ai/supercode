@@ -1,16 +1,3 @@
-/**
- * UI Utilities
- * Terminal UI helpers inspired by opencode's UI module
- *
- * This module provides:
- * - Theme system with color tokens
- * - Toast notifications
- * - Dialog system (prompts, confirms, selects)
- * - Keybinding system
- * - Basic ANSI styling helpers
- * - OpenCode-compatible logo and styling
- */
-
 export * from "./theme";
 export * from "./toast";
 export * from "./dialog";
@@ -19,9 +6,6 @@ export * from "./keybind";
 import { AnsiCode } from "./theme";
 import { EOL } from "os";
 
-/**
- * CancelledError - Thrown when user cancels an operation
- */
 export class CancelledError extends Error {
   constructor(message = "Operation cancelled") {
     super(message);
@@ -29,9 +13,6 @@ export class CancelledError extends Error {
   }
 }
 
-/**
- * SuperCoin ASCII Logo (OpenCode-style)
- */
 const LOGO = [
   [`                     `, `            ▄     `],
   [`█▀▀ █░░█ █▀▀█ █▀▀▀ █▀▀█ `, `█▀▀▀ █▀▀█ ░▀█▀░ █▀▀▄`],
@@ -39,11 +20,7 @@ const LOGO = [
   [`▀▀▀ ░▀▀▀ █▀▀▀ ▀▀▀▀ ▀░▀▀ `, `▀▀▀▀ ▀▀▀▀ ▀▀▀▀▀ ▀  ▀`],
 ];
 
-/**
- * Style constants for terminal output (OpenCode-compatible)
- */
 export const Style = {
-  // Legacy aliases
   TEXT_DIM: "\x1b[90m",
   RESET: "\x1b[0m",
   BOLD: "\x1b[1m",
@@ -53,7 +30,6 @@ export const Style = {
   BLUE: "\x1b[34m",
   CYAN: "\x1b[36m",
 
-  // OpenCode-style colors
   TEXT_HIGHLIGHT: "\x1b[96m",
   TEXT_HIGHLIGHT_BOLD: "\x1b[96m\x1b[1m",
   TEXT_DIM_BOLD: "\x1b[90m\x1b[1m",
@@ -71,9 +47,6 @@ export const Style = {
 
 let blank = false;
 
-/**
- * Print a line to stderr (like OpenCode)
- */
 export function println(...message: string[]): void {
   print(...message);
   process.stderr.write(EOL);
@@ -112,90 +85,54 @@ export function logo(pad?: string): string {
   return result.join("").trimEnd();
 }
 
-/**
- * Display error message (OpenCode-style)
- */
 export function error(message: string): void {
   println(Style.TEXT_DANGER_BOLD + "Error: " + Style.TEXT_NORMAL + message);
 }
 
-/**
- * Display info message
- */
 export function info(message: string): void {
   println(Style.TEXT_INFO_BOLD + "Info: " + Style.TEXT_NORMAL + message);
 }
 
-/**
- * Display success message
- */
 export function success(message: string): void {
   println(Style.TEXT_SUCCESS_BOLD + "✓ " + Style.TEXT_NORMAL + message);
 }
 
-/**
- * Display warning message
- */
 export function warning(message: string): void {
   println(Style.TEXT_WARNING_BOLD + "! " + Style.TEXT_NORMAL + message);
 }
 
-/**
- * Format text with dim style
- */
 export function dim(text: string): string {
   return `${Style.TEXT_DIM}${text}${Style.RESET}`;
 }
 
-/**
- * Format text with bold style
- */
 export function bold(text: string): string {
   return `${Style.BOLD}${text}${Style.RESET}`;
 }
 
-/**
- * Format text with color
- */
 export function color(text: string, colorCode: string): string {
   return `${colorCode}${text}${Style.RESET}`;
 }
 
-/**
- * Format a provider name with status indicator
- */
 export function formatProviderStatus(name: string, authenticated: boolean): string {
   const icon = authenticated ? "✓" : "○";
   const iconColor = authenticated ? Style.GREEN : Style.TEXT_DIM;
   return `${iconColor}${icon}${Style.RESET} ${name}`;
 }
 
-/**
- * Format a table row with padding
- */
 export function tableRow(columns: string[], widths: number[]): string {
   return columns
     .map((col, i) => col.padEnd(widths[i] || 10))
     .join(" │ ");
 }
 
-/**
- * Create a simple table header separator
- */
 export function tableSeparator(widths: number[]): string {
   return widths.map((w) => "─".repeat(w)).join("─┼─");
 }
 
-/**
- * Basic markdown rendering (placeholder for future enhancement)
- */
 export function markdown(text: string): string {
   return text;
 }
 
-/**
- * Get user input (promise-based)
- */
 export async function input(prompt: string): Promise<string> {
   const readline = await import("readline");
   const rl = readline.createInterface({
@@ -211,9 +148,6 @@ export async function input(prompt: string): Promise<string> {
   });
 }
 
-/**
- * UI namespace for grouped exports (opencode compatibility)
- */
 export const UI = {
   CancelledError,
   Style,

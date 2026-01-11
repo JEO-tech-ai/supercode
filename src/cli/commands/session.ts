@@ -67,7 +67,7 @@ function formatSessionJSON(sessions: SessionState[]): string {
 
 export function createSessionCommand(): Command {
   const session = new Command("session")
-    .description("Manage sessions (OpenCode-style)")
+    .description("Manage sessions")
     .addCommand(createSessionListCommand())
     .addCommand(createSessionShowCommand())
     .addCommand(createSessionDeleteCommand())

@@ -88,9 +88,9 @@ describe("AI SDK Provider Registry", () => {
   });
 
   describe("listProviders", () => {
-    test("should return all 6 providers", () => {
+    test("should return all 7 providers", () => {
       const providers = listProviders();
-      expect(providers).toHaveLength(6);
+      expect(providers).toHaveLength(7);
     });
 
     test("should include all expected providers", () => {
@@ -102,6 +102,7 @@ describe("AI SDK Provider Registry", () => {
       expect(names).toContain("Ollama (Localhost)");
       expect(names).toContain("LM Studio (Localhost)");
       expect(names).toContain("llama.cpp (Localhost)");
+      expect(names).toContain("SuperCent (API)");
     });
   });
 

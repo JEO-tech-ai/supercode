@@ -9,7 +9,7 @@ import { createDoctorCommand } from "./commands/doctor";
 import { createDashboardCommand } from "./commands/dashboard";
 import { createSessionCommand } from "./commands/session";
 import { sessionManager } from "../core/session/manager";
-import { resolveProviderFromConfig } from "../config/opencode";
+import { resolveProviderFromConfig } from "../config/project";
 import { streamAIResponse, checkLocalhostAvailability } from "../services/models/ai-sdk";
 import type { AISDKProviderName } from "../services/models/ai-sdk/types";
 import { UI, CancelledError } from "../shared/ui";
@@ -31,11 +31,134 @@ async function runInteractiveMode() {
   process.stderr.write(UI.logo() + EOL + EOL);
   clack.intro("🪙 SuperCoin - Unified AI CLI Hub");
 
+  await runDirectChatMode();
+
+  clack.outro("✨ Done!");
+}
+
+async function runDirectChatMode() {
+  const projectConfig = await resolveProviderFromConfig();
+  const provider = projectConfig.provider as AISDKProviderName;
+  const model = projectConfig.model;
+
+  const isLocalhost = ["ollama", "lmstudio", "llamacpp"].includes(provider);
+  if (isLocalhost) {
+    const s = clack.spinner();
+    s.start(`Checking ${provider} availability...`);
+
+    const available = await checkLocalhostAvailability(
+      provider as "ollama" | "lmstudio" | "llamacpp",
+      projectConfig.baseURL
+    );
+
+    if (!available) {
+      s.stop(`${provider} is not available`);
+      clack.log.error(`Please start ${provider} first.`);
+
+      if (provider === "ollama") {
+        clack.log.info("Install: curl -fsSL https://ollama.com/install.sh | sh");
+        clack.log.info("Run: ollama pull llama3");
+      }
+
+      await runMenuMode();
+      return;
+    }
+
+    s.stop(`${provider} is ready`);
+  }
+
+  UI.println(
+    UI.Style.TEXT_INFO_BOLD + "|",
+    UI.Style.TEXT_DIM + " Provider",
+    "",
+    UI.Style.TEXT_NORMAL + `${provider}/${model}`
+  );
+
+  clack.log.info("Type your message, or /help for commands, /menu for options");
+
+  while (true) {
+    const input = await clack.text({
+      message: ">",
+      placeholder: "Ask me anything... (Ctrl+C to exit)",
+    });
+
+    if (clack.isCancel(input)) {
+      break;
+    }
+
+    const trimmedInput = (input as string).trim();
+
+    if (trimmedInput.startsWith("/")) {
+      const command = trimmedInput.slice(1).toLowerCase();
+
+      if (command === "help" || command === "h") {
+        clack.log.info("Commands: /menu, /session, /auth, /models, /config, /exit");
+        continue;
+      }
+
+      if (command === "menu" || command === "m") {
+        await runMenuMode();
+        break;
+      }
+
+      if (command === "session" || command === "s") {
+        await runSessionFlow();
+        continue;
+      }
+
+      if (command === "auth" || command === "a") {
+        await runAuthFlow();
+        continue;
+      }
+
+      if (command === "models") {
+        await runModelsFlow();
+        continue;
+      }
+
+      if (command === "config" || command === "c") {
+        await runConfigFlow();
+        continue;
+      }
+
+      if (command === "exit" || command === "quit" || command === "q") {
+        break;
+      }
+
+      clack.log.warn(`Unknown command: ${trimmedInput}. Type /help for commands.`);
+      continue;
+    }
+
+    if (!trimmedInput) {
+      continue;
+    }
+
+    UI.println();
+
+    try {
+      await streamAIResponse({
+        provider,
+        model,
+        baseURL: projectConfig.baseURL,
+        temperature: projectConfig.temperature,
+        maxTokens: projectConfig.maxTokens,
+        messages: [{ role: "user", content: trimmedInput }],
+        onChunk: (text) => process.stdout.write(text),
+      });
+
+      process.stdout.write(EOL + EOL);
+    } catch (error) {
+      UI.error((error as Error).message);
+    }
+  }
+}
+
+async function runMenuMode() {
   const action = await clack.select({
     message: "What would you like to do?",
     options: [
       { value: "chat", label: "💬 Start Chat", hint: "Chat with AI models" },
-      { value: "run", label: "▶️  Run", hint: "Run with a prompt (OpenCode-style)" },
+      { value: "run", label: "▶️  Run", hint: "Run with a prompt" },
       { value: "session", label: "📋 Sessions", hint: "List and manage sessions" },
       { value: "auth", label: "🔐 Authentication", hint: "Manage provider authentication" },
       { value: "models", label: "🤖 Models", hint: "List and manage AI models" },
@@ -79,8 +202,6 @@ async function runInteractiveMode() {
       await runDashboardFlow();
       break;
   }
-
-  clack.outro("✨ Done!");
 }
 
 async function runRunFlow() {
@@ -147,6 +268,7 @@ async function runChatFlow() {
       { value: "ollama", label: "🦙 Ollama (Local)", hint: "Privacy-first, cost-free" },
       { value: "lmstudio", label: "💻 LM Studio (Local)", hint: "Run models locally" },
       { value: "llamacpp", label: "🔧 llama.cpp (Local)", hint: "Raw performance" },
+      { value: "supercent", label: "🪙 SuperCent", hint: "SuperCoin's native AI" },
       { value: "anthropic", label: "🤖 Claude (Anthropic)", hint: "Requires API key" },
       { value: "openai", label: "⚡ Codex (OpenAI)", hint: "Requires API key" },
       { value: "google", label: "🔮 Gemini (Google)", hint: "OAuth or API key" },
@@ -377,7 +499,7 @@ async function runSessionFlow() {
 
 function createRunCommand(): Command {
   return new Command("run")
-    .description("Run with a message (OpenCode-style)")
+    .description("Run with a message")
     .argument("[message...]", "Message to send")
     .option("-c, --continue", "Continue the last session")
     .option("-s, --session <id>", "Session ID to continue")

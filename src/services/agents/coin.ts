@@ -10,7 +10,7 @@ import {
 } from "./types";
 import { getAgentRegistry } from "./registry";
 import { streamAIResponse } from "../models/ai-sdk";
-import { resolveProviderFromConfig } from "../../config/opencode";
+import { resolveProviderFromConfig } from "../../config/project";
 import type { AISDKProviderName } from "../models/ai-sdk/types";
 import { getTodoManager } from "./todo-manager";
 import { getBackgroundManager } from "./background";

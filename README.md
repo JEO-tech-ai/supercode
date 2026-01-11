@@ -4,18 +4,18 @@
 [![Bun](https://img.shields.io/badge/Bun-1.0+-black?logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue?logo=typescript)](https://www.typescriptlang.org/)
 
-Unified AI CLI hub for Claude, Codex, Gemini, and localhost models.
+Unified AI CLI hub for Claude, Codex, Gemini, SuperCent, and localhost models.
 
 **Privacy-first • Cost-free • Multi-provider • Open Source**
 
 
-- **Multi-Provider Support**: Seamlessly switch between Claude (Anthropic), Codex (OpenAI), Gemini (Google), and localhost models (Ollama, LM Studio, llama.cpp)
+- **Multi-Provider Support**: Seamlessly switch between Claude (Anthropic), Codex (OpenAI), Gemini (Google), SuperCent, and localhost models (Ollama, LM Studio, llama.cpp)
 - **Localhost-First**: Default provider is Ollama for privacy and cost-free local development
 - **Unified Authentication**: Single hub for managing all provider credentials with OAuth 2.0 + PKCE support
 - **Model Router**: Intelligent model selection with automatic fallback
 - **AI SDK Integration**: Universal provider abstraction powered by Vercel AI SDK
 - **Interactive TUI**: Beautiful command-line interface powered by @clack/prompts
-- **Project Configuration**: Per-project settings via `opencode.json`
+- **Project Configuration**: Per-project settings via `supercoin.json`
 - **Extensible**: Hook system and agent configuration
 
 
@@ -101,13 +101,13 @@ bun run build
 
 ## Quick Start
 
-### Interactive Mode (GUI/TUI)
+### Interactive Mode (Default - Chat First)
 
 ```bash
 # Simply run supercoin without arguments
 supercoin
 
-# You'll see an OpenCode-style ASCII logo and interactive menu:
+# You'll see an ASCII logo and direct chat prompt:
 #
 #                      ▄     
 # █▀▀ █░░█ █▀▀█ █▀▀▀ █▀▀█  █▀▀▀ █▀▀█ ░▀█▀░ █▀▀▄
@@ -116,25 +116,19 @@ supercoin
 #
 # 🪙 SuperCoin - Unified AI CLI Hub
 #
-# What would you like to do?
-# ❯ 💬 Start Chat
-#   ▶️  Run (OpenCode-style)
-#   🔐 Authentication
-#   🤖 Models
-#   ⚙️  Configuration
-#   🌐 Server
-#   🩺 Doctor
-#   📊 Dashboard
+# | Provider ollama/llama3:latest
+# ◆ Type your message, or /help for commands, /menu for options
+#
+# > Ask me anything... (Ctrl+C to exit)
 ```
 
 **Interactive Features**:
-- OpenCode-style ASCII logo display
+- Direct chat mode by default (just start typing!)
+- Slash commands: `/help`, `/menu`, `/session`, `/auth`, `/models`, `/config`, `/exit`
+- ASCII logo display
 - Beautiful terminal UI powered by @clack/prompts
-- Provider selection with visual indicators
-- **Run mode**: Quick AI query with OpenCode-style output formatting
-- Model customization prompts
 - Real-time streaming responses
-- Progress spinners and status updates
+- Provider auto-detection from project config
 
 ### Command-Line Mode
 
@@ -185,7 +179,7 @@ supercoin "your question here"
 
 #### Project Configuration
 
-Create `opencode.json` in your project root:
+Create `supercoin.json` in your project root:
 
 ```json
 {
@@ -196,7 +190,7 @@ Create `opencode.json` in your project root:
 }
 ```
 
-Alternative filenames: `.opencode.json` or `supercoin.json`
+Alternative filenames: `.supercoin.json` (legacy: `opencode.json`, `.opencode.json`)
 
 Then simply run:
 
@@ -211,21 +205,20 @@ supercoin "Your prompt here"
 ### Interactive Mode (Default)
 
 ```bash
-# Run without arguments to launch interactive TUI
+# Run without arguments to launch chat mode
 supercoin
 
-# You'll see the OpenCode-style ASCII logo followed by menu:
-# Navigate with arrow keys and Enter
-# Select from:
-# - 💬 Start Chat
-# - ▶️  Run (quick query with OpenCode-style output)
-# - 🔐 Authentication
-# - 🤖 Models
-# - ⚙️  Configuration
-# - 🌐 Server
-# - 🩺 Doctor
-# - 📊 Dashboard
-```
+# Direct chat input is shown:
+# > Ask me anything...
+#
+# Use slash commands for navigation:
+# /help   - Show available commands
+# /menu   - Open menu for advanced options
+# /session - Manage sessions
+# /auth   - Authentication
+# /models - List models
+# /config - Configuration
+# /exit   - Exit
 
 ### Basic Chat (Command-Line)
 
@@ -287,9 +280,9 @@ The **Ralph Loop** is SuperCoin's autonomous development engine that ensures goa
 
 ## Commands
 
-### Run (OpenCode-style)
+### Run
 
-The `run` command provides OpenCode-style session-aware execution:
+The `run` command provides session-aware execution:
 
 ```bash
 # Run with a message (creates new session)
@@ -319,9 +312,9 @@ supercoin run --format json "Your prompt"
 - OpenCode-style output formatting (provider info, session ID)
 - JSON output support for scripting
 
-### Sessions (OpenCode-style)
+### Sessions
 
-Manage persistent sessions like OpenCode:
+Manage persistent sessions:
 
 ```bash
 # List all sessions
@@ -505,7 +498,7 @@ SuperCoin uses a configuration file located at `~/.config/supercoin/config.json`
 
 ### Project Configuration
 
-Create `opencode.json`, `.opencode.json`, or `supercoin.json` in your project:
+Create `supercoin.json` or `.supercoin.json` in your project (legacy: `opencode.json`, `.opencode.json`):
 
 ```json
 {
@@ -519,9 +512,10 @@ Create `opencode.json`, `.opencode.json`, or `supercoin.json` in your project:
 
 **Configuration Hierarchy** (highest priority first):
 1. CLI flags (`--provider`, `--model`, etc.)
-2. Project config (`opencode.json`)
-3. Global config (`~/.config/supercoin/config.json`)
-4. Defaults (provider: `ollama`, model: `llama3.2`)
+2. Project config (`supercoin.json` / `.supercoin.json`)
+3. Legacy config (`opencode.json` / `.opencode.json`)
+4. Global config (`~/.config/supercoin/config.json`)
+5. Defaults (provider: `ollama`, model: `llama3.2`)
 
 ## Supported Models
 
@@ -601,7 +595,7 @@ supercoin/
 │   ├── cli/                    # CLI entry point and commands
 │   ├── config/                 # Configuration schema and loaders
 │   │   ├── loader.ts          # Global config
-│   │   ├── opencode.ts        # Project config (opencode.json)
+│   │   ├── project.ts         # Project config (supercoin.json)
 │   │   └── schema.ts          # Zod schemas
 │   ├── core/                   # Core functionality (tools, hooks, session)
 │   ├── server/                 # Local auth server (Hono)
@@ -624,9 +618,9 @@ supercoin/
 │   └── examples/                   # Usage examples
 ```
 
-## OpenCode Monorepo (New)
+## SuperCoin Monorepo (New)
 
-New packages introduced for the OpenCode-aligned architecture:
+New packages introduced for the console and desktop applications:
 
 - `packages/console/app` - SolidStart web console
 - `packages/console/core` - Console business logic
@@ -751,15 +745,15 @@ bun run build
 
 ### TUI Architecture
 
-SuperCoin features a dual-mode CLI interface with OpenCode-inspired styling:
+SuperCoin features a chat-first CLI interface:
 
 1. **Interactive Mode** (default): Rich terminal UI with `@clack/prompts`
-   - OpenCode-style ASCII logo display on startup
-   - Provider selection with visual indicators
+   - Direct chat input by default (no menu navigation required)
+   - Slash commands for navigation (`/menu`, `/session`, `/help`, etc.)
+   - ASCII logo display on startup
    - Real-time spinners and progress updates
    - Consistent cancel handling via `CancelledError`
    - Styled output with UI utilities (`src/shared/ui.ts`)
-   - **Run mode**: Quick query with OpenCode-style output formatting
 
 2. **Command-Line Mode**: Direct execution with flags
    - Full control via `--provider`, `--model`, etc.
@@ -821,7 +815,7 @@ This architecture allows adding 75+ providers with minimal code.
 - [ ] Plugin system (planned)
 
 ### Test Coverage
-- **143 tests passing**
+- **155 tests passing**
 - Unit tests for core functionality
 - E2E tests for workflow integration
 - Authentication tests (skipped without API keys)

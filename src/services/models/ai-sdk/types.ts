@@ -16,7 +16,8 @@ export type AISDKProviderName =
   | "google"      // Gemini (API)
   | "ollama"      // Ollama (localhost)
   | "lmstudio"    // LM Studio (localhost)
-  | "llamacpp";   // llama.cpp (localhost)
+  | "llamacpp"    // llama.cpp (localhost)
+  | "supercent";  // SuperCent (API)
 
 /**
  * Provider configuration for AI SDK

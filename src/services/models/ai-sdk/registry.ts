@@ -50,6 +50,13 @@ const PROVIDER_REGISTRY: ProviderRegistry = {
     defaultBaseURL: "http://localhost:8080/v1",
     defaultModel: "local-model",
   },
+  supercent: {
+    name: "SuperCent (API)",
+    requiresAuth: true,
+    supportsStreaming: true,
+    defaultBaseURL: "https://api.supercent.ai/v1",
+    defaultModel: "cent-1",
+  },
 };
 
 export function getProviderConfig(provider: AISDKProviderName): AISDKProviderConfig {
@@ -111,6 +118,15 @@ export function createModel(config: AISDKModelConfig): AISDKModelResult {
       const baseURL = config.baseURL || providerConfig.defaultBaseURL;
       const llamacpp = createOpenAI({ baseURL, apiKey: "llamacpp" });
       languageModel = llamacpp.chat(model);
+      break;
+    }
+    case "supercent": {
+      const baseURL = config.baseURL || providerConfig.defaultBaseURL;
+      const supercent = createOpenAI({ 
+        baseURL, 
+        apiKey: config.apiKey || process.env.SUPERCENT_API_KEY || "supercent"
+      });
+      languageModel = supercent.chat(model);
       break;
     }
     default: {
