@@ -1,6 +1,12 @@
 import * as pty from 'node-pty';
 import { EventEmitter } from 'events';
 
+// PTY Spawn Options (extends IPtyForkOptions with shell/args)
+export interface PTYSpawnOptions extends pty.IPtyForkOptions {
+  shell?: string;
+  args?: string[];
+}
+
 // PTY Process Interface
 export interface PTYProcess {
   id: string;
@@ -14,11 +20,11 @@ export interface PTYProcess {
   kill: (signal?: 'SIGTERM' | 'SIGKILL' | 'SIGINT') => void;
   resize: (cols: number, rows: number) => void;
   write: (data: string) => void;
-  onData: (callback: (data: string) => void) => void;
-  onExit: (callback: (exitCode: number, signal: string) => void) => void;
-  onError: (callback: (error: Error) => void) => void;
+  onData: (callback: (data: string) => void) => pty.IDisposable;
+  onExit: (callback: (e: { exitCode: number; signal?: number }) => void) => pty.IDisposable;
   outputBuffer: string[];
   lastActivity: Date;
+  _killed?: boolean;
 }
 
 // PTY Manager Options

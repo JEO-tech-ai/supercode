@@ -25,6 +25,7 @@ export interface KBEntry {
     language?: string;
     complexity?: 'beginner' | 'intermediate' | 'advanced';
     dependencies?: string[];
+    source?: string;
   };
   references?: KBReference[];
 }

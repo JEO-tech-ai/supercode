@@ -1,14 +1,14 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Log } from '../shared/logger';
-import type { ToolSchema, ToolParameter } from './types';
+import type { ToolSchema, ToolParameter, ToolReturn, ParameterType } from './types';
 
 export interface ToolTemplate {
   name: string;
   description: string;
   category: string;
   parameters: ToolParameter[];
-  returns: { type: string; description: string };
+  returns: ToolReturn;
   examples: Array<{ description: string; parameters: Record<string, any>; expectedOutput: any }>;
 }
 
@@ -73,7 +73,7 @@ export class ToolGenerator {
       description: config.description || 'Description of the tool',
       category: (config.category as any) || 'custom',
       parameters: config.parameters || [],
-      returns: config.returns || { type: 'any', description: 'Tool result' },
+      returns: config.returns || { type: 'any' as ParameterType, description: 'Tool result' },
       examples: config.examples || [],
       requiresAuth: false,
       requiresPermission: [],
@@ -174,7 +174,7 @@ export const {{TOOL_NAME}}Tool: ToolDefinition = {
       description: prompt,
       category,
       parameters: [],
-      returns: { type: 'any', description: 'Tool result' },
+      returns: { type: 'any' as ParameterType, description: 'Tool result' },
       examples: [],
       requiresAuth: false,
       requiresPermission: [],

@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Log } from '../shared/logger';
-import type { ToolSchema, ToolDefinition } from './types';
+import type { ToolSchema, ToolDefinition, ToolParameter, ParameterType } from './types';
 import { toolRegistry } from './registry';
 
 function getToolRegistry() {
@@ -157,20 +157,8 @@ export class ToolDiscovery {
     return schema as ToolSchema;
   }
 
-  extractParameters(parametersBlock: string): Array<{
-    name: string;
-    type: string;
-    description: string;
-    required: boolean;
-    default?: any;
-  }> {
-    const parameters: Array<{
-      name: string;
-      type: string;
-      description: string;
-      required: boolean;
-      default?: any;
-    }> = [];
+  extractParameters(parametersBlock: string): ToolParameter[] {
+    const parameters: ToolParameter[] = [];
 
     const paramPattern = /\{\s*name:\s*["']([^"']+)["'],\s*type:\s*["']([^"']+)["'],\s*description:\s*["']([^"']+)["'][^}]*required:\s*(true|false)/g;
 
@@ -178,7 +166,7 @@ export class ToolDiscovery {
     while ((match = paramPattern.exec(parametersBlock)) !== null) {
       parameters.push({
         name: match[1],
-        type: match[2],
+        type: match[2] as ParameterType,
         description: match[3],
         required: match[4] === 'true',
       });

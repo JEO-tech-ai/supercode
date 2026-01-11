@@ -30,7 +30,9 @@ export type ParameterType =
   | 'array'
   | 'object'
   | 'file'
-  | 'directory';
+  | 'directory'
+  | 'any'
+  | 'void';
 
 export interface ToolReturn {
   type: ParameterType;

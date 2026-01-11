@@ -6,24 +6,25 @@ import { grepTool, globTool } from './search';
 import { TodoWriteTool, TodoReadTool } from './todo';
 import { Log } from '../../shared/logger';
 import type { ToolDefinition } from '../types';
+import type { ToolSchema, ToolCategory, ParameterType } from '../../tools/types';
 
 function getToolRegistry() {
   return toolRegistry;
 }
 
-function convertToToolSchema(toolDef: ToolDefinition, category: any = 'custom') {
+function convertToToolSchema(toolDef: ToolDefinition, category: ToolCategory = 'custom'): ToolSchema {
   return {
     name: toolDef.name,
     description: toolDef.description,
     category,
     parameters: toolDef.parameters.map(p => ({
       name: p.name,
-      type: p.type as any,
+      type: p.type as ParameterType,
       description: p.description,
       required: p.required || false,
       default: p.default,
     })),
-    returns: { type: 'any', description: 'Tool result' },
+    returns: { type: 'any' as ParameterType, description: 'Tool result' },
     examples: [],
     requiresAuth: false,
     requiresPermission: [],
@@ -31,7 +32,7 @@ function convertToToolSchema(toolDef: ToolDefinition, category: any = 'custom') 
   };
 }
 
-function inferCategory(toolName: string): any {
+function inferCategory(toolName: string): ToolCategory {
   const nameLower = toolName.toLowerCase();
 
   if (nameLower.includes('bash') || nameLower.includes('terminal') || nameLower.includes('command')) {

@@ -4,7 +4,7 @@ import type {
   ToolReturn,
   ToolExecutionContext,
   ExecutionResult
-} from './types';
+} from '../../tools/types';
 
 export interface CommandExecutionConfig {
   maxConcurrent: number;
@@ -261,12 +261,15 @@ export class CommandExecutor {
     return recentCount >= 10;
   }
 
-  getStats(): { [key: string]: { count: number; isRateLimited: boolean }[] } {
-    const stats = Array.from(this.rateLimits.entries()).map(([key, timestamps]) => ({
-      key,
-      count: timestamps.length,
-      isRateLimited: this.isRateLimited(key)
-    }));
+  getStats(): Record<string, { count: number; isRateLimited: boolean }> {
+    const stats: Record<string, { count: number; isRateLimited: boolean }> = {};
+    
+    for (const [key, timestamps] of this.rateLimits.entries()) {
+      stats[key] = {
+        count: timestamps.length,
+        isRateLimited: this.isRateLimited(key)
+      };
+    }
 
     return stats;
   }

@@ -2,6 +2,87 @@ import type { ToolDefinition, ToolContext, ToolResult } from "../types";
 import { ptyManager } from "../../services/pty/manager";
 import { promptDetector } from "../../services/pty/prompt-detector";
 
+async function executeInteractive(command: string, cwd: string, timeout: number): Promise<ToolResult> {
+  try {
+    // Spawn PTY process
+    const process = await ptyManager.spawn({
+      cwd,
+      cols: 80,
+      rows: 24,
+    });
+
+    let output = '';
+
+    // Listen for data and prompts
+    const dataHandler = (data: string) => {
+      output += data;
+
+      // Check for prompts
+      const prompt = promptDetector.detect(data);
+      if (prompt) {
+        output += `\n🔔 Prompt detected: ${prompt.type}\n💡 Suggestions: ${prompt.suggestions.join(', ')}`;
+      }
+    };
+
+    process.onData(dataHandler);
+
+    // Write command
+    process.write(`${command}\n`);
+
+    // Wait for output or timeout
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(() => {
+        resolve();
+      }, timeout);
+
+      process.onExit(() => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+
+    process.onData(() => {}); // Remove handler
+
+    return {
+      success: true,
+      output,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      output: '',
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function executeNonInteractive(command: string, cwd: string, timeout: number): Promise<ToolResult> {
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+
+  const execAsync = promisify(exec);
+
+  try {
+    const { stdout, stderr } = await execAsync(command, {
+      cwd,
+      timeout,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+
+    return {
+      success: true,
+      output: stdout + (stderr ? `\n${stderr}` : ''),
+    };
+  } catch (error) {
+    const execError = error as { stdout?: string; stderr?: string; message: string };
+    return {
+      success: false,
+      output: execError.stdout || '',
+      error: execError.stderr || execError.message,
+    };
+  }
+}
+
 export const bashTool: ToolDefinition = {
   name: "bash",
   description: "Execute bash command (supports interactive mode with PTY)",
@@ -41,99 +122,9 @@ export const bashTool: ToolDefinition = {
     const timeout = (args.timeout as number) || 30000;
 
     if (interactive) {
-      return await this.executeInteractive(command, workdir, timeout);
+      return await executeInteractive(command, workdir, timeout);
     } else {
-      return await this.executeNonInteractive(command, workdir, timeout);
-    }
-  },
-
-  async executeInteractive(command: string, cwd: string, timeout: number): Promise<ToolResult> {
-    try {
-      // Spawn PTY process
-      const process = await ptyManager.spawn({
-        shell: 'bash',
-        args: ['-i'],
-        cwd,
-        cols: 80,
-        rows: 24,
-      });
-
-      let output = '';
-      let promptDetected = false;
-
-      // Listen for data and prompts
-      const dataHandler = (data: string) => {
-        output += data;
-
-        // Check for prompts
-        const prompt = promptDetector.detect(data);
-        if (prompt) {
-          promptDetected = true;
-          output += `\n🔔 Prompt detected: ${prompt.type}\n💡 Suggestions: ${prompt.suggestions.join(', ')}`;
-        }
-      };
-
-      process.onData(dataHandler);
-
-      // Write command
-      process.write(`${command}\n`);
-
-      // Wait for output or timeout
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => {
-          resolve();
-        }, timeout);
-
-        process.onExit((exitCode, signal) => {
-          clearTimeout(timer);
-          resolve();
-        });
-
-        process.onError((error) => {
-          clearTimeout(timer);
-          reject(error);
-        });
-      });
-
-      process.onData(() => {}); // Remove handler
-
-      return {
-        success: true,
-        output,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        output: '',
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  },
-
-  async executeNonInteractive(command: string, cwd: string, timeout: number): Promise<ToolResult> {
-    const { exec } = await import('child_process');
-    const { promisify } = await import('util');
-
-    const execAsync = promisify(exec);
-
-    try {
-      const { stdout, stderr } = await execAsync(command, {
-        cwd,
-        timeout,
-        maxBuffer: 10 * 1024 * 1024,
-      });
-
-      return {
-        success: true,
-        output: stdout + (stderr ? `\n${stderr}` : ''),
-      };
-    } catch (error) {
-      const execError = error as { stdout?: string; stderr?: string; message: string };
-      return {
-        success: false,
-        output: execError.stdout || '',
-        error: execError.stderr || execError.message,
-      };
+      return await executeNonInteractive(command, workdir, timeout);
     }
   },
 };

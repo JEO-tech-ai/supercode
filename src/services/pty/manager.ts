@@ -1,11 +1,12 @@
 import * as pty from 'node-pty';
 import { EventEmitter } from 'events';
 import { Log } from '../../shared/logger';
-import type {
+import {
   PTYProcess,
   PTYManagerConfig,
   PTYEvent,
-  PTYNotFoundError
+  PTYNotFoundError,
+  PTYSpawnOptions
 } from './types';
 
 export class PTYManager extends EventEmitter {
@@ -17,33 +18,31 @@ export class PTYManager extends EventEmitter {
     super();
     this.config = {
       maxConcurrent: 5,
-      idleTimeout: 300000, // 5 minutes
+      idleTimeout: 300000,
       enableCaching: true,
       logLevel: 'info',
       ...config
     };
   }
 
-  async spawn(options: pty.IPtyForkOptions): Promise<PTYProcess> {
+  async spawn(options: PTYSpawnOptions): Promise<PTYProcess> {
     const processId = crypto.randomUUID();
-    const process = this.createPTYProcess(processId, options);
+    const ptyProcess = this.createPTYProcess(processId, options);
 
-    // Add to active processes set
     this.activeProcesses.add(processId);
-    this.processes.set(processId, process);
+    this.processes.set(processId, ptyProcess);
 
-    // Set up event handlers
-    process.onData((data) => {
-      process.outputBuffer.push(data);
-      process.lastActivity = new Date();
-      this.emit('data', { type: 'data', data, process } as PTYEvent);
+    ptyProcess.onData((data) => {
+      ptyProcess.outputBuffer.push(data);
+      ptyProcess.lastActivity = new Date();
+      this.emit('data', { type: 'data', data, process: ptyProcess } as PTYEvent);
     });
 
-    process.onExit((exitCode, signal) => {
-      this.handleExit(process, exitCode, signal);
+    ptyProcess.onExit((e) => {
+      this.handleExit(ptyProcess, e.exitCode, e.signal);
     });
 
-    return process;
+    return ptyProcess;
   }
 
   async getProcess(processId: string): Promise<PTYProcess | null> {
@@ -105,18 +104,18 @@ export class PTYManager extends EventEmitter {
     this.activeProcesses.clear();
   }
 
-  private handleExit(process: PTYProcess, exitCode: number, signal: string): void {
-    Log.info(`Process ${process.id} exited with code ${exitCode}, signal: ${signal}`);
+  private handleExit(process: PTYProcess, exitCode: number, signal?: number): void {
+    Log.info(`Process ${process.id} exited with code ${exitCode}, signal: ${signal ?? 'none'}`);
     this.activeProcesses.delete(process.id);
 
     this.emit('exit', {
       type: 'exit',
       exitCode,
-      signal,
+      signal: signal?.toString(),
       process
     } as PTYEvent);
 
-    process.removeAllListeners();
+    process._killed = true;
     this.processes.delete(process.id);
   }
 
@@ -128,42 +127,56 @@ export class PTYManager extends EventEmitter {
     }
   }
 
-  private createPTYProcess(processId: string, options: pty.IPtyForkOptions): PTYProcess {
-    const ptyProcess = pty.spawn(
-      options.shell || process.env.SHELL || 'bash',
-      options.args || [],
-      {
-        name: 'xterm-256color',
-        cols: options.cols || 80,
-        rows: options.rows || 24,
-        cwd: options.cwd || process.cwd(),
-        env: {
-          ...process.env,
-          ...options.env,
-          TERM: 'xterm-256color',
-          COLORTERM: 'xterm-256color'
-        },
-        useConpty: true
+  private createPTYProcess(processId: string, options: PTYSpawnOptions): PTYProcess {
+    const shell = options.shell || process.env.SHELL || 'bash';
+    const args = options.args || [];
+    const cwd = options.cwd || process.cwd();
+    const cols = options.cols || 80;
+    const rows = options.rows || 24;
+    
+    const envRecord: Record<string, string> = {};
+    for (const [key, value] of Object.entries(process.env)) {
+      if (value !== undefined) {
+        envRecord[key] = value;
       }
-    );
+    }
+    if (options.env) {
+      Object.assign(envRecord, options.env);
+    }
+    envRecord.TERM = 'xterm-256color';
+    envRecord.COLORTERM = 'xterm-256color';
+
+    const ptyProcess = pty.spawn(shell, args, {
+      name: 'xterm-256color',
+      cols,
+      rows,
+      cwd,
+      env: envRecord,
+      useConpty: true
+    });
+
+    let killed = false;
 
     return {
       id: processId,
       pid: ptyProcess.pid,
-      shell: options.shell || 'bash',
-      cwd: options.cwd || process.cwd(),
-      cols: options.cols || 80,
-      rows: options.rows || 24,
-      env: { ...process.env, ...options.env },
-      isAlive: () => ptyProcess.pid > 0 && !ptyProcess.killed,
-      kill: (signal) => ptyProcess.kill(signal),
-      resize: (cols, rows) => ptyProcess.resize(cols, rows),
+      shell,
+      cwd,
+      cols,
+      rows,
+      env: envRecord,
+      isAlive: () => ptyProcess.pid > 0 && !killed,
+      kill: (signal) => {
+        killed = true;
+        ptyProcess.kill(signal);
+      },
+      resize: (c, r) => ptyProcess.resize(c, r),
       write: (data) => ptyProcess.write(data),
       onData: (callback) => ptyProcess.onData(callback),
       onExit: (callback) => ptyProcess.onExit(callback),
-      onError: (callback) => ptyProcess.on('error', callback),
       outputBuffer: [],
-      lastActivity: new Date()
+      lastActivity: new Date(),
+      _killed: false
     };
   }
 

@@ -73,7 +73,9 @@ export class SessionManager extends EventEmitter {
       context: {
         sessionId,
         workdir: process.cwd(),
-        env: { ...process.env },
+        env: Object.fromEntries(
+          Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined)
+        ),
         permissions: [],
         model: 'ollama/llama3.2',
         provider: 'ollama',
@@ -302,7 +304,7 @@ export class SessionManager extends EventEmitter {
 
     const totalTokensUsed = sessions.reduce(
       (sum, s) =>
-        sum + s.messages.reduce((ms, m) => ms + (m.metadata.tokens?.total || 0), 0),
+        sum + s.messages.reduce((ms, m) => ms + (m.metadata?.tokens?.total || 0), 0),
       0
     );
 
@@ -367,14 +369,14 @@ export class SessionManager extends EventEmitter {
     }
   }
 
-  on(event: SessionEvent, handler: (data: unknown) => void): void {
+  override on(event: SessionEvent, handler: (data: unknown) => void): this {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, new Set());
     }
 
     this.eventHandlers.get(event)!.add({ event, handler });
 
-    this.on(event, handler);
+    return super.on(event, handler as (...args: any[]) => void);
   }
 
   private async setupEncryption(): Promise<void> {
