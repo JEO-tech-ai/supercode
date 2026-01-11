@@ -7,6 +7,8 @@ import { createServerCommand } from "./commands/server";
 import { createConfigCommand } from "./commands/config";
 import { createDoctorCommand } from "./commands/doctor";
 import { createDashboardCommand } from "./commands/dashboard";
+import { createSessionCommand } from "./commands/session";
+import { sessionManager } from "../core/session/manager";
 import { resolveProviderFromConfig } from "../config/opencode";
 import { streamAIResponse, checkLocalhostAvailability } from "../services/models/ai-sdk";
 import type { AISDKProviderName } from "../services/models/ai-sdk/types";
@@ -34,6 +36,7 @@ async function runInteractiveMode() {
     options: [
       { value: "chat", label: "💬 Start Chat", hint: "Chat with AI models" },
       { value: "run", label: "▶️  Run", hint: "Run with a prompt (OpenCode-style)" },
+      { value: "session", label: "📋 Sessions", hint: "List and manage sessions" },
       { value: "auth", label: "🔐 Authentication", hint: "Manage provider authentication" },
       { value: "models", label: "🤖 Models", hint: "List and manage AI models" },
       { value: "config", label: "⚙️  Configuration", hint: "View and edit settings" },
@@ -53,6 +56,9 @@ async function runInteractiveMode() {
       break;
     case "run":
       await runRunFlow();
+      break;
+    case "session":
+      await runSessionFlow();
       break;
     case "auth":
       await runAuthFlow();
@@ -288,6 +294,236 @@ async function runDashboardFlow() {
   clack.note("Use command-line for dashboard", "Dashboard");
 }
 
+async function runSessionFlow() {
+  const sessions = sessionManager.listSessions({});
+  sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
+  if (sessions.length === 0) {
+    clack.log.info("No sessions found. Create one by running a prompt.");
+    return;
+  }
+
+  const options = sessions.slice(0, 10).map((s) => ({
+    value: s.sessionId,
+    label: s.metadata.title || "Untitled",
+    hint: `${s.status} - ${s.messages.length} messages`,
+  }));
+
+  options.unshift({ value: "list", label: "📋 List all sessions", hint: "Show detailed list" });
+
+  const selected = await clack.select({
+    message: "Select a session",
+    options,
+  });
+
+  if (clack.isCancel(selected)) {
+    throw new CancelledError();
+  }
+
+  if (selected === "list") {
+    clack.log.info("Run: supercoin session list");
+    return;
+  }
+
+  const session = await sessionManager.getSession(selected);
+  if (!session) {
+    clack.log.error("Session not found");
+    return;
+  }
+
+  UI.println();
+  UI.println(UI.Style.TEXT_HIGHLIGHT_BOLD + "Session: " + UI.Style.RESET + session.sessionId);
+  UI.println(UI.Style.TEXT_INFO_BOLD + "| " + UI.Style.TEXT_DIM + "Status  " + UI.Style.RESET + session.status);
+  UI.println(UI.Style.TEXT_INFO_BOLD + "| " + UI.Style.TEXT_DIM + "Provider" + UI.Style.RESET + " " + session.context.provider + "/" + session.context.model);
+  UI.println(UI.Style.TEXT_INFO_BOLD + "| " + UI.Style.TEXT_DIM + "Messages" + UI.Style.RESET + " " + session.messages.length);
+
+  const action = await clack.select({
+    message: "What would you like to do?",
+    options: [
+      { value: "continue", label: "▶️  Continue session", hint: "Resume this session" },
+      { value: "show", label: "👁️  View details", hint: "Show full session info" },
+      { value: "delete", label: "🗑️  Delete", hint: "Remove this session" },
+    ],
+  });
+
+  if (clack.isCancel(action)) {
+    throw new CancelledError();
+  }
+
+  if (action === "continue") {
+    clack.log.info(`Run: supercoin run --session ${session.sessionId}`);
+    return;
+  }
+
+  if (action === "show") {
+    clack.log.info(`Run: supercoin session show ${session.sessionId}`);
+    return;
+  }
+
+  if (action === "delete") {
+    const confirm = await clack.confirm({
+      message: `Delete session ${session.sessionId}?`,
+    });
+
+    if (clack.isCancel(confirm) || !confirm) {
+      clack.log.info("Cancelled");
+      return;
+    }
+
+    await sessionManager.deleteSession(session.sessionId);
+    clack.log.success("Session deleted");
+  }
+}
+
+function createRunCommand(): Command {
+  return new Command("run")
+    .description("Run with a message (OpenCode-style)")
+    .argument("[message...]", "Message to send")
+    .option("-c, --continue", "Continue the last session")
+    .option("-s, --session <id>", "Session ID to continue")
+    .option("-m, --model <model>", "Model to use (provider/model format)")
+    .option("--title <title>", "Title for the session")
+    .option("--format <format>", "Output format (default or json)", "default")
+    .action(async (messageParts: string[], options) => {
+      const message = messageParts.join(" ");
+
+      if (!message && !options.continue && !options.session) {
+        UI.error("You must provide a message or use --continue/--session");
+        process.exit(1);
+      }
+
+      const projectConfig = await resolveProviderFromConfig();
+      let provider = projectConfig.provider as AISDKProviderName;
+      let model = projectConfig.model;
+
+      if (options.model) {
+        const parts = options.model.split("/");
+        if (parts.length === 2) {
+          provider = parts[0] as AISDKProviderName;
+          model = parts[1];
+        } else {
+          model = options.model;
+        }
+      }
+
+      let session;
+      if (options.continue) {
+        const sessions = sessionManager.listSessions({});
+        sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+        session = sessions.find((s) => s.status !== "completed");
+        if (!session) {
+          session = await sessionManager.createSession({
+            model: `${provider}/${model}`,
+            provider,
+          });
+        }
+      } else if (options.session) {
+        session = await sessionManager.getSession(options.session);
+        if (!session) {
+          UI.error(`Session not found: ${options.session}`);
+          process.exit(1);
+        }
+      } else {
+        const title = options.title || message.slice(0, 50) + (message.length > 50 ? "..." : "");
+        session = await sessionManager.createSession({
+          model: `${provider}/${model}`,
+          provider,
+        });
+        await sessionManager.updateSession(session.sessionId, {
+          metadata: { ...session.metadata, title },
+        });
+      }
+
+      UI.println(
+        UI.Style.TEXT_INFO_BOLD + "|",
+        UI.Style.TEXT_DIM + " Session ",
+        "",
+        UI.Style.TEXT_NORMAL + session.sessionId
+      );
+      UI.println(
+        UI.Style.TEXT_INFO_BOLD + "|",
+        UI.Style.TEXT_DIM + " Provider",
+        "",
+        UI.Style.TEXT_NORMAL + `${provider}/${model}`
+      );
+
+      const isLocalhost = ["ollama", "lmstudio", "llamacpp"].includes(provider);
+      if (isLocalhost) {
+        const available = await checkLocalhostAvailability(
+          provider as "ollama" | "lmstudio" | "llamacpp",
+          projectConfig.baseURL
+        );
+        if (!available) {
+          UI.error(`${provider} is not available. Make sure it's running.`);
+          process.exit(1);
+        }
+      }
+
+      UI.println();
+
+      await sessionManager.addMessage(session.sessionId, {
+        role: "user",
+        content: message,
+      });
+
+      try {
+        let responseText = "";
+        const result = await streamAIResponse({
+          provider,
+          model,
+          baseURL: projectConfig.baseURL,
+          temperature: projectConfig.temperature,
+          maxTokens: projectConfig.maxTokens,
+          messages: session.messages.map((m) => ({
+            role: m.role as "user" | "assistant" | "system",
+            content: m.content,
+          })).concat([{ role: "user", content: message }]),
+          onChunk: (text) => {
+            responseText += text;
+            if (options.format === "json") return;
+            process.stdout.write(text);
+          },
+        });
+
+        if (options.format !== "json") {
+          process.stdout.write(EOL);
+        }
+
+        await sessionManager.addMessage(session.sessionId, {
+          role: "assistant",
+          content: responseText,
+          metadata: {
+            model: `${provider}/${model}`,
+            tokens: result.usage ? {
+              input: result.usage.promptTokens,
+              output: result.usage.completionTokens,
+              total: result.usage.totalTokens,
+            } : undefined,
+          },
+        });
+
+        await sessionManager.updateSession(session.sessionId, {
+          status: "idle",
+        });
+
+        if (options.format === "json") {
+          console.log(JSON.stringify({
+            type: "text",
+            sessionID: session.sessionId,
+            content: responseText,
+            usage: result.usage,
+          }, null, 2));
+        }
+      } catch (error) {
+        await sessionManager.updateSession(session.sessionId, {
+          status: "error",
+        });
+        UI.error((error as Error).message);
+        process.exit(1);
+      }
+    });
+}
+
 async function main() {
   const program = new Command();
   const config = await loadConfig();
@@ -312,6 +548,8 @@ async function main() {
   program.addCommand(createConfigCommand(config));
   program.addCommand(createDoctorCommand(config));
   program.addCommand(createDashboardCommand(config));
+  program.addCommand(createSessionCommand());
+  program.addCommand(createRunCommand());
 
   program
     .argument("[prompt...]", "Prompt for AI")
@@ -387,4 +625,6 @@ main().catch((error) => {
   }
   logger.error("Fatal error", error);
   process.exit(1);
+}).finally(() => {
+  process.exit();
 });

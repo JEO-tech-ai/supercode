@@ -287,6 +287,71 @@ The **Ralph Loop** is SuperCoin's autonomous development engine that ensures goa
 
 ## Commands
 
+### Run (OpenCode-style)
+
+The `run` command provides OpenCode-style session-aware execution:
+
+```bash
+# Run with a message (creates new session)
+supercoin run "Explain the difference between let and const"
+
+# Continue the last session
+supercoin run --continue "Follow up question"
+supercoin run -c "Continue the conversation"
+
+# Resume a specific session
+supercoin run --session <session-id> "Continue this session"
+supercoin run -s abc123 "Resume session"
+
+# Specify model in provider/model format
+supercoin run -m anthropic/claude-sonnet-4 "Your prompt"
+
+# Custom session title
+supercoin run --title "My Research" "Start research task"
+
+# JSON output format
+supercoin run --format json "Your prompt"
+```
+
+**Run Command Features:**
+- Automatic session creation and persistence
+- Session continuation with `--continue` or `--session` flags
+- OpenCode-style output formatting (provider info, session ID)
+- JSON output support for scripting
+
+### Sessions (OpenCode-style)
+
+Manage persistent sessions like OpenCode:
+
+```bash
+# List all sessions
+supercoin session list
+supercoin session ls
+
+# List with options
+supercoin session list -n 5              # Limit to 5 most recent
+supercoin session list --format json     # JSON output
+supercoin session list --status active   # Filter by status
+
+# Show session details
+supercoin session show <session-id>
+supercoin session show abc123 --format json
+
+# Delete a session
+supercoin session delete <session-id>
+supercoin session rm abc123 --force
+
+# View session statistics
+supercoin session stats
+supercoin session stats --format json
+```
+
+**Session Features:**
+- Persistent session storage with automatic saving
+- Session filtering by status, provider, model
+- Token usage tracking across sessions
+- Encryption support (AES-256-GCM)
+
 ### Authentication
 
 SuperCoin supports both **API Key** and **OAuth 2.0 + PKCE** authentication with multi-account management for rate limit avoidance.
