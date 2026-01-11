@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "identifier": "ai.supercoin.desktop",
   "build": {
-    "beforeBuildCommand": "cd ../console/app && bun run build",
+    "beforeBuildCommand": "",
     "beforeDevCommand": "cd ../console/app && bun run dev",
     "devUrl": "http://localhost:3000",
-    "frontendDist": "../console/app/.output/public"
+    "frontendDist": "../../console/app/.output/public"
   },
   "app": {
     "withGlobalTauri": true,

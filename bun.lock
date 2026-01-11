@@ -91,6 +91,7 @@
       "name": "@supercoin/desktop",
       "version": "0.1.0",
       "dependencies": {
+        "@supercoin/console-app": "workspace:*",
         "@tauri-apps/api": "^2.5.0",
       },
       "devDependencies": {
