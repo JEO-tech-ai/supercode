@@ -103,6 +103,30 @@ export const SuperCodeConfigSchema = z.object({
     host: z.string().default("127.0.0.1"),
     autoStart: z.boolean().default(true),
   }).optional(),
+  tui: z.object({
+    // Phase 2: Korean Unicode support
+    koreanInput: z.object({
+      enabled: z.boolean().default(true),
+      compositionDebounceMs: z.number().default(100),
+      fuzzyMatchInitials: z.boolean().default(true),
+    }).optional(),
+    // Phase 4: Stream Monitor
+    streamMonitor: z.object({
+      enabled: z.boolean().default(true),
+      showTokenSpeed: z.boolean().default(true),
+      showCost: z.boolean().default(true),
+      showTTFC: z.boolean().default(false),
+    }).optional(),
+    // Phase 5: Keyboard Shortcuts
+    keybindings: z.object({
+      preset: z.enum(["default", "vim", "emacs"]).default("default"),
+      customBindings: z.record(z.string()).optional(),
+    }).optional(),
+    sidebar: z.object({
+      defaultVisible: z.boolean().default(true),
+      defaultSections: z.array(z.string()).default(["context", "agents", "mcp"]),
+    }).optional(),
+  }).optional(),
 });
 
 export type SuperCodeConfig = z.infer<typeof SuperCodeConfigSchema>;
