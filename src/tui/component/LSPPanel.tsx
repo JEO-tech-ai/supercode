@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
 import { useTheme } from "../context/theme";
+import { LANGUAGE_ICONS, getLanguageIcon, CAPABILITY_ICONS } from "../../shared/icons";
 
 export interface LSPServer {
   id: string;
@@ -41,50 +42,28 @@ interface LSPPanelProps {
   onRestart?: (serverId: string) => void;
 }
 
-// Language icons
-const LANGUAGE_ICONS: Record<string, string> = {
-  typescript: "📘",
-  javascript: "📒",
-  python: "🐍",
-  rust: "🦀",
-  go: "🐹",
-  java: "☕",
-  c: "🔧",
-  cpp: "⚙️",
-  csharp: "🎯",
-  ruby: "💎",
-  php: "🐘",
-  swift: "🍎",
-  kotlin: "🎨",
-  scala: "🔴",
-  html: "🌐",
-  css: "🎨",
-  json: "📋",
-  yaml: "📄",
-  markdown: "📝",
-  default: "📦",
-};
+// Language icons are imported from shared/icons.ts
 
 // Status indicators
 const STATUS_CONFIG: Record<string, { icon: string; color: string }> = {
-  running: { icon: "●", color: "#50fa7b" },
-  starting: { icon: "◐", color: "#f1fa8c" },
-  stopped: { icon: "○", color: "#6272a4" },
-  error: { icon: "✗", color: "#ff5555" },
-  crashed: { icon: "💀", color: "#ff5555" },
+  running: { icon: "[*]", color: "#50fa7b" },
+  starting: { icon: "[.]", color: "#f1fa8c" },
+  stopped: { icon: "[ ]", color: "#6272a4" },
+  error: { icon: "[-]", color: "#ff5555" },
+  crashed: { icon: "[X]", color: "#ff5555" },
 };
 
 // Capability icons
-const CAPABILITY_ICONS: Record<keyof LSPCapabilities, string> = {
-  completionProvider: "🔤",
-  hoverProvider: "ℹ️",
-  definitionProvider: "🔍",
-  referencesProvider: "🔗",
-  documentFormattingProvider: "📐",
-  renameProvider: "✏️",
-  codeActionProvider: "💡",
-  signatureHelpProvider: "📋",
-  diagnosticProvider: "🔬",
+const LSP_CAPABILITY_ICONS: Record<keyof LSPCapabilities, string> = {
+  completionProvider: "[AC]",
+  hoverProvider: "[HV]",
+  definitionProvider: "[DF]",
+  referencesProvider: "[RF]",
+  documentFormattingProvider: "[FM]",
+  renameProvider: "[RN]",
+  codeActionProvider: "[CA]",
+  signatureHelpProvider: "[SG]",
+  diagnosticProvider: "[DG]",
 };
 
 function formatMemory(bytes?: number): string {
@@ -103,7 +82,7 @@ function ServerItem({
 }) {
   const { theme } = useTheme();
   const statusConfig = STATUS_CONFIG[server.status] || STATUS_CONFIG.stopped;
-  const langIcon = LANGUAGE_ICONS[server.language.toLowerCase()] || LANGUAGE_ICONS.default;
+  const langIcon = getLanguageIcon(server.language);
 
   // Starting animation
   const [animFrame, setAnimFrame] = useState(0);
@@ -115,9 +94,9 @@ function ServerItem({
     return () => clearInterval(interval);
   }, [server.status]);
 
-  const spinChars = ["◐", "◓", "◑", "◒"];
-  const statusIcon = server.status === "starting" 
-    ? spinChars[animFrame] 
+  const spinChars = ["[\\]", "[|]", "[/]", "[-]"];
+  const statusIcon = server.status === "starting"
+    ? spinChars[animFrame]
     : statusConfig.icon;
 
   return (
@@ -143,13 +122,13 @@ function ServerItem({
           {server.diagnostics && (
             <Box flexDirection="row" gap={1}>
               {server.diagnostics.errors > 0 && (
-                <Text color={theme.error}>✗{server.diagnostics.errors}</Text>
+                <Text color={theme.error}>[-]{server.diagnostics.errors}</Text>
               )}
               {server.diagnostics.warnings > 0 && (
-                <Text color={theme.warning}>⚠{server.diagnostics.warnings}</Text>
+                <Text color={theme.warning}>[!]{server.diagnostics.warnings}</Text>
               )}
               {server.diagnostics.hints > 0 && (
-                <Text color={theme.accent}>💡{server.diagnostics.hints}</Text>
+                <Text color={theme.accent}>[H]{server.diagnostics.hints}</Text>
               )}
             </Box>
           )}
@@ -168,7 +147,7 @@ function ServerItem({
       {/* Error message */}
       {(server.status === "error" || server.status === "crashed") && server.error && (
         <Box paddingLeft={3}>
-          <Text color={theme.error}>⚠ {server.error}</Text>
+          <Text color={theme.error}>[!] {server.error}</Text>
         </Box>
       )}
 
@@ -181,7 +160,7 @@ function ServerItem({
               .filter(([_, enabled]) => enabled)
               .map(([cap]) => (
                 <Text key={cap} color={theme.accent}>
-                  {CAPABILITY_ICONS[cap as keyof LSPCapabilities] || "•"}{" "}
+                  {LSP_CAPABILITY_ICONS[cap as keyof LSPCapabilities] || "*"}{" "}
                   {cap.replace("Provider", "").replace(/([A-Z])/g, " $1").trim()}
                 </Text>
               ))}
@@ -268,17 +247,17 @@ export function LSPPanel({
       {/* Header */}
       <Box flexDirection="row" justifyContent="space-between" paddingX={1} marginBottom={1}>
         <Text color={theme.text} bold>
-          🔧 LSP Servers
+          [L] LSP Servers
         </Text>
         <Box flexDirection="row" gap={2}>
           <Text color={stats.running === stats.total ? theme.success : theme.warning}>
             {stats.running}/{stats.total}
           </Text>
           {stats.totalErrors > 0 && (
-            <Text color={theme.error}>✗{stats.totalErrors}</Text>
+            <Text color={theme.error}>[-]{stats.totalErrors}</Text>
           )}
           {stats.totalWarnings > 0 && (
-            <Text color={theme.warning}>⚠{stats.totalWarnings}</Text>
+            <Text color={theme.warning}>[!]{stats.totalWarnings}</Text>
           )}
           <Text color={theme.textMuted}>{formatMemory(stats.totalMemory)}</Text>
         </Box>
@@ -328,12 +307,12 @@ export function LSPStatus({ servers }: { servers: LSPServer[] }) {
   return (
     <Box flexDirection="row" gap={1}>
       <Text color={hasError ? theme.error : running === servers.length ? theme.success : theme.warning}>
-        ●
+        *
       </Text>
       <Text color={theme.text}>LSP</Text>
       <Text color={theme.textMuted}>({running})</Text>
       {totalErrors > 0 && (
-        <Text color={theme.error}>✗{totalErrors}</Text>
+        <Text color={theme.error}>[-]{totalErrors}</Text>
       )}
     </Box>
   );

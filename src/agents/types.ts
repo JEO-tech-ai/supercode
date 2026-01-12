@@ -173,6 +173,7 @@ export type AgentFactory = (options?: AgentCreateOptions) => AgentDefinition;
  */
 export type BuiltinAgentName =
   | "sisyphus"
+  | "cent"
   | "explore"
   | "oracle"
   | "librarian"

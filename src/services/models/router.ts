@@ -1,6 +1,6 @@
 import { getAuthHub } from "../auth/hub";
 import type { AuthProviderName } from "../auth/types";
-import { AnthropicProvider, OpenAIProvider, GoogleProvider } from "./providers";
+import { AnthropicProvider, OpenAIProvider, GoogleProvider, LocalProvider } from "./providers";
 import type {
   Provider,
   ProviderName,
@@ -23,6 +23,7 @@ export class ModelRouter {
       ["anthropic", new AnthropicProvider()],
       ["openai", new OpenAIProvider()],
       ["google", new GoogleProvider()],
+      ["local", new LocalProvider()],
     ]);
     this.fallbackChain = config.fallbackModels || [];
     this.currentModel = this.parseModelId(config.defaultModel);
@@ -41,18 +42,23 @@ export class ModelRouter {
       throw new Error(`Unknown provider: ${modelConfig.provider}`);
     }
 
-    const authName = this.mapProviderToAuth(modelConfig.provider);
-    const isAuthenticated = await authHub.isAuthenticated(authName);
-    if (!isAuthenticated) {
-      throw new Error(
-        `Not authenticated with ${modelConfig.provider}. ` +
-        `Run: supercoin auth login --${authName}`
-      );
-    }
+    // Local provider doesn't require authentication
+    let token = "";
+    if (modelConfig.provider !== "local") {
+      const authName = this.mapProviderToAuth(modelConfig.provider);
+      const isAuthenticated = await authHub.isAuthenticated(authName);
+      if (!isAuthenticated) {
+        throw new Error(
+          `Not authenticated with ${modelConfig.provider}. ` +
+          `Run: supercoin auth login --${authName}`
+        );
+      }
 
-    const token = await authHub.getToken(authName);
-    if (!token) {
-      throw new Error(`No token available for ${modelConfig.provider}`);
+      const authToken = await authHub.getToken(authName);
+      if (!authToken) {
+        throw new Error(`No token available for ${modelConfig.provider}`);
+      }
+      token = authToken;
     }
 
     try {
@@ -88,13 +94,16 @@ export class ModelRouter {
       );
     }
 
-    const authName = this.mapProviderToAuth(modelConfig.provider);
-    const isAuthenticated = await authHub.isAuthenticated(authName);
-    if (!isAuthenticated) {
-      throw new Error(
-        `Not authenticated with ${modelConfig.provider}. ` +
-        `Run: supercoin auth login --${authName}`
-      );
+    // Local provider doesn't require authentication
+    if (modelConfig.provider !== "local") {
+      const authName = this.mapProviderToAuth(modelConfig.provider);
+      const isAuthenticated = await authHub.isAuthenticated(authName);
+      if (!isAuthenticated) {
+        throw new Error(
+          `Not authenticated with ${modelConfig.provider}. ` +
+          `Run: supercoin auth login --${authName}`
+        );
+      }
     }
 
     this.currentModel = modelConfig;
@@ -164,13 +173,18 @@ export class ModelRouter {
 
       if (!provider) continue;
 
-      const authName = this.mapProviderToAuth(modelConfig.provider);
-      const isAuthenticated = await authHub.isAuthenticated(authName);
-      if (!isAuthenticated) continue;
-
       try {
-        const token = await authHub.getToken(authName);
-        if (!token) continue;
+        // Local provider doesn't require authentication
+        let token = "";
+        if (modelConfig.provider !== "local") {
+          const authName = this.mapProviderToAuth(modelConfig.provider);
+          const isAuthenticated = await authHub.isAuthenticated(authName);
+          if (!isAuthenticated) continue;
+
+          const authToken = await authHub.getToken(authName);
+          if (!authToken) continue;
+          token = authToken;
+        }
 
         logger.info(`Falling back to ${modelId}...`);
         return await provider.complete(request, modelConfig, token);
@@ -220,11 +234,22 @@ export class ModelRouter {
       ["flash", "google/gemini-3-flash"],
       ["gemini-pro", "google/gemini-3-pro"],
       ["gemini", "google/gemini-3-flash"],
+
+      // Local model aliases
+      ["llama", "local/llama3.3:latest"],
+      ["llama3", "local/llama3.3:latest"],
+      ["llama3.3", "local/llama3.3:latest"],
+      ["qwen", "local/qwen2.5-coder:latest"],
+      ["qwen-coder", "local/qwen2.5-coder:latest"],
+      ["deepseek", "local/deepseek-coder-v2:latest"],
+      ["deepseek-coder", "local/deepseek-coder-v2:latest"],
+      ["mistral", "local/mistral:latest"],
+      ["local", "local/llama3.3:latest"],
     ]);
   }
 
-  private mapProviderToAuth(provider: ProviderName): AuthProviderName {
-    const map: Record<ProviderName, AuthProviderName> = {
+  private mapProviderToAuth(provider: Exclude<ProviderName, "local">): AuthProviderName {
+    const map: Record<Exclude<ProviderName, "local">, AuthProviderName> = {
       anthropic: "claude",
       openai: "codex",
       google: "gemini",

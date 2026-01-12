@@ -4,10 +4,10 @@ import { useTheme } from "../context/theme";
 import { useToast, type ToastOptions } from "../context/toast";
 
 const VARIANT_ICONS = {
-  info: "ℹ",
-  success: "✓",
-  warning: "⚠",
-  error: "✗",
+  info: "[i]",
+  success: "[+]",
+  warning: "[!]",
+  error: "[-]",
 };
 
 interface ToastItemProps {

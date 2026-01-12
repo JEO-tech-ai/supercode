@@ -210,6 +210,10 @@ export interface HookResult {
   modified?: unknown;
   /** Additional context to inject */
   context?: string[];
+  /** Context to prepend to message */
+  prependContext?: string;
+  /** Message to append to response */
+  appendMessage?: string;
   /** Whether to skip the original action */
   skipAction?: boolean;
   /** Error if hook failed */

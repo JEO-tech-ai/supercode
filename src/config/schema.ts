@@ -39,6 +39,12 @@ export const SuperCodeConfigSchema = z.object({
       baseUrl: z.string().default("http://localhost:8080/v1"),
       defaultModel: z.string().default("local-model"),
     }).optional(),
+    local: LocalhostProviderSchema.extend({
+      baseUrl: z.string().default("http://localhost:11434/v1"),
+      defaultModel: z.string().default("llama3.3:latest"),
+      apiType: z.enum(["ollama", "openai-compatible"]).default("ollama"),
+      skipAuth: z.boolean().default(true),
+    }).optional(),
   }).optional(),
   agents: z.record(z.object({
     model: z.string().optional(),
@@ -46,7 +52,7 @@ export const SuperCodeConfigSchema = z.object({
   })).optional(),
   orchestrator: z.object({
     enabled: z.boolean().default(true),
-    defaultOrchestrator: z.enum(["sisyphus"]).default("sisyphus"),
+    defaultOrchestrator: z.enum(["sisyphus", "cent"]).default("cent"),
     costAwareness: z.boolean().default(true),
     specialists: z.object({
       explore: z.boolean().default(true),

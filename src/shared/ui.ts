@@ -93,7 +93,7 @@ export function info(message: string): void {
 }
 
 export function success(message: string): void {
-  println(Style.TEXT_SUCCESS_BOLD + "✓ " + Style.TEXT_NORMAL + message);
+  println(Style.TEXT_SUCCESS_BOLD + "[+] " + Style.TEXT_NORMAL + message);
 }
 
 export function warning(message: string): void {
@@ -113,7 +113,7 @@ export function color(text: string, colorCode: string): string {
 }
 
 export function formatProviderStatus(name: string, authenticated: boolean): string {
-  const icon = authenticated ? "✓" : "○";
+  const icon = authenticated ? "[+]" : "[ ]";
   const iconColor = authenticated ? Style.GREEN : Style.TEXT_DIM;
   return `${iconColor}${icon}${Style.RESET} ${name}`;
 }

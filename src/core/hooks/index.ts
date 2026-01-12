@@ -246,8 +246,19 @@ export {
   getLoopState,
   stopLoop,
   clearLoopState,
+  startLoop,
+  cancelLoop,
+  isLoopActive,
+  readState as readLoopState,
+  writeState as writeLoopState,
+  incrementIteration as incrementLoopIteration,
 } from "./ralph-loop";
-export type { RalphLoopOptions } from "./ralph-loop";
+export type {
+  RalphLoopOptions,
+  RalphLoopState,
+  RalphLoopHook,
+  StartLoopOptions,
+} from "./ralph-loop";
 
 // ============================================================================
 // Interactive Bash Session Hooks

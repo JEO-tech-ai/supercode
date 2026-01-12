@@ -4,6 +4,7 @@ import { useTheme } from "../../context/theme";
 import { useRoute } from "../../context/route";
 import { useToast } from "../../context/toast";
 import { useCommand } from "../../context/command";
+import { COMMAND_ICONS, getCommandIcon } from "../../../shared/icons";
 
 export interface SlashCommand {
   name: string;
@@ -40,7 +41,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["clear", "reset"],
         description: "Create a new session",
         category: "session",
-        icon: "✨",
+        icon: "[+]",
         onSelect: () => navigate({ type: "home" }),
       },
       {
@@ -48,7 +49,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["resume", "continue", "list"],
         description: "List and switch sessions",
         category: "session",
-        icon: "📋",
+        icon: "[S]",
         onSelect: () => trigger("session.list"),
       },
       
@@ -60,7 +61,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["model", "m"],
         description: "Switch AI model",
         category: "navigation",
-        icon: "🤖",
+        icon: "[M]",
         onSelect: () => trigger("model.list"),
       },
       {
@@ -68,7 +69,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["agent", "a"],
         description: "Switch or spawn agent",
         category: "navigation",
-        icon: "🕵️",
+        icon: "[A]",
         onSelect: () => trigger("agent.list"),
       },
       {
@@ -76,7 +77,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["themes", "t"],
         description: "Switch theme (catppuccin, dracula, nord, tokyo, monokai)",
         category: "navigation",
-        icon: "🎨",
+        icon: "[#]",
         onSelect: () => trigger("theme.list"),
       },
       {
@@ -84,7 +85,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["providers", "p"],
         description: "Switch AI provider",
         category: "navigation",
-        icon: "☁️",
+        icon: "[P]",
         onSelect: () => trigger("provider.list"),
       },
 
@@ -96,7 +97,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["servers"],
         description: "Show MCP servers status",
         category: "mcp",
-        icon: "🔌",
+        icon: "[:]",
         onSelect: () => trigger("mcp.status"),
       },
       {
@@ -104,7 +105,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["connect"],
         description: "Connect to MCP server",
         category: "mcp",
-        icon: "🔗",
+        icon: "[+]",
         onSelect: () => trigger("mcp.connect"),
       },
       {
@@ -112,7 +113,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["disconnect"],
         description: "Disconnect MCP server",
         category: "mcp",
-        icon: "🔓",
+        icon: "[-]",
         onSelect: () => trigger("mcp.disconnect"),
       },
       {
@@ -120,7 +121,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["tools"],
         description: "List available MCP tools",
         category: "mcp",
-        icon: "🛠️",
+        icon: "[T]",
         onSelect: () => trigger("mcp.tools"),
       },
       {
@@ -128,7 +129,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["resources"],
         description: "List MCP resources",
         category: "mcp",
-        icon: "📦",
+        icon: "[R]",
         onSelect: () => trigger("mcp.resources"),
       },
 
@@ -140,7 +141,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["changes", "d"],
         description: "Show git diff of changes",
         category: "git",
-        icon: "📝",
+        icon: "[D]",
         onSelect: () => trigger("git.diff"),
       },
       {
@@ -148,7 +149,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["ci"],
         description: "Commit staged changes",
         category: "git",
-        icon: "💾",
+        icon: "[C]",
         onSelect: () => trigger("git.commit"),
       },
       {
@@ -156,14 +157,14 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["st"],
         description: "Show git status",
         category: "git",
-        icon: "📊",
+        icon: "[S]",
         onSelect: () => trigger("git.status"),
       },
       {
         name: "log",
         description: "Show git log",
         category: "git",
-        icon: "📜",
+        icon: "[L]",
         onSelect: () => trigger("git.log"),
       },
       {
@@ -171,7 +172,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["br"],
         description: "Switch or create branch",
         category: "git",
-        icon: "🌿",
+        icon: "[B]",
         onSelect: () => trigger("git.branch"),
       },
       {
@@ -179,7 +180,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["pull-request"],
         description: "Create pull request",
         category: "git",
-        icon: "🔀",
+        icon: "[P]",
         onSelect: () => trigger("git.pr"),
       },
 
@@ -191,7 +192,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["compress", "summarize"],
         description: "Compact/compress context window",
         category: "context",
-        icon: "📦",
+        icon: "[Z]",
         onSelect: () => trigger("context.compact"),
       },
       {
@@ -199,7 +200,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["ctx"],
         description: "View context usage and history",
         category: "context",
-        icon: "📊",
+        icon: "[X]",
         onSelect: () => trigger("context.view"),
       },
       {
@@ -207,7 +208,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["usage", "tokens"],
         description: "Show token usage and cost",
         category: "context",
-        icon: "💰",
+        icon: "[$]",
         onSelect: () => trigger("context.cost"),
       },
       {
@@ -215,7 +216,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["todo", "tasks"],
         description: "View/edit task plan",
         category: "context",
-        icon: "📋",
+        icon: "[P]",
         onSelect: () => trigger("context.plan"),
       },
       {
@@ -223,7 +224,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["modified", "changed"],
         description: "Show modified files",
         category: "context",
-        icon: "📁",
+        icon: "[F]",
         onSelect: () => trigger("context.files"),
       },
 
@@ -235,7 +236,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["run"],
         description: "Spawn a sub-agent",
         category: "agent",
-        icon: "🚀",
+        icon: "[>>]",
         onSelect: () => trigger("agent.spawn"),
       },
       {
@@ -243,7 +244,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["watch"],
         description: "Monitor running agents",
         category: "agent",
-        icon: "👁️",
+        icon: "[*]",
         onSelect: () => trigger("agent.monitor"),
       },
       {
@@ -251,7 +252,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["kill", "abort"],
         description: "Stop running agent",
         category: "agent",
-        icon: "🛑",
+        icon: "[X]",
         onSelect: () => trigger("agent.stop"),
       },
 
@@ -263,7 +264,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["report", "issue"],
         description: "Report a bug",
         category: "debug",
-        icon: "🐛",
+        icon: "[!]",
         onSelect: () => trigger("debug.bug"),
       },
       {
@@ -271,7 +272,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["health", "check"],
         description: "Run diagnostics",
         category: "debug",
-        icon: "🏥",
+        icon: "[+]",
         onSelect: () => trigger("debug.doctor"),
       },
       {
@@ -279,7 +280,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["log"],
         description: "View logs",
         category: "debug",
-        icon: "📜",
+        icon: "[L]",
         onSelect: () => trigger("debug.logs"),
       },
       {
@@ -287,7 +288,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["v"],
         description: "Show version info",
         category: "debug",
-        icon: "ℹ️",
+        icon: "[V]",
         onSelect: () => trigger("debug.version"),
       },
 
@@ -299,7 +300,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["h", "?"],
         description: "Show help",
         category: "system",
-        icon: "❓",
+        icon: "[?]",
         keybind: "ctrl+h",
         onSelect: () => trigger("help.show"),
       },
@@ -308,7 +309,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["cmd", "palette"],
         description: "Show all commands",
         category: "system",
-        icon: "⌨️",
+        icon: "[:]",
         keybind: "ctrl+x",
         onSelect: () => openPalette(),
       },
@@ -317,14 +318,14 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["settings", "prefs"],
         description: "Edit configuration",
         category: "system",
-        icon: "⚙️",
+        icon: "[=]",
         onSelect: () => trigger("config.edit"),
       },
       {
         name: "lsp",
         description: "Show LSP servers status",
         category: "system",
-        icon: "🔧",
+        icon: "[L]",
         onSelect: () => trigger("lsp.status"),
       },
       {
@@ -332,7 +333,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["panel"],
         description: "Toggle sidebar",
         category: "system",
-        icon: "📐",
+        icon: "[|]",
         keybind: "ctrl+b",
         onSelect: () => trigger("sidebar.toggle"),
       },
@@ -341,7 +342,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["maximize", "fs"],
         description: "Toggle fullscreen mode",
         category: "system",
-        icon: "🖥️",
+        icon: "[ ]",
         keybind: "ctrl+f",
         onSelect: () => trigger("view.fullscreen"),
       },
@@ -350,7 +351,7 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["quit", "q"],
         description: "Exit the app",
         category: "system",
-        icon: "🚪",
+        icon: "[Q]",
         keybind: "ctrl+c",
         onSelect: () => process.exit(0),
       },
@@ -366,7 +367,7 @@ export function useSlashCommands(sessionId?: string) {
           aliases: ["u", "back"],
           description: "Undo the last message",
           category: "session",
-          icon: "↩️",
+          icon: "[<]",
           keybind: "ctrl+z",
           onSelect: () => trigger("session.undo"),
         },
@@ -375,7 +376,7 @@ export function useSlashCommands(sessionId?: string) {
           aliases: ["r", "forward"],
           description: "Redo the last message",
           category: "session",
-          icon: "↪️",
+          icon: "[>]",
           keybind: "ctrl+y",
           onSelect: () => trigger("session.redo"),
         },
@@ -383,7 +384,7 @@ export function useSlashCommands(sessionId?: string) {
           name: "rename",
           description: "Rename this session",
           category: "session",
-          icon: "✏️",
+          icon: "[~]",
           onSelect: () => trigger("session.rename"),
         },
         {
@@ -391,7 +392,7 @@ export function useSlashCommands(sessionId?: string) {
           aliases: ["cp"],
           description: "Copy session transcript",
           category: "session",
-          icon: "📋",
+          icon: "[C]",
           keybind: "ctrl+shift+c",
           onSelect: () => trigger("session.copy"),
         },
@@ -400,7 +401,7 @@ export function useSlashCommands(sessionId?: string) {
           aliases: ["save"],
           description: "Export session to file",
           category: "session",
-          icon: "💾",
+          icon: "[E]",
           onSelect: () => trigger("session.export"),
         },
         {
@@ -408,7 +409,7 @@ export function useSlashCommands(sessionId?: string) {
           aliases: ["history", "jump"],
           description: "Jump to message in timeline",
           category: "session",
-          icon: "⏱️",
+          icon: "[T]",
           onSelect: () => trigger("session.timeline"),
         },
         {
@@ -416,14 +417,14 @@ export function useSlashCommands(sessionId?: string) {
           aliases: ["branch", "clone"],
           description: "Fork from current message",
           category: "session",
-          icon: "🔱",
+          icon: "[F]",
           onSelect: () => trigger("session.fork"),
         },
         {
           name: "share",
           description: "Share session link",
           category: "session",
-          icon: "🔗",
+          icon: "[^]",
           onSelect: () => trigger("session.share"),
         },
       );

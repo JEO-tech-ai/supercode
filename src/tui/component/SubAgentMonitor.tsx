@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
 import { useTheme } from "../context/theme";
+import { AGENT_ICONS, STATUS_ICONS, getAgentIcon, getStatusIcon } from "../../shared/icons";
 
 export interface SubAgent {
   id: string;
@@ -24,30 +25,17 @@ interface SubAgentMonitorProps {
   onStopAgent?: (agentId: string) => void;
 }
 
-// Agent type icons
-const AGENT_ICONS: Record<string, string> = {
-  explorer: "🔍",
-  analyst: "📊",
-  frontend: "🎨",
-  docwriter: "📝",
-  executor: "⚡",
-  reviewer: "👀",
-  librarian: "📚",
-  multimodal: "🖼️",
-  custom: "🔧",
-};
-
-// Status indicators
+// Status indicators with colors
 const STATUS_CONFIG: Record<string, { icon: string; color: string; animation?: string }> = {
-  idle: { icon: "○", color: "#6272a4" },
-  queued: { icon: "◷", color: "#f1fa8c" },
-  running: { icon: "●", color: "#50fa7b", animation: "pulse" },
-  thinking: { icon: "◐", color: "#bd93f9", animation: "spin" },
-  tool_calling: { icon: "⚡", color: "#ffb86c", animation: "pulse" },
-  streaming: { icon: "▶", color: "#8be9fd", animation: "stream" },
-  completed: { icon: "✓", color: "#50fa7b" },
-  error: { icon: "✗", color: "#ff5555" },
-  cancelled: { icon: "⊘", color: "#6272a4" },
+  idle: { icon: "[ ]", color: "#6272a4" },
+  queued: { icon: "[Q]", color: "#f1fa8c" },
+  running: { icon: "[*]", color: "#50fa7b", animation: "pulse" },
+  thinking: { icon: "[~]", color: "#bd93f9", animation: "spin" },
+  tool_calling: { icon: "[T]", color: "#ffb86c", animation: "pulse" },
+  streaming: { icon: "[>]", color: "#8be9fd", animation: "stream" },
+  completed: { icon: "[+]", color: "#50fa7b" },
+  error: { icon: "[-]", color: "#ff5555" },
+  cancelled: { icon: "[x]", color: "#6272a4" },
 };
 
 function formatDuration(startTime?: number, endTime?: number): string {
@@ -92,7 +80,7 @@ function AgentRow({
 }) {
   const { theme } = useTheme();
   const statusConfig = STATUS_CONFIG[agent.status] || STATUS_CONFIG.idle;
-  const icon = AGENT_ICONS[agent.type] || "🤖";
+  const icon = getAgentIcon(agent.type);
 
   // Animation effect for running agents
   const [animFrame, setAnimFrame] = useState(0);
@@ -104,9 +92,9 @@ function AgentRow({
     return () => clearInterval(interval);
   }, [statusConfig.animation]);
 
-  const spinChars = ["◐", "◓", "◑", "◒"];
-  const statusIcon = statusConfig.animation === "spin" 
-    ? spinChars[animFrame] 
+  const spinChars = ["[\\]", "[|]", "[/]", "[-]"];
+  const statusIcon = statusConfig.animation === "spin"
+    ? spinChars[animFrame]
     : statusConfig.icon;
 
   if (compact) {
@@ -234,12 +222,12 @@ export function SubAgentMonitor({
       {!compact && (
         <Box flexDirection="row" justifyContent="space-between" paddingX={1} marginBottom={1}>
           <Text color={theme.text} bold>
-            🕵️ Agent Monitor
+            [MON] Agent Monitor
           </Text>
           <Box flexDirection="row" gap={2}>
-            <Text color={theme.success}>✓ {stats.completed}</Text>
-            <Text color={theme.warning}>● {stats.running}</Text>
-            {stats.errors > 0 && <Text color={theme.error}>✗ {stats.errors}</Text>}
+            <Text color={theme.success}>[+] {stats.completed}</Text>
+            <Text color={theme.warning}>[*] {stats.running}</Text>
+            {stats.errors > 0 && <Text color={theme.error}>[-] {stats.errors}</Text>}
             <Text color={theme.textMuted}>Σ {(stats.totalTokens / 1000).toFixed(1)}k</Text>
           </Box>
         </Box>

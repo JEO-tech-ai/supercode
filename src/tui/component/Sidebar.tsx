@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { Box, Text, useInput } from "ink";
 import { useTheme } from "../context/theme";
+import { STATUS_ICONS, getStatusIcon, SECTION, STATUS, FILE_STATUS } from "../../shared/icons";
 
 interface SidebarSection {
   id: string;
@@ -99,7 +100,7 @@ function StatusDot({ status }: { status: string }) {
     }
   }, [status, theme]);
 
-  return <Text color={color}>●</Text>;
+  return <Text color={color}>*</Text>;
 }
 
 function ProgressBar({ 
@@ -135,13 +136,13 @@ function TodoItemDisplay({ todo, compact = false }: { todo: TodoItem; compact?: 
   const icon = useMemo(() => {
     switch (todo.status) {
       case "completed":
-        return "✓";
+        return "[+]";
       case "in_progress":
-        return "◐";
+        return "[*]";
       case "cancelled":
-        return "⊘";
+        return "[x]";
       default:
-        return "○";
+        return "[ ]";
     }
   }, [todo.status]);
 
@@ -181,17 +182,17 @@ function AgentItemDisplay({ agent }: { agent: SubAgentInfo }) {
   const statusConfig = useMemo(() => {
     switch (agent.status) {
       case "running":
-        return { icon: "●", color: theme.success };
+        return { icon: "[*]", color: theme.success };
       case "thinking":
-        return { icon: "◐", color: theme.accent };
+        return { icon: "[~]", color: theme.accent };
       case "tool_calling":
-        return { icon: "⚡", color: theme.warning };
+        return { icon: "[T]", color: theme.warning };
       case "completed":
-        return { icon: "✓", color: theme.success };
+        return { icon: "[+]", color: theme.success };
       case "error":
-        return { icon: "✗", color: theme.error };
+        return { icon: "[-]", color: theme.error };
       default:
-        return { icon: "○", color: theme.textMuted };
+        return { icon: "[ ]", color: theme.textMuted };
     }
   }, [agent.status, theme]);
 
@@ -368,7 +369,7 @@ export function Sidebar({
       {/* ═══════════════════════════════════════════════════════════ */}
       <Box marginBottom={1} flexDirection="column">
         <Text color={theme.text} bold>
-          📌 {sessionTitle.slice(0, width - 5)}
+          [S] {sessionTitle.slice(0, width - 5)}
         </Text>
         {sessionId && (
           <Text color={theme.textMuted} dimColor>
@@ -383,7 +384,7 @@ export function Sidebar({
       <Box flexDirection="column" marginBottom={1}>
         <SectionHeader
           title="Context"
-          icon="📊"
+          icon="[X]"
           expanded={expanded.context}
           status={contextPercentage > 90 ? "error" : contextPercentage > 70 ? "warning" : "ok"}
           onToggle={() => toggleSection("context")}
@@ -400,7 +401,7 @@ export function Sidebar({
               <Text color={theme.secondary}>↓ {outputTokens.toLocaleString()}</Text>
             </Box>
             <Box>
-              <Text color={theme.warning}>💰 {cost}</Text>
+              <Text color={theme.warning}>[$] {cost}</Text>
             </Box>
           </Box>
         )}
@@ -413,7 +414,7 @@ export function Sidebar({
         <Box flexDirection="column" marginBottom={1}>
           <SectionHeader
             title="Agents"
-            icon="🕵️"
+            icon="[A]"
             expanded={expanded.agents}
             count={stats.agentsRunning > 0 ? stats.agentsRunning : agents.length}
             status={stats.agentsRunning > 0 ? "warning" : "ok"}
@@ -444,7 +445,7 @@ export function Sidebar({
         <Box flexDirection="column" marginBottom={1}>
           <SectionHeader
             title="MCP"
-            icon="🔌"
+            icon="[M]"
             expanded={expanded.mcp}
             count={stats.mcpConnected}
             status={stats.mcpError ? "error" : stats.mcpConnected === mcpServers.length ? "ok" : "warning"}
@@ -459,7 +460,7 @@ export function Sidebar({
                     <Text color={theme.text}>{server.name}</Text>
                   </Box>
                   {server.toolCount !== undefined && (
-                    <Text color={theme.textMuted}>🛠️ {server.toolCount}</Text>
+                    <Text color={theme.textMuted}>[T] {server.toolCount}</Text>
                   )}
                 </Box>
               ))}
@@ -481,7 +482,7 @@ export function Sidebar({
         <Box flexDirection="column" marginBottom={1}>
           <SectionHeader
             title="LSP"
-            icon="🔧"
+            icon="[L]"
             expanded={expanded.lsp}
             count={stats.lspRunning}
             status={stats.lspErrors > 0 ? "error" : stats.lspWarnings > 0 ? "warning" : "ok"}
@@ -497,10 +498,10 @@ export function Sidebar({
                   </Box>
                   <Box gap={1}>
                     {server.errors !== undefined && server.errors > 0 && (
-                      <Text color={theme.error}>✗{server.errors}</Text>
+                      <Text color={theme.error}>[-]{server.errors}</Text>
                     )}
                     {server.warnings !== undefined && server.warnings > 0 && (
-                      <Text color={theme.warning}>⚠{server.warnings}</Text>
+                      <Text color={theme.warning}>[!]{server.warnings}</Text>
                     )}
                   </Box>
                 </Box>
@@ -520,7 +521,7 @@ export function Sidebar({
         <Box flexDirection="column" marginBottom={1}>
           <SectionHeader
             title="Todo"
-            icon="📋"
+            icon="[T]"
             expanded={expanded.todo}
             count={todos.length}
             status={stats.todosInProgress > 0 ? "warning" : "ok"}
@@ -556,7 +557,7 @@ export function Sidebar({
         <Box flexDirection="column" marginBottom={1}>
           <SectionHeader
             title="Files"
-            icon="📁"
+            icon="[F]"
             expanded={expanded.files}
             count={modifiedFiles.length}
             onToggle={() => toggleSection("files")}
@@ -585,7 +586,7 @@ export function Sidebar({
         <Box flexDirection="column" marginBottom={1}>
           <SectionHeader
             title="Git"
-            icon="🌿"
+            icon="[G]"
             expanded={expanded.git}
             count={stats.gitChanges}
             status={stats.gitChanges > 0 ? "warning" : "ok"}
@@ -594,7 +595,7 @@ export function Sidebar({
           {expanded.git && (
             <Box flexDirection="column" paddingLeft={2}>
               <Box gap={1}>
-                <Text color={theme.accent}>⎇</Text>
+                <Text color={theme.accent}>[B]</Text>
                 <Text color={theme.text}>{gitBranch}</Text>
               </Box>
               {gitStatus && (
@@ -621,11 +622,11 @@ export function Sidebar({
       <Box flexGrow={1} />
       <Box flexDirection="column" borderStyle="single" borderTop borderColor={theme.border} paddingTop={1}>
         <Box gap={1}>
-          <Text color={theme.textMuted}>📂</Text>
+          <Text color={theme.textMuted}>[D]</Text>
           <Text color={theme.text}>{process.cwd().split("/").pop()}</Text>
         </Box>
         <Box gap={1}>
-          <Text color={theme.success}>●</Text>
+          <Text color={theme.success}>*</Text>
           <Text color={theme.text} bold>Super</Text>
           <Text color={theme.primary} bold>Code</Text>
           <Text color={theme.textMuted}>v0.3.0</Text>

@@ -73,6 +73,36 @@ export {
   MULTIMODAL_LOOKER_METADATA,
 } from "./multimodal-looker";
 
+// Cent Agent exports (Sisyphus Evolution)
+export {
+  createCentAgent,
+  centAgent,
+  getCentWithBuiltinAgents,
+  CENT_METADATA,
+  buildCentPrompt,
+  getPhaseInfo,
+  getAllPhases,
+  getNextPhase,
+  getPreviousPhase,
+  AGENT_NAME as CENT_AGENT_NAME,
+  CENT_PHASES,
+  CENT_TOOL_SELECTION,
+  DEFAULT_MULTI_AGENT_CONFIG,
+} from "./cent";
+export type {
+  CentPhase,
+  CentPhaseState,
+  CentWorkflowState,
+  CentAgentOptions,
+  CentPhaseDefinition,
+  CentPromptBuilderOptions,
+  MultiAgentConfig,
+  DelegatedTask,
+  ExecutionResult,
+  AgentSelectionCriteria,
+  AgentSelectionResult,
+} from "./cent";
+
 // Import for builtin agents factory
 import type {
   AgentDefinition,
@@ -92,6 +122,7 @@ import { createLibrarianAgent } from "./librarian";
 import { createFrontendEngineerAgent } from "./frontend-engineer";
 import { createDocumentWriterAgent } from "./document-writer";
 import { createMultimodalLookerAgent } from "./multimodal-looker";
+import { createCentAgent } from "./cent";
 
 /**
  * Create all builtin agents with optional configuration
@@ -126,8 +157,15 @@ export function createBuiltinAgents(
     availableAgents,
   });
 
-  // Register Sisyphus
+  // Create Cent with available agents
+  const cent = createCentAgent({
+    ...options,
+    availableAgents,
+  });
+
+  // Register orchestrators
   registerAgent(registry, sisyphus);
+  registerAgent(registry, cent);
 
   return registry;
 }
