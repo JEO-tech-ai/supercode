@@ -27,7 +27,7 @@ export {
   createSessionRecoveryHook,
   detectErrorType,
   isRecoverableError,
-  clearRecoveryState,
+  resetRecoveryState as clearRecoveryState,
 } from "./session-recovery";
 export type {
   SessionRecoveryOptions,
@@ -53,8 +53,9 @@ export type {
 // ============================================================================
 export {
   createContextWindowMonitorHook,
-  getContextWindowState,
-  resetContextWindowState,
+  getUsageStatus as getContextWindowState,
+  resetUsageStatus as resetContextWindowState,
+  clearAllUsageStatus,
 } from "./context-window-monitor";
 export type { ContextWindowMonitorOptions } from "./context-window-monitor";
 

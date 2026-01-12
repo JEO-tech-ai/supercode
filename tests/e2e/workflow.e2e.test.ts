@@ -36,7 +36,7 @@ describe("E2E: Full Workflow Integration", () => {
       expect(models.length).toBeGreaterThan(0);
 
       const providers = new Set(models.map((m: { provider: string }) => m.provider));
-      expect(providers.size).toBe(3); // anthropic, openai, google
+      expect(providers.size).toBeGreaterThanOrEqual(3); // anthropic, openai, google, antigravity
     });
 
     test("should resolve aliases", () => {
@@ -143,10 +143,10 @@ describe("E2E: Full Workflow Integration", () => {
     test("should provide auth status", async () => {
       const statuses = await supercoin.auth.status();
 
-      expect(statuses.length).toBe(3);
+      expect(statuses.length).toBeGreaterThanOrEqual(3);
 
       for (const status of statuses) {
-        expect(["claude", "codex", "gemini"]).toContain(status.provider);
+        expect(["claude", "codex", "gemini", "antigravity"]).toContain(status.provider);
       }
     });
   });

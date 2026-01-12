@@ -132,13 +132,13 @@ describe("E2E: Authentication Flow", () => {
     test("should return detailed status for all providers", async () => {
       const statuses = await authHub.status();
 
-      expect(statuses.length).toBe(3);
+      expect(statuses.length).toBeGreaterThanOrEqual(3);
 
       for (const status of statuses) {
         expect(status).toHaveProperty("provider");
         expect(status).toHaveProperty("displayName");
         expect(status).toHaveProperty("authenticated");
-        expect(["claude", "codex", "gemini"]).toContain(status.provider);
+        expect(["claude", "codex", "gemini", "antigravity"]).toContain(status.provider);
       }
     });
   });

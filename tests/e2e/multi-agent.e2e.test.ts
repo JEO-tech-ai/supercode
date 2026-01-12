@@ -89,7 +89,7 @@ describe("E2E: Multi-Agent Workflow", () => {
     test("should have all 3 auth providers configured", async () => {
       const statuses = await supercoin.auth.status();
 
-      expect(statuses.length).toBe(3);
+      expect(statuses.length).toBeGreaterThanOrEqual(3);
 
       const providerMap = new Map(statuses.map(s => [s.provider, s]));
 
