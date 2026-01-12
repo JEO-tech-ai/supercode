@@ -1,5 +1,6 @@
 import { Hono } from "hono";
-import { fetchGitHubUser, exchangeCodeForToken } from "../github";
+import { fetchGitHubUser, exchangeCodeForToken } from "../providers/github";
+import { exchangeGoogleCode, fetchGoogleUser } from "../providers/google";
 import { SessionManager } from "../session";
 import { getLocalDb, users, eq } from "@supercoin/database";
 import type { AuthVariables } from "../middleware";
@@ -26,22 +27,20 @@ export function createCallbackRoute() {
     const sessionManager = new SessionManager(config);
     const code = c.req.query("code");
     const state = c.req.query("state");
+    const provider = c.req.query("provider") || "github"; // Default to github
     const error = c.req.query("error");
     const errorDescription = c.req.query("error_description");
 
-    // Handle OAuth errors from provider
     if (error) {
       const errorMsg = errorDescription || error;
       console.error("OAuth error from provider:", errorMsg);
       return c.redirect(`/?error=${encodeURIComponent(errorMsg)}`);
     }
 
-    // Validate required parameters
     if (!code || !state) {
       return c.redirect("/?error=missing_params");
     }
 
-    // Extract PKCE verifier from cookie
     const cookieHeader = c.req.header("Cookie");
     const storedVerifier = extractCookie(cookieHeader, "pkce_verifier");
 
@@ -50,7 +49,6 @@ export function createCallbackRoute() {
       return c.redirect("/?error=missing_verifier");
     }
 
-    // Validate state with PKCE protection
     const validation = validateOAuthCallback(state, storedVerifier);
 
     if (!validation.valid) {
@@ -59,60 +57,92 @@ export function createCallbackRoute() {
     }
 
     try {
-      // Exchange code for access token
-      const accessToken = await exchangeCodeForToken(
-        code,
-        config.githubClientId,
-        config.githubClientSecret
-      );
+      let email: string;
+      let name: string;
+      let avatarUrl: string | undefined;
+      let providerId: string;
 
-      // Fetch GitHub user info
-      const githubUser = await fetchGitHubUser(accessToken);
+      if (provider === "google" || provider === "antigravity") {
+          // Google Flow
+          const origin = config.baseUrl ?? new URL(c.req.url).origin;
+          const redirectUri = `${origin}/auth/callback?provider=${provider}`;
+          
+          const tokens = await exchangeGoogleCode(
+              code,
+              config.googleClientId,
+              config.googleClientSecret,
+              redirectUri,
+              storedVerifier
+          );
+          
+          const userProfile = await fetchGoogleUser(tokens.access_token);
+          email = userProfile.email;
+          name = userProfile.name;
+          avatarUrl = userProfile.picture;
+          providerId = userProfile.id;
+          
+          // TODO: Store tokens.refresh_token if present for Antigravity logic
+      } else {
+          // GitHub Flow
+          const accessToken = await exchangeCodeForToken(
+            code,
+            config.githubClientId,
+            config.githubClientSecret
+          );
 
-      // Upsert user in database
+          const githubUser = await fetchGitHubUser(accessToken);
+          email = githubUser.email;
+          name = githubUser.name || githubUser.login;
+          avatarUrl = githubUser.avatar_url;
+          providerId = String(githubUser.id);
+      }
+
       const db = getLocalDb();
-      const existingUser = await db.query.users.findFirst({
-        where: eq(users.githubId, String(githubUser.id)),
+      
+      let existingUser = await db.query.users.findFirst({
+        where: eq(users.email, email),
       });
+
+      // Legacy fallback for GitHub
+      if (!existingUser && provider === "github") {
+          existingUser = await db.query.users.findFirst({
+              where: eq(users.githubId, providerId),
+          });
+      }
 
       let userId: string;
 
       if (existingUser) {
-        // Update existing user
         await db
           .update(users)
           .set({
-            name: githubUser.name || githubUser.login,
-            avatarUrl: githubUser.avatar_url,
+            name: name,
+            avatarUrl: avatarUrl,
             updatedAt: new Date(),
           })
           .where(eq(users.id, existingUser.id));
         userId = existingUser.id;
       } else {
-        // Create new user
         const [newUser] = await db
           .insert(users)
           .values({
-            email: githubUser.email,
-            name: githubUser.name || githubUser.login,
-            avatarUrl: githubUser.avatar_url,
-            githubId: String(githubUser.id),
+            email: email,
+            name: name,
+            avatarUrl: avatarUrl,
+            githubId: provider === 'github' ? providerId : null,
           })
           .returning();
         userId = newUser.id;
       }
 
-      // Create session
       const sessionToken = await sessionManager.createSession({
         id: crypto.randomUUID(),
         userId,
-        email: githubUser.email,
+        email: email,
       });
 
-      // Set session cookie and clear PKCE verifier cookie
       c.header("Set-Cookie", sessionManager.createCookieHeader(sessionToken));
 
-      // Clear the PKCE verifier cookie
       c.header(
         "Set-Cookie",
         `pkce_verifier=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`,

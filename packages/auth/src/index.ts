@@ -10,6 +10,10 @@ import type { AuthVariables } from "./middleware";
 type AuthBindings = {
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  CLAUDE_CLIENT_ID?: string;
+  CLAUDE_CLIENT_SECRET?: string;
   JWT_SECRET?: string;
   AUTH_BASE_URL?: string;
   AUTH_COOKIE_NAME?: string;
@@ -20,8 +24,12 @@ type AuthBindings = {
 
 function resolveConfigFromEnv(env: AuthBindings): AuthConfig {
   return {
-    githubClientId: env.GITHUB_CLIENT_ID ?? "",
-    githubClientSecret: env.GITHUB_CLIENT_SECRET ?? "",
+    githubClientId: env.GITHUB_CLIENT_ID,
+    githubClientSecret: env.GITHUB_CLIENT_SECRET,
+    googleClientId: env.GOOGLE_CLIENT_ID,
+    googleClientSecret: env.GOOGLE_CLIENT_SECRET,
+    claudeClientId: env.CLAUDE_CLIENT_ID,
+    claudeClientSecret: env.CLAUDE_CLIENT_SECRET,
     jwtSecret: env.JWT_SECRET ?? "",
     baseUrl: env.AUTH_BASE_URL,
     cookieName: env.AUTH_COOKIE_NAME,
