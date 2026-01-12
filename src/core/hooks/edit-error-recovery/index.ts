@@ -7,6 +7,37 @@ import type { Hook, HookContext, HookResult } from "../types";
 import logger from "../../../shared/logger";
 
 /**
+ * Known Edit tool error patterns that indicate the AI made a mistake
+ */
+export const EDIT_ERROR_PATTERNS = [
+  "oldString and newString must be different",
+  "oldString not found",
+  "oldString found multiple times",
+  "old_string not found",
+  "old_string found multiple times",
+  "string not found in file",
+  "multiple matches found",
+  "ambiguous match",
+] as const;
+
+/**
+ * System reminder injected when Edit tool fails due to AI mistake
+ * Short, direct, and commanding - forces immediate corrective action
+ */
+export const EDIT_ERROR_REMINDER = `
+[EDIT ERROR - IMMEDIATE ACTION REQUIRED]
+
+You made an Edit mistake. STOP and do this NOW:
+
+1. READ the file immediately to see its ACTUAL current state
+2. VERIFY what the content really looks like (your assumption was wrong)
+3. APOLOGIZE briefly to the user for the error
+4. CONTINUE with corrected action based on the real file content
+
+DO NOT attempt another edit until you've read and verified the file state.
+`;
+
+/**
  * Edit error types
  */
 export type EditErrorType =
@@ -15,6 +46,8 @@ export type EditErrorType =
   | "content_mismatch"
   | "file_changed"
   | "merge_conflict"
+  | "old_string_mismatch"
+  | "ambiguous_match"
   | "unknown";
 
 /**
@@ -50,10 +83,38 @@ const DEFAULT_OPTIONS: EditErrorRecoveryOptions = {
 const retryState = new Map<string, Map<string, number>>();
 
 /**
+ * Check if error matches known AI mistake patterns
+ */
+export function isKnownEditErrorPattern(error: unknown): boolean {
+  const errorMessage = getErrorMessage(error).toLowerCase();
+  return EDIT_ERROR_PATTERNS.some((pattern) =>
+    errorMessage.includes(pattern.toLowerCase())
+  );
+}
+
+/**
  * Detect edit error type
  */
 export function detectEditErrorType(error: unknown): EditErrorType {
   const errorMessage = getErrorMessage(error).toLowerCase();
+
+  // Check for old_string specific errors (AI mistake patterns)
+  if (
+    errorMessage.includes("oldstring not found") ||
+    errorMessage.includes("old_string not found") ||
+    errorMessage.includes("string not found in file")
+  ) {
+    return "old_string_mismatch";
+  }
+
+  if (
+    errorMessage.includes("oldstring found multiple") ||
+    errorMessage.includes("old_string found multiple") ||
+    errorMessage.includes("multiple matches") ||
+    errorMessage.includes("ambiguous match")
+  ) {
+    return "ambiguous_match";
+  }
 
   if (errorMessage.includes("not found") || errorMessage.includes("no such file")) {
     return "file_not_found";
@@ -95,7 +156,19 @@ function getErrorMessage(error: unknown): string {
  * Check if error is recoverable
  */
 export function isRecoverableEditError(errorType: EditErrorType): boolean {
-  return errorType === "content_mismatch" || errorType === "file_changed";
+  return (
+    errorType === "content_mismatch" ||
+    errorType === "file_changed" ||
+    errorType === "old_string_mismatch" ||
+    errorType === "ambiguous_match"
+  );
+}
+
+/**
+ * Check if error is an AI mistake that needs the reminder
+ */
+export function isAIMistakeError(errorType: EditErrorType): boolean {
+  return errorType === "old_string_mismatch" || errorType === "ambiguous_match";
 }
 
 /**
@@ -215,7 +288,21 @@ export function createEditErrorRecoveryHook(
       // Increment retry count
       incrementRetryCount(sessionId, filePath);
 
-      // Return recovery suggestion
+      // Build recovery response based on error type
+      if (isAIMistakeError(errorType)) {
+        // AI made a mistake - inject the strong reminder
+        logger.info(
+          `[edit-error-recovery] AI mistake detected (${errorType}) for ${filePath}`
+        );
+
+        return {
+          continue: true,
+          prompt: EDIT_ERROR_REMINDER,
+          context: [EDIT_ERROR_REMINDER],
+        };
+      }
+
+      // Standard recovery suggestion for other errors
       const suggestion = errorType === "content_mismatch"
         ? `The file content has changed. Please re-read "${filePath}" and retry the edit.`
         : `The file was modified. Please re-read "${filePath}" and retry the edit.`;
