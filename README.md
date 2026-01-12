@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![SuperCode](https://img.shields.io/badge/SUPERCODE-v0.4.1-blueviolet?style=for-the-badge&logo=supervision&logoColor=white)
+![SuperCode](https://img.shields.io/badge/SUPERCODE-v0.5.0-blueviolet?style=for-the-badge&logo=supervision&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Bun](https://img.shields.io/badge/Bun-1.0+-black?style=for-the-badge&logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
@@ -107,6 +107,40 @@ SuperCode is a **standalone AI-powered coding assistant CLI** designed for devel
 - **Local-First**: Default to Ollama/local LLMs for privacy and cost-free development
 - **AI SDK Integration**: Universal provider abstraction powered by Vercel AI SDK
 - **Project Configuration**: Per-project settings via `supercode.json`
+- **API-based Provider Configuration**: Configure providers via HTTP API without authentication
+- **Mouse Support**: Terminal mouse click handling for enhanced TUI interaction
+- **Cursor Position Management**: Wide character and Korean text support for accurate cursor positioning
+
+### Provider Configuration API
+
+Configure AI providers without authentication via HTTP API:
+
+```bash
+# List all providers
+curl http://localhost:3000/provider
+
+# Configure a provider with API key
+curl -X POST http://localhost:3000/provider/anthropic \
+  -H "Content-Type: application/json" \
+  -d '{"apiKey": "sk-ant-..."}'
+
+# Set current model (no auth required for local models)
+curl -X POST http://localhost:3000/provider/model \
+  -H "Content-Type: application/json" \
+  -d '{"model": "local/llama3.3:latest"}'
+
+# List all available models
+curl http://localhost:3000/provider/models
+
+# Reset provider configuration
+curl -X DELETE http://localhost:3000/provider/anthropic
+```
+
+**Features:**
+- Runtime provider configuration without restarts
+- API key injection via environment variables
+- Model switching with automatic validation
+- Support for all providers (anthropic, openai, google, local)
 
 ### Local Provider
 
@@ -236,7 +270,7 @@ Hooks are the "superpowers" of SuperCode. They run in the background during ever
 | Hook | Description |
 |------|-------------|
 | `ralph-loop` | Autonomous development loop |
-| `todo-continuation` | Force completion of all TODO items |
+| `todo-continuation` | Force completion of all TODO items with countdown and abort detection |
 | `keyword-detector` | Detect magic words (ultrawork, search, analyze) |
 | `think-mode` | Auto-detect when extended thinking is needed |
 | `auto-slash-command` | Automatic slash command handling |
@@ -281,6 +315,14 @@ Hooks are the "superpowers" of SuperCode. They run in the background during ever
 ! git status
 ! docker ps
 ```
+
+### Mouse Support
+
+SuperCode now supports terminal mouse interactions:
+- **Click to focus**: Click on input areas to focus
+- **Click to position**: Click within text to move cursor
+- **Double-click**: Select words or trigger actions
+- **Drag support**: Select text ranges (when enabled)
 
 ### Real-time Monitoring Sidebar
 

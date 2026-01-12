@@ -236,8 +236,72 @@ export function useSlashCommands(sessionId?: string) {
         aliases: ["run"],
         description: "Spawn a sub-agent",
         category: "agent",
-        icon: "[>>]",
+        icon: "[\u003e\u003e]",
         onSelect: () => trigger("agent.spawn"),
+      },
+      {
+        name: "monitor",
+        aliases: ["watch"],
+        description: "Monitor running agents",
+        category: "agent",
+        icon: "[*]",
+        onSelect: () => trigger("agent.monitor"),
+      },
+      {
+        name: "stop",
+        aliases: ["kill", "abort"],
+        description: "Stop running agent",
+        category: "agent",
+        icon: "[X]",
+        onSelect: () => trigger("agent.stop"),
+      },
+      {
+        name: "ralph",
+        aliases: ["loop", "autonomous"],
+        description: "Start Ralph Loop - autonomous development mode",
+        category: "agent",
+        icon: "[R]",
+        onSelect: () => trigger("agent.ralph"),
+      },
+      {
+        name: "ultrawork",
+        aliases: ["ulw", "ultra"],
+        description: "UltraWork mode - full power multi-agent orchestration",
+        category: "agent",
+        icon: "[U]",
+        onSelect: () => trigger("agent.ultrawork"),
+      },
+      {
+        name: "cent",
+        aliases: ["orchestrator"],
+        description: "Cent Agent - 6-phase multi-agent orchestrator",
+        category: "agent",
+        icon: "[C]",
+        onSelect: () => trigger("agent.cent"),
+      },
+      {
+        name: "codex",
+        aliases: ["openai"],
+        description: "Switch to OpenAI Codex",
+        category: "agent",
+        icon: "[O]",
+        onSelect: () => trigger("agent.codex"),
+      },
+      {
+        name: "gemini",
+        aliases: ["google"],
+        description: "Switch to Google Gemini",
+        category: "agent",
+        icon: "[G]",
+        onSelect: () => trigger("agent.gemini"),
+      },
+      {
+        name: "skills",
+        aliases: ["skill"],
+        description: "List available skills",
+        category: "agent",
+        icon: "[S]",
+        onSelect: () => trigger("agent.skills"),
       },
       {
         name: "monitor",
@@ -538,7 +602,7 @@ export function SlashCommandsMenu({
       borderColor={theme.border}
       marginBottom={1}
       paddingX={1}
-      maxHeight={20}
+      height={20}
     >
       <Box marginBottom={1} justifyContent="space-between">
         <Text color={theme.text} bold>
