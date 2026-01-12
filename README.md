@@ -1,30 +1,104 @@
 # SuperCode
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Bun](https://img.shields.io/badge/Bun-1.0+-black?logo=bun)](https://bun.sh)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue?logo=typescript)](https://www.typescriptlang.org/)
+<div align="center">
 
-Modern AI-powered coding assistant with an **OpenCode-level** advanced Text User Interface.
+![SuperCode](https://img.shields.io/badge/SUPERCODE-v0.4.1-blueviolet?style=for-the-badge&logo=supervision&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Bun](https://img.shields.io/badge/Bun-1.0+-black?style=for-the-badge&logo=bun)](https://bun.sh)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![Agents](https://img.shields.io/badge/AGENTS-10+-orange?style=for-the-badge)](https://github.com/JEO-tech-ai/supercode)
+[![Hooks](https://img.shields.io/badge/HOOKS-25+-ff69b4?style=for-the-badge)](https://github.com/JEO-tech-ai/supercode)
 
-**Privacy-first | Multi-provider | Multi-agent | Open Source**
+**Modern AI-Powered Coding Assistant with OpenCode-Level TUI**
+
+*Privacy-first | Multi-provider | Multi-agent | Open Source*
+
+[Installation](#installation) • [Magic Words](#-the-magic-words) • [Agents](#multi-agent-system) • [Hooks](#-hook-system-25) • [Configuration](#configuration)
+
+</div>
+
+---
+
+## Reviews
+
+> "The Ralph Loop is terrifying. I walked away to get lunch, and when I came back, it had refactored the entire auth service, updated the tests, and was waiting for my approval."
+> — *Lead Developer*
+
+> "SuperCode's context-monitor saved me hours of manual context management. It's like having a senior dev who actually understands token limits."
+> — *Senior Architect*
+
+---
+
+## Just Skip Reading
+
+### It's the Age of Agents
+- **Just paste this repo into your Claude/ChatGPT and ask it to explain.**
+- Ask why it's good, what features make it different, and what actually gets better.
+
+### 🪄 The Magic Words
+
+**Don't want to read all this? Just include these keywords in your prompt:**
+
+| Magic Word | Effect |
+| :--- | :--- |
+| `ultrawork` / `ulw` | **Full Power Mode.** Activates all agents, parallel execution, deep exploration, and relentless execution until 100% completion. |
+| `search` / `find` | **Maximized Search.** Triggers Explorer and Librarian agents to crawl your entire codebase. |
+| `analyze` / `investigate` | **Deep Analysis.** Multi-phase expert consultation with AST-grep and LSP tools. |
+| `ralph mode` / `/ralph` | **Autonomous Loop.** Code → Test → Fail → Refactor → Repeat until Green. |
+
+That's it. The agent figures out the rest automatically.
+
+---
+
+## What is SuperCode?
+
+SuperCode is a **standalone AI-powered coding assistant CLI** designed for developers who demand more than chat capabilities. It is a full multi-agent system built on a React/Ink TUI, featuring a sophisticated hook system that monitors your context, enforces project rules, and automates the tedious parts of engineering.
 
 ```
-+-----------------------------------------------------------------------------+
-|  SuperCode v0.4.1                                                 claude-4  |
-+-----------------------------------------------------------------------------+
-|                                                                             |
-|  User: @explorer find all React components @src/                            |
-|                                                                             |
-|  [Explorer] Found 23 React components in src/components/                    |
-|     - Button.tsx (42 lines)                                                 |
-|     - Modal.tsx (128 lines)                                                 |
-|     - ...                                                                   |
-|                                                                             |
-+-----------------------------------------------------------------------------+
-|  > /help                                                                    |
-|    / commands  @ files/agents  ! shell  [up][down] history                  |
-+-----------------------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  SuperCode v0.4.1                                                 claude-4  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  User: @explorer find all React components @src/                            │
+│                                                                             │
+│  [Explorer] Found 23 React components in src/components/                    │
+│     - Button.tsx (42 lines)                                                 │
+│     - Modal.tsx (128 lines)                                                 │
+│     - ...                                                                   │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  > /help                                                                    │
+│    / commands  @ files/agents  ! shell  [up][down] history                  │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Architecture
+
+```
+                        ┌───────────────────────────┐
+                        │       USER INTERFACE      │
+                        │   (React/Ink TUI + CLI)   │
+                        └─────────────┬─────────────┘
+                                      │
+             ┌────────────────────────┴────────────────────────┐
+             │                 ORCHESTRATION LAYER             │
+             │        (Cent Orchestrator / Sisyphus Agent)     │
+             └────────────────────────┬────────────────────────┘
+                                      │
+    ┌─────────────┬───────────────────┼───────────────────┬─────────────┐
+    │   AGENTS    │                   │                   │    TOOLS    │
+    │ (Explorer,  │                 HOOKS                 │ (AST-grep,  │
+    │  Librarian, │  (Ralph Loop, Context Monitor,        │  LSP, MCP,  │
+    │  Frontend)  │   Todo Continuation, Rules Injector)  │  PTY)       │
+    └─────────────┴───────────────────┼───────────────────┴─────────────┘
+                                      │
+             ┌────────────────────────┴────────────────────────┐
+             │                 PROVIDER ADAPTER                │
+             │    (Anthropic, OpenAI, Google, Ollama/Local)    │
+             └─────────────────────────────────────────────────┘
+```
+
+---
 
 ## Features
 
@@ -34,7 +108,7 @@ Modern AI-powered coding assistant with an **OpenCode-level** advanced Text User
 - **AI SDK Integration**: Universal provider abstraction powered by Vercel AI SDK
 - **Project Configuration**: Per-project settings via `supercode.json`
 
-### NEW: Local Provider (v0.4.0)
+### Local Provider
 
 Native support for local LLM services with OpenAI-compatible API:
 
@@ -46,7 +120,6 @@ supercode --provider local --model llama3.3:latest
 supercode -m llama      # local/llama3.3:latest
 supercode -m qwen       # local/qwen2.5-coder:latest
 supercode -m deepseek   # local/deepseek-coder-v2:latest
-supercode -m mistral    # local/mistral:latest
 ```
 
 **Features:**
@@ -54,9 +127,8 @@ supercode -m mistral    # local/mistral:latest
 - Context window inference from model names
 - Capability detection (coding, vision, long_context)
 - Zero authentication required for local services
-- Model caching with 1-minute TTL
 
-### NEW: Cent Agent - 6-Phase Multi-Agent Orchestrator (v0.4.0)
+### Cent Agent - 6-Phase Multi-Agent Orchestrator
 
 Advanced multi-agent coordination system with structured workflow:
 
@@ -69,17 +141,12 @@ Advanced multi-agent coordination system with structured workflow:
 | 4 | **Execution** | Execute tasks with appropriate tools |
 | 5 | **Verification** | Verify results and ensure completion |
 
-**Multi-Agent Coordination:**
-- Claude (Orchestrator) - Strategic planning and decision making
-- Gemini-CLI (Analyst) - Code analysis and research
-- Codex-CLI (Executor) - Code generation and execution
-
 ```bash
 # Enable Cent agent
 supercode --orchestrator cent
 ```
 
-### NEW: Ralph Loop - Autonomous Development Mode (v0.4.0)
+### Ralph Loop - Autonomous Development Mode
 
 Self-referential development loop for autonomous task completion:
 
@@ -95,67 +162,102 @@ ralph loop: refactor all components
 **Features:**
 - Persistent state storage across sessions
 - Dual completion detection (`<promise>DONE</promise>` tag)
-- Configurable iteration limits
+- Configurable iteration limits (default: 100)
 - Session recovery on restart
 - Auto-continuation with context preservation
 
-### NEW: Skills System - Multi-Agent Workflow (v0.4.1)
+---
 
-Extensible skill system for specialized workflows and multi-agent coordination:
+## Multi-Agent System
 
+| Agent | Icon | Description | Capabilities |
+|-------|------|-------------|--------------|
+| **cent** | 🧠 | 6-phase multi-agent orchestrator | coordinate, delegate, verify |
+| **explorer** | 🔍 | Fast codebase search & navigation | grep, find, semantic-search |
+| **analyst** | 📊 | Architecture & security review | analyze, review, security-scan |
+| **librarian** | 📚 | Documentation & package expert | deps, upgrade, audit, docs |
+| **frontend** | 🎨 | UI/UX specialist | component, style, accessibility |
+| **docwriter** | ✍️ | Technical documentation writer | readme, api-docs, comments |
+| **executor** | ⚡ | Command & script execution | shell, npm, docker |
+| **reviewer** | 🔬 | Code review & best practices | review, lint, suggest |
+| **multimodal** | 👁️ | Image & screenshot analysis | vision, ocr, diagram |
+| **sisyphus** | 🔄 | Persistent long-running tasks | long-task, retry, checkpoint |
+
+### Agent Mentions (`@agent`)
 ```bash
-# List available skills
-/skills
-
-# Execute a skill
-/skill api-design
-/skill code-review "auth module"
-
-# Enable UltraWork multi-agent mode
-/ultrawork "build user authentication"
-/ulw "refactor all components"
-
-# Direct agent delegation
-/gemini "analyze large codebase"
-/codex "docker build -t app ."
+@explorer find all test files
+@analyst review the architecture
+@frontend create a new button component
+@docwriter generate API documentation
+@librarian audit dependencies
+@multimodal analyze this screenshot
+@cent orchestrate complex refactoring
 ```
 
-**Skill Structure** (Markdown with YAML frontmatter):
-```markdown
 ---
-description: "Design RESTful APIs"
-agent: "cent"
-tags: ["api", "backend"]
+
+## ⚓ Hook System (25+)
+
+Hooks are the "superpowers" of SuperCode. They run in the background during every interaction.
+
+### Session & Lifecycle Hooks
+| Hook | Description |
+|------|-------------|
+| `session-recovery` | Auto-recover from session errors |
+| `session-lifecycle` | Track session states and metadata |
+| `session-notification` | OS notifications when agents go idle |
+
+### Context Window Management
+| Hook | Description |
+|------|-------------|
+| `context-window-monitor` | Real-time token usage tracking |
+| `context-window-limit-recovery` | Auto-switch models on limit errors |
+| `preemptive-compaction` | Proactive context summarization at 85% |
+| `compaction-context-injector` | Preserve critical context during compaction |
+
+### Tool & Validation Hooks
+| Hook | Description |
+|------|-------------|
+| `tool-output-truncator` | Prevent large outputs from bloating context |
+| `tool-call-monitor` | Track tool usage statistics |
+| `thinking-block-validator` | Validate thinking blocks |
+| `edit-error-recovery` | Auto-retry failed file edits |
+| `comment-checker` | Prevent excessive AI comments |
+
+### Context Injection Hooks
+| Hook | Description |
+|------|-------------|
+| `rules-injector` | Auto-inject `.claude/rules/` project rules |
+| `directory-readme-injector` | Inject relevant README context |
+| `directory-agents-injector` | Inject `AGENTS.md` context |
+| `prompt-context-injector` | Dynamic context injection |
+
+### Automation Hooks
+| Hook | Description |
+|------|-------------|
+| `ralph-loop` | Autonomous development loop |
+| `todo-continuation` | Force completion of all TODO items |
+| `keyword-detector` | Detect magic words (ultrawork, search, analyze) |
+| `think-mode` | Auto-detect when extended thinking is needed |
+| `auto-slash-command` | Automatic slash command handling |
+| `background-notification` | Notify on background task completion |
+| `agent-usage-reminder` | Encourage specialized agent usage |
+
+### Environment Hooks
+| Hook | Description |
+|------|-------------|
+| `non-interactive-env` | Fix git/tools in non-interactive shells |
+| `interactive-bash-session` | Support for interactive terminal tools |
+| `empty-message-sanitizer` | Prevent API errors from empty messages |
+
 ---
-<skill-instruction>
-Your skill instructions here...
-</skill-instruction>
-```
 
-**Skill Locations:**
-- `.supercode/skills/` - Project-specific skills
-- `~/.config/supercode/skills/` - User skills
-- `~/.claude/skills/` - Global shared skills
+## Advanced TUI
 
-**Token Optimization Modes:**
-- `full` - Complete skill content
-- `compact` - 88% token reduction
-- `toon` - 95% token reduction
-
-**Multi-Agent Coordination:**
-
-| Agent | Role | MCP Tool | Best For |
-|-------|------|----------|----------|
-| Claude Code | Orchestrator | Built-in | Planning, code generation |
-| Gemini-CLI | Analyst | `ask-gemini` | Large codebase analysis (1M+ tokens) |
-| Codex-CLI | Executor | `shell` | Long commands, Docker, deployments |
-
-### Advanced TUI (OpenCode-level)
-
-#### Slash Commands (`/`)
+### Slash Commands (`/`)
 | Category | Commands |
 |----------|----------|
-| **Session** | `/new`, `/session`, `/undo`, `/redo`, `/rename`, `/copy`, `/export`, `/timeline`, `/fork`, `/share` |
+| **Session** | `/new`, `/session`, `/undo`, `/redo`, `/rename`, `/copy`, `/export`, `/timeline`, `/fork` |
 | **Navigation** | `/models`, `/agents`, `/theme`, `/provider` |
 | **MCP** | `/mcp`, `/mcp:connect`, `/mcp:disconnect`, `/mcp:tools`, `/mcp:resources` |
 | **Git** | `/diff`, `/commit`, `/status`, `/log`, `/branch`, `/pr` |
@@ -165,99 +267,52 @@ Your skill instructions here...
 | **Debug** | `/bug`, `/doctor`, `/logs`, `/version` |
 | **System** | `/help`, `/commands`, `/config`, `/lsp`, `/sidebar`, `/fullscreen`, `/exit` |
 
-#### File References (`@`)
+### File References (`@`)
 ```bash
-# Attach a file
-@src/index.ts
-
-# Attach specific lines
-@src/index.ts#10-20
-@src/index.ts:10-20   # Alternative syntax
-
-# Attach a directory
-@src/components/
-
-# Glob patterns
-@**/*.tsx
-@src/**/*.test.ts
+@src/index.ts           # Attach a file
+@src/index.ts#10-20     # Attach specific lines
+@src/components/        # Attach a directory
+@**/*.tsx               # Glob patterns
 ```
 
-#### Agent Mentions (`@agent`)
-```bash
-# Use specialized sub-agents
-@explorer find all test files
-@analyst review the architecture
-@frontend create a new button component
-@docwriter generate API documentation
-@executor run npm install
-@reviewer check for security issues
-@librarian audit dependencies
-@multimodal analyze this screenshot
-@cent orchestrate complex refactoring
-```
-
-#### Shell Mode (`!`)
+### Shell Mode (`!`)
 ```bash
 ! npm install
 ! git status
 ! docker ps
 ```
 
-### Multi-Agent System
-
-| Agent | Description | Capabilities |
-|-------|-------------|--------------|
-| **explorer** | Fast codebase search & navigation | grep, find, semantic-search |
-| **analyst** | Architecture & security review | analyze, review, security-scan |
-| **frontend** | UI/UX specialist | component, style, accessibility |
-| **docwriter** | Technical documentation writer | readme, api-docs, comments |
-| **executor** | Command & script execution | shell, npm, docker |
-| **reviewer** | Code review & best practices | review, lint, suggest |
-| **librarian** | Dependency & package management | deps, upgrade, audit |
-| **multimodal** | Image & screenshot analysis | vision, ocr, diagram |
-| **sisyphus** | Persistent long-running tasks | long-task, retry, checkpoint |
-| **cent** | 6-phase multi-agent orchestrator | coordinate, delegate, verify |
-
 ### Real-time Monitoring Sidebar
 
 ```
-+------------------------------+
-| Session: Code Review         |
-|    abc123...                 |
-+------------------------------+
-| Context                      |
-| [============      ] 68%     |
-| 87,234 / 128k                |
-| Input: 45,123  Output: 42,111|
-| Cost: $0.0234                |
-+------------------------------+
-| Agents (2)                   |
-| [*] explorer     running 45% |
-| [v] analyst      completed   |
-+------------------------------+
-| MCP (3/3)                    |
-| [*] gemini-cli    tools: 12  |
-| [*] codex-cli     tools: 8   |
-| [*] filesystem    tools: 5   |
-+------------------------------+
-| LSP (2)                      |
-| [*] typescript               |
-| [*] python                   |
-+------------------------------+
-| Todo (3/5)                   |
-| [-] Implement auth           |
-| [ ] Add tests                |
-| [v] Setup CI                 |
-+------------------------------+
-| Files (4)                    |
-| M auth.ts        +45 -12     |
-| A config.ts      +89         |
-| M index.ts       +3  -1      |
-+------------------------------+
-| Git                          |
-| Branch: feature/auth         |
-| +2 ~3 ?1                     |
-+------------------------------+
+┌──────────────────────────────┐
+│ Session: Code Review         │
+│    abc123...                 │
+├──────────────────────────────┤
+│ Context                      │
+│ [============      ] 68%     │
+│ 87,234 / 128k                │
+│ Input: 45,123  Output: 42,111│
+│ Cost: $0.0234                │
+├──────────────────────────────┤
+│ Agents (2)                   │
+│ [*] explorer     running 45% │
+│ [v] analyst      completed   │
+├──────────────────────────────┤
+│ MCP (3/3)                    │
+│ [*] gemini-cli    tools: 12  │
+│ [*] codex-cli     tools: 8   │
+│ [*] filesystem    tools: 5   │
+├──────────────────────────────┤
+│ Todo (3/5)                   │
+│ [-] Implement auth           │
+│ [ ] Add tests                │
+│ [v] Setup CI                 │
+├──────────────────────────────┤
+│ Git                          │
+│ Branch: feature/auth         │
+│ +2 ~3 ?1                     │
+└──────────────────────────────┘
 ```
 
 ### Keyboard Shortcuts
@@ -277,7 +332,16 @@ Your skill instructions here...
 | `/` | Start slash command |
 | `@` | Start file/agent reference |
 | `!` | Enter shell mode |
-| `1-7` | Toggle sidebar sections |
+
+### Themes
+
+- **Catppuccin** (default) - Soothing pastel theme
+- **Dracula** - Dark theme with vibrant colors
+- **Nord** - Arctic, north-bluish color palette
+- **Tokyo Night** - Clean dark theme inspired by Tokyo
+- **Monokai** - Classic high-contrast theme
+
+---
 
 ## Installation
 
@@ -308,6 +372,54 @@ bun link
 supercode --help
 ```
 
+### For LLM Agents
+
+<details>
+<summary>Instructions for LLM Agents (click to expand)</summary>
+
+If you're an LLM Agent helping set up SuperCode, follow these steps:
+
+#### Step 1: Verify Prerequisites
+```bash
+# Check Bun installation
+bun --version  # Should be 1.0+
+
+# Check if Ollama is running (optional, for local models)
+curl -s http://localhost:11434/api/tags | head -c 100
+```
+
+#### Step 2: Clone and Install
+```bash
+git clone https://github.com/JEO-tech-ai/supercode.git
+cd supercode
+bun install
+```
+
+#### Step 3: Verify Installation
+```bash
+# Run doctor to check setup
+bun src/cli/index.ts doctor
+
+# Start the TUI
+bun src/cli/index.ts
+```
+
+#### Step 4: Configure Providers
+```bash
+# For cloud providers (Anthropic, OpenAI, Google)
+supercode auth setup anthropic
+supercode auth setup openai
+supercode auth setup google
+
+# For local models (Ollama)
+ollama pull llama3.3:latest
+supercode --provider local --model llama3.3:latest
+```
+
+</details>
+
+---
+
 ## Usage
 
 ### Launch TUI
@@ -315,9 +427,6 @@ supercode --help
 ```bash
 # Start the TUI (default)
 supercode
-
-# Or explicitly
-supercode tui
 
 # With specific provider and model
 supercode --provider anthropic --model claude-4
@@ -345,14 +454,21 @@ supercode --provider google --model gemini-2.0-flash
 supercode --provider local --model llama3.3:latest
 ```
 
+---
+
 ## Configuration
 
 ### Project Configuration (`supercode.json`)
 
-```json
+```jsonc
 {
+  // Default model for all operations
   "default_model": "local/llama3.3:latest",
+  
+  // Fallback chain if primary model fails
   "fallback_models": ["anthropic/claude-sonnet-4-5", "google/gemini-3-flash"],
+  
+  // Provider configuration
   "providers": {
     "local": {
       "enabled": true,
@@ -362,113 +478,74 @@ supercode --provider local --model llama3.3:latest
     },
     "anthropic": {
       "enabled": true
+      // API key from environment: ANTHROPIC_API_KEY
     }
   },
+  
+  // Orchestrator settings
   "orchestrator": {
     "enabled": true,
     "defaultOrchestrator": "cent"
   },
+  
+  // Hook configuration
   "hooks": {
-    "ralphLoop": true
+    "ralphLoop": true,
+    "todoContinuation": true,
+    "contextWindowMonitor": true,
+    "commentChecker": true,
+    "rulesInjector": true
   },
+  
+  // Agent settings
   "agents": {
     "default": "explorer",
     "maxConcurrent": 3
   },
+  
+  // Context management
   "context": {
     "maxTokens": 128000,
-    "autoCompact": true
+    "autoCompact": true,
+    "compactionThreshold": 0.85
   }
 }
 ```
 
-### Provider Configuration
+### Hook Configuration
+
+Disable specific hooks via configuration:
+
+```jsonc
+{
+  "disabled_hooks": [
+    "session-notification",  // Disable OS notifications
+    "comment-checker"        // Allow AI comments
+  ]
+}
+```
+
+Available hooks: `todo-continuation`, `context-window-monitor`, `session-recovery`, `session-notification`, `comment-checker`, `tool-output-truncator`, `directory-agents-injector`, `directory-readme-injector`, `empty-task-response-detector`, `think-mode`, `keyword-detector`, `auto-slash-command`, `background-notification`, `ralph-loop`, `interactive-bash-session`, `non-interactive-env`, `empty-message-sanitizer`, `agent-usage-reminder`, `compaction-context-injector`, `rules-injector`, `preemptive-compaction`, `edit-error-recovery`
+
+---
+
+## Troubleshooting: Doctor Command
+
+If things go wrong, run `supercode doctor`:
 
 ```bash
-# Set default provider
-supercode config set provider local
-
-# Configure API keys (for cloud providers)
-supercode auth setup anthropic
-supercode auth setup openai
-supercode auth setup google
+supercode doctor
 ```
 
-## Project Structure
+It checks for:
+- [x] Bun version compatibility
+- [x] API key validity for all configured providers
+- [x] Connectivity to local Ollama instances
+- [x] Missing optional dependencies (AST-grep, Playwright)
+- [x] Permission issues in the current directory
+- [x] Configuration file validity
 
-```
-supercode/
-├── src/
-│   ├── cli/                    # CLI entry point and commands
-│   │   ├── commands/           # CLI command handlers
-│   │   └── run/                # Runtime execution
-│   ├── tui/                    # Text User Interface
-│   │   ├── component/          # Reusable UI components
-│   │   │   ├── prompt/
-│   │   │   │   ├── AdvancedPrompt.tsx   # Main prompt with / @ ! support
-│   │   │   │   ├── SlashCommands.tsx    # Slash command menu (60+ commands)
-│   │   │   │   ├── FileReference.tsx    # File/agent autocomplete with glob
-│   │   │   │   └── History.tsx          # Prompt history
-│   │   │   ├── Sidebar.tsx              # Real-time monitoring sidebar
-│   │   │   ├── SubAgentMonitor.tsx      # Agent status monitor
-│   │   │   ├── MCPPanel.tsx             # MCP server management
-│   │   │   ├── LSPPanel.tsx             # LSP server integration
-│   │   │   ├── Border.tsx
-│   │   │   └── Logo.tsx
-│   │   ├── context/            # React contexts
-│   │   └── routes/             # TUI screens
-│   ├── services/               # Business logic
-│   │   ├── agents/             # Multi-agent system (10 agents)
-│   │   ├── auth/               # Provider authentication
-│   │   ├── models/             # AI model management
-│   │   │   └── providers/      # Provider implementations
-│   │   │       ├── anthropic.ts
-│   │   │       ├── openai.ts
-│   │   │       ├── google.ts
-│   │   │       └── local.ts    # NEW: Local LLM provider
-│   │   └── pty/                # PTY/terminal management
-│   ├── core/                   # Core functionality
-│   │   ├── hooks/              # Session hooks
-│   │   │   └── ralph-loop/     # Ralph Loop hook
-│   │   ├── monitors/           # NEW: Stream monitoring
-│   │   ├── knowledge/          # Knowledge management
-│   │   ├── session/            # Session management
-│   │   └── tools/              # Tool implementations
-│   ├── tools/                  # Tool system
-│   │   ├── skill/              # NEW: Skill system
-│   │   └── slashcommand/       # NEW: Slash command system
-│   ├── agents/                 # Agent definitions
-│   │   ├── sisyphus/           # Sisyphus agent
-│   │   └── cent/               # Cent orchestrator agent
-│   └── config/                 # Configuration management
-├── packages/                   # Monorepo packages
-│   ├── ui/                     # Shared UI components
-│   ├── server/                 # Server package
-│   ├── shared/                 # Shared utilities
-│   ├── auth/                   # Authentication
-│   └── database/               # Database utilities
-├── docs/                       # Documentation
-├── tests/                      # Test suites
-└── supercode.json              # Project configuration
-```
-
-## Themes
-
-### Available Themes
-- **Catppuccin** (default) - Soothing pastel theme
-- **Dracula** - Dark theme with vibrant colors
-- **Nord** - Arctic, north-bluish color palette
-- **Tokyo Night** - Clean dark theme inspired by Tokyo
-- **Monokai** - Classic high-contrast theme
-
-### Switch Theme
-
-```bash
-# Via slash command
-/theme
-
-# Or press Ctrl+X and search "theme"
-```
+---
 
 ## MCP (Model Context Protocol) Integration
 
@@ -483,9 +560,6 @@ SuperCode supports MCP servers for extended capabilities:
 
 # List available tools
 /mcp:tools
-
-# List resources
-/mcp:resources
 ```
 
 ### Configuring MCP Servers
@@ -508,6 +582,72 @@ SuperCode supports MCP servers for extended capabilities:
 }
 ```
 
+---
+
+## Project Structure
+
+```
+supercode/
+├── src/
+│   ├── cli/                    # CLI entry point and commands
+│   │   ├── commands/           # CLI command handlers
+│   │   ├── components/         # Dashboard components
+│   │   └── run/                # Runtime execution
+│   ├── tui/                    # Text User Interface
+│   │   ├── component/          # Reusable UI components
+│   │   ├── context/            # React contexts
+│   │   └── routes/             # TUI screens
+│   ├── services/               # Business logic
+│   │   ├── agents/             # Multi-agent system (10 agents)
+│   │   ├── auth/               # Provider authentication
+│   │   ├── models/             # AI model management
+│   │   └── pty/                # PTY/terminal management
+│   ├── core/                   # Core functionality
+│   │   ├── hooks/              # Hook system (25+ hooks)
+│   │   ├── tools/              # Tool implementations
+│   │   ├── session/            # Session management
+│   │   └── knowledge/          # Knowledge management
+│   └── config/                 # Configuration management
+├── packages/                   # Monorepo packages
+└── supercode.json              # Project configuration
+```
+
+---
+
+## Roadmap
+
+### Completed
+- [x] Multi-provider support (Claude, Codex, Gemini, Ollama)
+- [x] Advanced TUI with slash commands
+- [x] File reference with glob patterns
+- [x] Multi-agent system (10 agents)
+- [x] Real-time sidebar monitoring
+- [x] MCP server integration
+- [x] LSP integration panel
+- [x] Session state management
+- [x] Local LLM provider (Ollama, LM Studio, llama.cpp)
+- [x] Cent Agent (6-phase orchestrator)
+- [x] Ralph Loop (autonomous mode)
+- [x] Hook system (25+ hooks)
+- [x] Korean Unicode text input
+- [x] Stream monitoring metrics
+- [x] Extended keyboard shortcuts (vim/emacs presets)
+- [x] Skills System (multi-agent workflow)
+- [x] UltraWork mode (multi-agent orchestration)
+
+### In Progress
+- [ ] Image paste support
+- [ ] Session sharing
+- [ ] Git integration (diff view, commit helper)
+
+### Planned
+- [ ] Plugin system
+- [ ] Voice input support
+- [ ] Collaborative sessions (Multi-user)
+- [ ] WASM-based sandbox for safe code execution
+
+---
+
 ## Development
 
 ```bash
@@ -520,37 +660,19 @@ bun run typecheck
 # Run tests
 bun test
 
-# Build (excludes desktop package)
+# Build
 bun turbo run build --filter='!@supercoin/desktop'
 ```
 
-## Roadmap
-
-- [x] Multi-provider support (Claude, Codex, Gemini, Ollama)
-- [x] Advanced TUI with slash commands
-- [x] File reference with glob patterns
-- [x] Multi-agent system (10 agents)
-- [x] Real-time sidebar monitoring
-- [x] MCP server integration
-- [x] LSP integration panel
-- [x] Session state management
-- [x] Local LLM provider (Ollama, LM Studio, llama.cpp)
-- [x] Cent Agent (6-phase orchestrator)
-- [x] Ralph Loop (autonomous mode)
-- [x] Korean Unicode text input (v0.4.0)
-- [x] Stream monitoring metrics (v0.4.0)
-- [x] Extended keyboard shortcuts (vim/emacs presets) (v0.4.0)
-- [x] Skills System (multi-agent workflow) (v0.4.1)
-- [x] UltraWork mode (multi-agent orchestration) (v0.4.1)
-- [ ] Image paste support
-- [ ] Session sharing
-- [ ] Git integration (diff view, commit helper)
-- [ ] Plugin system
-- [ ] Voice input support
+---
 
 ## Contributing
 
 Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
+
+**Note**: All PRs must pass the verification suite.
+
+---
 
 ## License
 
@@ -558,6 +680,12 @@ MIT (c) SuperCode Contributors
 
 ---
 
+<div align="center">
+
 Made with Bun, React/Ink, and TypeScript
 
 **[GitHub](https://github.com/JEO-tech-ai/supercode)** | **[Documentation](https://supercode.dev/docs)** | **[Discord](https://discord.gg/supercode)**
+
+*"Coding at the speed of thought, verified by the power of agents."*
+
+</div>
