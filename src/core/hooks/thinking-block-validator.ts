@@ -1,15 +1,48 @@
 /**
  * Thinking Block Validator Hook
- * Validates thinking block structure and order in messages.
+ *
+ * Proactively prevents "Expected thinking/redacted_thinking but found tool_use" errors
+ * by validating and fixing message structure BEFORE sending to API.
+ *
+ * Key features:
+ * - PROACTIVE (prevents error) vs REACTIVE (fixes after error)
+ * - Model-aware: only runs for extended thinking models
+ * - Synthetic thinking block injection from previous turns
+ *
  * Adapted from Oh-My-OpenCode for SuperCode integration
  */
 import type { Hook, HookContext, HookResult } from "./types";
 import logger from "../../shared/logger";
 
 /**
+ * Models that support extended thinking
+ */
+export const THINKING_CAPABLE_MODELS = [
+  "claude-sonnet-4",
+  "claude-opus-4",
+  "claude-3-opus",
+  "claude-3-5-sonnet",
+  "claude-3-sonnet",
+] as const;
+
+/**
+ * Thinking part types
+ */
+export const THINKING_TYPES = ["thinking", "redacted_thinking", "reasoning"] as const;
+
+/**
+ * Content part types (non-thinking)
+ */
+export const CONTENT_TYPES = ["tool", "tool_use", "text", "tool_result"] as const;
+
+/**
  * Validator options
  */
 export interface ThinkingBlockValidatorOptions {
+  /** Enable synthetic thinking block injection */
+  injectSynthetic?: boolean;
+  /** Default thinking content when none found */
+  defaultThinkingContent?: string;
   /** Require thinking blocks at start */
   requireThinkingFirst?: boolean;
   /** Allow empty thinking blocks */
@@ -23,7 +56,9 @@ export interface ThinkingBlockValidatorOptions {
 /**
  * Default options
  */
-const DEFAULT_OPTIONS: ThinkingBlockValidatorOptions = {
+const DEFAULT_OPTIONS: Required<ThinkingBlockValidatorOptions> = {
+  injectSynthetic: true,
+  defaultThinkingContent: "[Continuing from previous reasoning]",
   requireThinkingFirst: true,
   allowEmptyThinking: false,
   autoFix: true,
@@ -31,17 +66,28 @@ const DEFAULT_OPTIONS: ThinkingBlockValidatorOptions = {
 };
 
 /**
- * Thinking part types
- */
-const THINKING_TYPES = ["thinking", "redacted_thinking", "reasoning"];
-
-/**
  * Message part structure
  */
-interface MessagePart {
+export interface MessagePart {
   type: string;
+  id?: string;
   text?: string;
   thinking?: string;
+  messageId?: string;
+  sessionId?: string;
+  synthetic?: boolean;
+  [key: string]: unknown;
+}
+
+/**
+ * Message with parts
+ */
+export interface MessageWithParts {
+  id: string;
+  role: "user" | "assistant" | "system";
+  parts?: MessagePart[];
+  content?: MessagePart[];
+  modelId?: string;
   [key: string]: unknown;
 }
 
@@ -57,9 +103,119 @@ export interface ValidationResult {
 }
 
 /**
+ * Check if a model has extended thinking enabled
+ */
+export function isExtendedThinkingModel(modelId: string): boolean {
+  if (!modelId) return false;
+  const lower = modelId.toLowerCase();
+
+  // Check for explicit thinking/high variants (always enabled)
+  if (lower.includes("thinking") || lower.endsWith("-high")) {
+    return true;
+  }
+
+  // Check for thinking-capable models
+  return THINKING_CAPABLE_MODELS.some((model) => lower.includes(model));
+}
+
+/**
+ * Check if a part is a thinking part
+ */
+export function isThinkingPart(part: MessagePart): boolean {
+  return THINKING_TYPES.includes(part.type as typeof THINKING_TYPES[number]);
+}
+
+/**
+ * Check if a part is a content part (non-thinking)
+ */
+export function isContentPart(part: MessagePart): boolean {
+  return CONTENT_TYPES.includes(part.type as typeof CONTENT_TYPES[number]);
+}
+
+/**
+ * Check if a message has any content parts
+ */
+export function hasContentParts(parts: MessagePart[]): boolean {
+  if (!parts || parts.length === 0) return false;
+  return parts.some(isContentPart);
+}
+
+/**
+ * Check if a message starts with a thinking block
+ */
+export function startsWithThinkingBlock(parts: MessagePart[]): boolean {
+  if (!parts || parts.length === 0) return false;
+  return isThinkingPart(parts[0]);
+}
+
+/**
+ * Find thinking content from previous messages
+ */
+export function findPreviousThinkingContent(
+  messages: MessageWithParts[],
+  currentIndex: number
+): string {
+  // Search backwards from current message
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role !== "assistant") continue;
+
+    const parts = msg.parts || msg.content;
+    if (!parts) continue;
+
+    // Look for thinking parts
+    for (const part of parts) {
+      if (isThinkingPart(part)) {
+        const thinking = part.thinking || part.text;
+        if (thinking && typeof thinking === "string" && thinking.trim().length > 0) {
+          return thinking;
+        }
+      }
+    }
+  }
+
+  return "";
+}
+
+/**
+ * Create a synthetic thinking part
+ */
+export function createSyntheticThinkingPart(
+  thinkingContent: string,
+  messageId?: string,
+  sessionId?: string
+): MessagePart {
+  return {
+    type: "thinking",
+    id: `prt_synthetic_${Date.now()}`,
+    thinking: thinkingContent,
+    messageId,
+    sessionId,
+    synthetic: true,
+  };
+}
+
+/**
+ * Prepend thinking block to message parts
+ */
+export function prependThinkingBlock(
+  parts: MessagePart[],
+  thinkingContent: string,
+  messageId?: string,
+  sessionId?: string
+): MessagePart[] {
+  const thinkingPart = createSyntheticThinkingPart(
+    thinkingContent,
+    messageId,
+    sessionId
+  );
+  return [thinkingPart, ...parts];
+}
+
+/**
  * Validate thinking block structure
  */
-function validateThinkingBlocks(
+export function validateThinkingBlocks(
   parts: MessagePart[],
   options: Required<ThinkingBlockValidatorOptions>
 ): ValidationResult {
@@ -67,20 +223,25 @@ function validateThinkingBlocks(
   const warnings: string[] = [];
   let valid = true;
 
-  if (parts.length === 0) {
+  if (!parts || parts.length === 0) {
     return { valid: true, errors: [], warnings: [] };
   }
 
-  const thinkingParts = parts.filter((p) => THINKING_TYPES.includes(p.type));
-  const nonThinkingParts = parts.filter((p) => !THINKING_TYPES.includes(p.type));
+  const thinkingParts = parts.filter(isThinkingPart);
+  const contentParts = parts.filter(isContentPart);
 
-  // Check if thinking block is first (when required)
-  if (options.requireThinkingFirst && thinkingParts.length > 0) {
-    const firstPart = parts[0];
-    if (!THINKING_TYPES.includes(firstPart.type)) {
+  // Check if thinking block is first (when required and has content)
+  if (options.requireThinkingFirst && contentParts.length > 0 && thinkingParts.length > 0) {
+    if (!isThinkingPart(parts[0])) {
       errors.push("Thinking block must be at the beginning of the message");
       valid = false;
     }
+  }
+
+  // Check for content without thinking (potential API error)
+  if (options.requireThinkingFirst && contentParts.length > 0 && thinkingParts.length === 0) {
+    errors.push("Message has content but no thinking block - may cause API error");
+    valid = false;
   }
 
   // Check for empty thinking blocks
@@ -94,11 +255,11 @@ function validateThinkingBlocks(
   }
 
   // Check for thinking blocks after content (order violation)
-  let foundNonThinking = false;
+  let foundContent = false;
   for (const part of parts) {
-    if (!THINKING_TYPES.includes(part.type)) {
-      foundNonThinking = true;
-    } else if (foundNonThinking) {
+    if (isContentPart(part)) {
+      foundContent = true;
+    } else if (isThinkingPart(part) && foundContent) {
       errors.push("Thinking blocks cannot appear after content blocks");
       valid = false;
       break;
@@ -111,9 +272,9 @@ function validateThinkingBlocks(
 /**
  * Fix thinking block order
  */
-function fixThinkingBlockOrder(parts: MessagePart[]): MessagePart[] {
-  const thinkingParts = parts.filter((p) => THINKING_TYPES.includes(p.type));
-  const nonThinkingParts = parts.filter((p) => !THINKING_TYPES.includes(p.type));
+export function fixThinkingBlockOrder(parts: MessagePart[]): MessagePart[] {
+  const thinkingParts = parts.filter(isThinkingPart);
+  const nonThinkingParts = parts.filter((p) => !isThinkingPart(p));
 
   // Put thinking blocks first
   return [...thinkingParts, ...nonThinkingParts];
@@ -129,26 +290,42 @@ export function createThinkingBlockValidatorHook(
 
   return {
     name: "thinking-block-validator",
-    description: "Validates thinking block structure and order",
+    description: "Validates and fixes thinking block structure proactively",
     events: ["message.before", "message.after"],
     priority: 85,
 
     async handler(context: HookContext): Promise<HookResult | void> {
-      const { sessionId, event, data } = context;
+      const { event, data } = context;
 
       if (!data) return;
 
       const messageData = data as {
         parts?: MessagePart[];
-        content?: unknown;
+        content?: MessagePart[];
+        modelId?: string;
+        messages?: MessageWithParts[];
+        messageIndex?: number;
+        id?: string;
+        sessionId?: string;
       };
+
+      // Get model ID to check if extended thinking is enabled
+      const modelId = messageData.modelId || "";
+
+      // Skip validation for non-thinking models
+      if (modelId && !isExtendedThinkingModel(modelId)) {
+        if (mergedOptions.debug) {
+          logger.debug(`[thinking-block-validator] Skipping non-thinking model: ${modelId}`);
+        }
+        return;
+      }
 
       // Extract parts
       let parts: MessagePart[] = [];
       if (messageData.parts && Array.isArray(messageData.parts)) {
         parts = messageData.parts;
       } else if (messageData.content && Array.isArray(messageData.content)) {
-        parts = messageData.content as MessagePart[];
+        parts = messageData.content;
       }
 
       if (parts.length === 0) {
@@ -168,15 +345,54 @@ export function createThinkingBlockValidatorHook(
       // Handle errors
       if (!result.valid) {
         for (const error of result.errors) {
-          logger.warn(`[thinking-block-validator] Error: ${error}`);
+          if (mergedOptions.debug) {
+            logger.warn(`[thinking-block-validator] Error: ${error}`);
+          }
         }
 
         // Auto-fix if enabled and before message send
         if (mergedOptions.autoFix && event === "message.before") {
-          const fixedParts = fixThinkingBlockOrder(parts);
+          let fixedParts = parts;
 
-          if (mergedOptions.debug) {
-            logger.debug(`[thinking-block-validator] Auto-fixed thinking block order`);
+          // Check if we need to inject synthetic thinking block
+          if (
+            mergedOptions.injectSynthetic &&
+            hasContentParts(parts) &&
+            !startsWithThinkingBlock(parts)
+          ) {
+            // Try to find previous thinking content
+            let thinkingContent = mergedOptions.defaultThinkingContent;
+
+            if (messageData.messages && messageData.messageIndex !== undefined) {
+              const previousThinking = findPreviousThinkingContent(
+                messageData.messages,
+                messageData.messageIndex
+              );
+              if (previousThinking) {
+                thinkingContent = previousThinking;
+              }
+            }
+
+            // Prepend thinking block
+            fixedParts = prependThinkingBlock(
+              parts,
+              thinkingContent,
+              messageData.id,
+              messageData.sessionId
+            );
+
+            if (mergedOptions.debug) {
+              logger.debug(
+                `[thinking-block-validator] Injected synthetic thinking block`
+              );
+            }
+          } else {
+            // Just fix the order
+            fixedParts = fixThinkingBlockOrder(parts);
+
+            if (mergedOptions.debug) {
+              logger.debug(`[thinking-block-validator] Fixed thinking block order`);
+            }
           }
 
           return {
@@ -184,7 +400,9 @@ export function createThinkingBlockValidatorHook(
             modified: {
               ...messageData,
               parts: fixedParts,
+              content: fixedParts,
               _thinkingBlocksFixed: true,
+              _syntheticInjected: mergedOptions.injectSynthetic,
             },
           };
         }
@@ -192,7 +410,7 @@ export function createThinkingBlockValidatorHook(
         // Return error context
         return {
           continue: true,
-          context: result.errors.map((e) => `⚠️ Thinking block: ${e}`),
+          context: result.errors.map((e) => `Thinking block: ${e}`),
         };
       }
 
@@ -219,4 +437,4 @@ export function fixParts(parts: MessagePart[]): MessagePart[] {
   return fixThinkingBlockOrder(parts);
 }
 
-export type { ThinkingBlockValidatorOptions, ValidationResult };
+export type { ThinkingBlockValidatorOptions, ValidationResult, MessagePart, MessageWithParts };

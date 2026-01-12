@@ -1,8 +1,20 @@
 /**
  * Rules Injector Types
  * Type definitions for rules injection hook.
- * Adapted from Claude Code patterns for SuperCode integration
+ * Adapted from Oh-My-OpenCode for SuperCode integration
  */
+
+/**
+ * Rule metadata from YAML frontmatter
+ */
+export interface RuleMetadata {
+  /** Glob patterns for file matching */
+  globs?: string | string[];
+  /** Whether this rule always applies regardless of globs */
+  alwaysApply?: boolean;
+  /** Description of the rule */
+  description?: string;
+}
 
 /**
  * Rule file source
@@ -14,10 +26,18 @@ export interface RuleSource {
   name: string;
   /** Whether this is a global or project-specific rule */
   scope: "global" | "project" | "directory";
-  /** Content of the rule */
+  /** Content of the rule (body without frontmatter) */
   content: string;
+  /** Raw content including frontmatter */
+  rawContent?: string;
   /** Priority (higher = loaded first) */
   priority: number;
+  /** Parsed metadata from frontmatter */
+  metadata?: RuleMetadata;
+  /** Content hash for deduplication */
+  contentHash?: string;
+  /** Real path (symlink resolved) */
+  realPath?: string;
 }
 
 /**
