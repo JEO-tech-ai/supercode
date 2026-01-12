@@ -12,6 +12,15 @@ import type { ISessionManager, IHookRegistry, IToolRegistry } from "./core";
 import type { SuperCoinConfig } from "./config/schema";
 import logger from "./shared/logger";
 
+// Orchestrator agent system
+import {
+  createBuiltinAgents,
+  getDefaultAgentRegistry,
+  getSisyphusWithBuiltinAgents,
+  type AgentRegistry,
+  type AgentDefinition,
+} from "./agents";
+
 export interface SuperCoinOptions {
   config: SuperCoinConfig;
   workdir?: string;
@@ -24,6 +33,7 @@ export class SuperCoin {
 
   private _auth: AuthHub | null = null;
   private _models: ModelRouter | null = null;
+  private _orchestratorAgents: AgentRegistry | null = null;
 
   constructor(options: SuperCoinOptions) {
     this.config = options.config;
@@ -103,6 +113,31 @@ export class SuperCoin {
 
   get tools() {
     return this.getTools();
+  }
+
+  /**
+   * Get orchestrator agent registry (Sisyphus + specialists)
+   */
+  getOrchestratorAgents(): AgentRegistry {
+    if (!this._orchestratorAgents) {
+      this._orchestratorAgents = createBuiltinAgents();
+    }
+    return this._orchestratorAgents;
+  }
+
+  get orchestratorAgents() {
+    return this.getOrchestratorAgents();
+  }
+
+  /**
+   * Get Sisyphus orchestrator with all builtin specialists
+   */
+  getSisyphus(): AgentDefinition {
+    return getSisyphusWithBuiltinAgents();
+  }
+
+  get sisyphus() {
+    return this.getSisyphus();
   }
 
   async chat(message: string, options?: { model?: string }): Promise<string> {

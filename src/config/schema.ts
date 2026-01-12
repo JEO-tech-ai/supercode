@@ -44,6 +44,24 @@ export const SuperCoinConfigSchema = z.object({
     model: z.string().optional(),
     disabled: z.boolean().optional(),
   })).optional(),
+  orchestrator: z.object({
+    enabled: z.boolean().default(true),
+    defaultOrchestrator: z.enum(["sisyphus"]).default("sisyphus"),
+    costAwareness: z.boolean().default(true),
+    specialists: z.object({
+      explore: z.boolean().default(true),
+      oracle: z.boolean().default(true),
+      librarian: z.boolean().default(true),
+      frontendEngineer: z.boolean().default(true),
+      documentWriter: z.boolean().default(true),
+      multimodalLooker: z.boolean().default(true),
+    }).optional(),
+    models: z.object({
+      free: z.string().default("claude-3-5-haiku-latest"),
+      cheap: z.string().default("claude-sonnet-4-20250514"),
+      expensive: z.string().default("claude-opus-4-20250514"),
+    }).optional(),
+  }).optional(),
   disabled_hooks: z.array(z.string()).default([]),
   hooks: z.object({
     sessionLifecycle: z.boolean().default(true),
