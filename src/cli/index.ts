@@ -16,6 +16,7 @@ import type { AISDKProviderName } from "../services/models/ai-sdk/types";
 import { UI, CancelledError } from "../shared/ui";
 import logger from "../shared/logger";
 import { EOL } from "os";
+import { runPrompt, runInteractive } from "./run";
 
 const VERSION = "0.1.0";
 
@@ -272,6 +273,25 @@ async function runMenuMode() {
 }
 
 async function runRunFlow() {
+  const modeChoice = await clack.select({
+    message: "Run mode",
+    options: [
+      { value: "single", label: "💬 Single prompt", hint: "Run a single message" },
+      { value: "interactive", label: "🔄 Interactive", hint: "Continuous conversation" },
+    ],
+  });
+
+  if (clack.isCancel(modeChoice)) {
+    throw new CancelledError();
+  }
+
+  if (modeChoice === "interactive") {
+    await runInteractive({
+      verbose: false,
+    });
+    return;
+  }
+
   const prompt = await clack.text({
     message: "Enter your message",
     placeholder: "Ask me anything...",
@@ -284,45 +304,22 @@ async function runRunFlow() {
     throw new CancelledError();
   }
 
-  const projectConfig = await resolveProviderFromConfig();
-  const provider = projectConfig.provider as AISDKProviderName;
-  const model = projectConfig.model;
+  const verbose = await clack.confirm({
+    message: "Enable verbose mode?",
+    initialValue: false,
+  });
 
-  UI.println(
-    UI.Style.TEXT_INFO_BOLD + "|",
-    UI.Style.TEXT_DIM + " Provider",
-    "",
-    UI.Style.TEXT_NORMAL + `${provider}/${model}`
-  );
-
-  const isLocalhost = ["ollama", "lmstudio", "llamacpp"].includes(provider);
-  if (isLocalhost) {
-    const available = await checkLocalhostAvailability(
-      provider as "ollama" | "lmstudio" | "llamacpp",
-      projectConfig.baseURL
-    );
-    if (!available) {
-      UI.error(`${provider} is not available. Make sure it's running.`);
-      return;
-    }
+  if (clack.isCancel(verbose)) {
+    throw new CancelledError();
   }
 
-  UI.println();
+  const result = await runPrompt({
+    message: prompt,
+    verbose: verbose as boolean,
+  });
 
-  try {
-    await streamAIResponse({
-      provider,
-      model,
-      baseURL: projectConfig.baseURL,
-      temperature: projectConfig.temperature,
-      maxTokens: projectConfig.maxTokens,
-      messages: [{ role: "user", content: prompt }],
-      onChunk: (text) => process.stdout.write(text),
-    });
-
-    process.stdout.write(EOL);
-  } catch (error) {
-    UI.error((error as Error).message);
+  if (!result.success) {
+    UI.error(result.error || "Unknown error");
   }
 }
 
@@ -566,148 +563,42 @@ async function runSessionFlow() {
 
 function createRunCommand(): Command {
   return new Command("run")
-    .description("Run with a message")
+    .description("Run with a message (event-driven multi-agent support)")
     .argument("[message...]", "Message to send")
     .option("-c, --continue", "Continue the last session")
     .option("-s, --session <id>", "Session ID to continue")
     .option("-m, --model <model>", "Model to use (provider/model format)")
     .option("--title <title>", "Title for the session")
     .option("--format <format>", "Output format (default or json)", "default")
+    .option("-v, --verbose", "Verbose output with session tagging")
+    .option("-i, --interactive", "Interactive mode with continuous prompts")
+    .option("--timeout <ms>", "Timeout for completion (default: 300000)", parseInt)
     .action(async (messageParts: string[], options) => {
       const message = messageParts.join(" ");
 
-      if (!message && !options.continue && !options.session) {
-        UI.error("You must provide a message or use --continue/--session");
-        process.exit(1);
-      }
-
-      const projectConfig = await resolveProviderFromConfig();
-      let provider = projectConfig.provider as AISDKProviderName;
-      let model = projectConfig.model;
-
-      if (options.model) {
-        const parts = options.model.split("/");
-        if (parts.length === 2) {
-          provider = parts[0] as AISDKProviderName;
-          model = parts[1];
-        } else {
-          model = options.model;
-        }
-      }
-
-      let session;
-      if (options.continue) {
-        const sessions = sessionManager.listSessions({});
-        sessions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-        session = sessions.find((s) => s.status !== "completed");
-        if (!session) {
-          session = await sessionManager.createSession({
-            model: `${provider}/${model}`,
-            provider,
-          });
-        }
-      } else if (options.session) {
-        session = await sessionManager.getSession(options.session);
-        if (!session) {
-          UI.error(`Session not found: ${options.session}`);
-          process.exit(1);
-        }
-      } else {
-        const title = options.title || message.slice(0, 50) + (message.length > 50 ? "..." : "");
-        session = await sessionManager.createSession({
-          model: `${provider}/${model}`,
-          provider,
+      // Interactive mode
+      if (options.interactive || (!message && !options.continue && !options.session)) {
+        await runInteractive({
+          model: options.model,
+          sessionId: options.session,
+          verbose: options.verbose,
         });
-        await sessionManager.updateSession(session.sessionId, {
-          metadata: { ...session.metadata, title },
-        });
+        return;
       }
 
-      UI.println(
-        UI.Style.TEXT_INFO_BOLD + "|",
-        UI.Style.TEXT_DIM + " Session ",
-        "",
-        UI.Style.TEXT_NORMAL + session.sessionId
-      );
-      UI.println(
-        UI.Style.TEXT_INFO_BOLD + "|",
-        UI.Style.TEXT_DIM + " Provider",
-        "",
-        UI.Style.TEXT_NORMAL + `${provider}/${model}`
-      );
-
-      const isLocalhost = ["ollama", "lmstudio", "llamacpp"].includes(provider);
-      if (isLocalhost) {
-        const available = await checkLocalhostAvailability(
-          provider as "ollama" | "lmstudio" | "llamacpp",
-          projectConfig.baseURL
-        );
-        if (!available) {
-          UI.error(`${provider} is not available. Make sure it's running.`);
-          process.exit(1);
-        }
-      }
-
-      UI.println();
-
-      await sessionManager.addMessage(session.sessionId, {
-        role: "user",
-        content: message,
+      // Single prompt mode
+      const result = await runPrompt({
+        message,
+        model: options.model,
+        sessionId: options.session,
+        continueSession: options.continue,
+        title: options.title,
+        verbose: options.verbose,
+        format: options.format,
+        timeout: options.timeout,
       });
 
-      try {
-        let responseText = "";
-        const result = await streamAIResponse({
-          provider,
-          model,
-          baseURL: projectConfig.baseURL,
-          temperature: projectConfig.temperature,
-          maxTokens: projectConfig.maxTokens,
-          messages: session.messages.map((m) => ({
-            role: m.role as "user" | "assistant" | "system",
-            content: m.content,
-          })).concat([{ role: "user", content: message }]),
-          onChunk: (text) => {
-            responseText += text;
-            if (options.format === "json") return;
-            process.stdout.write(text);
-          },
-        });
-
-        if (options.format !== "json") {
-          process.stdout.write(EOL);
-        }
-
-        await sessionManager.addMessage(session.sessionId, {
-          role: "assistant",
-          content: responseText,
-          metadata: {
-            model: `${provider}/${model}`,
-            tokens: result.usage ? {
-              input: result.usage.promptTokens,
-              output: result.usage.completionTokens,
-              total: result.usage.totalTokens,
-            } : undefined,
-          },
-        });
-
-        await sessionManager.updateSession(session.sessionId, {
-          status: "idle",
-        });
-
-        if (options.format === "json") {
-          console.log(JSON.stringify({
-            type: "text",
-            sessionID: session.sessionId,
-            content: responseText,
-            usage: result.usage,
-          }, null, 2));
-        }
-      } catch (error) {
-        await sessionManager.updateSession(session.sessionId, {
-          status: "error",
-        });
-        UI.error((error as Error).message);
+      if (!result.success) {
         process.exit(1);
       }
     });
