@@ -1,9 +1,12 @@
 import {
   createContext,
   useContext,
-  createResource,
+  createSignal,
+  createEffect,
+  onMount,
   type ParentComponent,
 } from "solid-js";
+import { isServer } from "solid-js/web";
 
 interface AuthUser {
   id: string;
@@ -21,33 +24,65 @@ interface AuthContextValue {
   isAuthenticated: () => boolean;
   login: () => void;
   logout: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>();
 
-async function fetchAuthStatus(): Promise<AuthStatusResponse> {
-  const response = await fetch("/auth/status");
-  return response.json();
-}
-
 export const AuthProvider: ParentComponent = (props) => {
-  const [authData, { refetch }] = createResource(fetchAuthStatus);
+  const [user, setUser] = createSignal<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = createSignal(true);
+  const [isAuthenticated, setIsAuthenticated] = createSignal(false);
+
+  const fetchAuthStatus = async () => {
+    if (isServer) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch("/auth/status");
+      const data: AuthStatusResponse = await response.json();
+      setUser(data.user);
+      setIsAuthenticated(data.authenticated);
+    } catch (error) {
+      console.error("Failed to fetch auth status:", error);
+      setUser(null);
+      setIsAuthenticated(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  onMount(() => {
+    fetchAuthStatus();
+  });
 
   const login = () => {
-    window.location.href = "/auth/authorize";
+    if (!isServer) {
+      window.location.href = "/auth/authorize";
+    }
   };
 
   const logout = async () => {
-    await fetch("/auth/logout", { method: "POST" });
-    await refetch();
+    if (isServer) return;
+
+    try {
+      await fetch("/auth/logout", { method: "POST" });
+      setUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error("Failed to logout:", error);
+    }
   };
 
   const value: AuthContextValue = {
-    user: () => authData()?.user ?? null,
-    isLoading: () => authData.loading,
-    isAuthenticated: () => authData()?.authenticated ?? false,
+    user,
+    isLoading,
+    isAuthenticated,
     login,
     logout,
+    refetch: fetchAuthStatus,
   };
 
   return (

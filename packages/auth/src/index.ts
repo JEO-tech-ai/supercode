@@ -55,3 +55,33 @@ export function createAuthRouter(config?: AuthConfig) {
 export { createAuthMiddleware, requireAuth } from "./middleware";
 export { SessionManager } from "./session";
 export type * from "./types";
+
+// PKCE exports
+export {
+  generatePKCEPair,
+  generateState,
+  encodeState,
+  decodeState,
+  isStateValid,
+  createOAuthState,
+  validateOAuthCallback,
+  type PKCEPair,
+  type OAuthState,
+} from "./pkce";
+
+// Token management exports
+export {
+  isTokenExpired,
+  getTokenTimeRemaining,
+  refreshAccessToken,
+  exchangeCodeForTokens,
+  createTokenSet,
+  serializeTokens,
+  deserializeTokens,
+  InvalidGrantError,
+  TokenRefreshError,
+  DEFAULT_REFRESH_CONFIG,
+  type TokenSet,
+  type TokenRefreshConfig,
+  type TokenRefreshResult,
+} from "./token";
