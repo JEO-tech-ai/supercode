@@ -165,6 +165,142 @@ export type {
 } from "./prompt-context-injector";
 
 // ============================================================================
+// Session Notification Hooks
+// ============================================================================
+export {
+  createSessionNotificationHook,
+  clearNotificationState,
+  getAllNotificationStates,
+} from "./session-notification";
+export type { SessionNotificationOptions } from "./session-notification";
+
+// ============================================================================
+// Comment Checker Hooks
+// ============================================================================
+export {
+  createCommentCheckerHook,
+  checkCodeForComments,
+} from "./comment-checker";
+export type { CommentCheckerOptions } from "./comment-checker";
+
+// ============================================================================
+// Directory Agents Injector Hooks
+// ============================================================================
+export {
+  createDirectoryAgentsInjectorHook,
+  clearAgentsCache,
+  getAgentsCacheStats,
+} from "./directory-agents-injector";
+export type { DirectoryAgentsInjectorOptions } from "./directory-agents-injector";
+
+// ============================================================================
+// Empty Task Response Detector Hooks
+// ============================================================================
+export { createEmptyTaskResponseDetectorHook } from "./empty-task-response-detector";
+export type { EmptyTaskResponseDetectorOptions } from "./empty-task-response-detector";
+
+// ============================================================================
+// Think Mode Hooks
+// ============================================================================
+export {
+  createThinkModeHook,
+  getDefaultThinkKeywords,
+} from "./think-mode";
+export type { ThinkModeOptions } from "./think-mode";
+
+// ============================================================================
+// Keyword Detector Hooks
+// ============================================================================
+export {
+  createKeywordDetectorHook,
+  createKeywordConfig,
+} from "./keyword-detector";
+export type { KeywordDetectorOptions, KeywordConfig } from "./keyword-detector";
+
+// ============================================================================
+// Auto Slash Command Hooks
+// ============================================================================
+export {
+  createAutoSlashCommandHook,
+  getAvailableSlashCommands,
+  createSlashCommand,
+} from "./auto-slash-command";
+export type { AutoSlashCommandOptions, SlashCommand } from "./auto-slash-command";
+
+// ============================================================================
+// Background Notification Hooks
+// ============================================================================
+export {
+  createBackgroundNotificationHook,
+  getBackgroundTasks,
+  getRunningTasks,
+  clearCompletedTasks,
+} from "./background-notification";
+export type { BackgroundNotificationOptions } from "./background-notification";
+
+// ============================================================================
+// Ralph Loop Hooks
+// ============================================================================
+export {
+  createRalphLoopHook,
+  getLoopState,
+  stopLoop,
+  clearLoopState,
+} from "./ralph-loop";
+export type { RalphLoopOptions } from "./ralph-loop";
+
+// ============================================================================
+// Interactive Bash Session Hooks
+// ============================================================================
+export {
+  createInteractiveBashSessionHook,
+  getActiveBashSessions,
+  clearBashSessions,
+  getAllActiveBashSessions,
+} from "./interactive-bash-session";
+export type { InteractiveBashSessionOptions } from "./interactive-bash-session";
+
+// ============================================================================
+// Non-Interactive Environment Hooks
+// ============================================================================
+export {
+  createNonInteractiveEnvHook,
+  getDefaultEnvVars,
+  getDefaultTargetCommands,
+} from "./non-interactive-env";
+export type { NonInteractiveEnvOptions } from "./non-interactive-env";
+
+// ============================================================================
+// Empty Message Sanitizer Hooks
+// ============================================================================
+export {
+  createEmptyMessageSanitizerHook,
+  isMessageEmpty,
+  sanitize,
+} from "./empty-message-sanitizer";
+export type { EmptyMessageSanitizerOptions } from "./empty-message-sanitizer";
+
+// ============================================================================
+// Agent Usage Reminder Hooks
+// ============================================================================
+export {
+  createAgentUsageReminderHook,
+  getUsageStats,
+  clearUsageStats,
+  getAllUsageStats,
+} from "./agent-usage-reminder";
+export type { AgentUsageReminderOptions } from "./agent-usage-reminder";
+
+// ============================================================================
+// Compaction Context Injector Hooks
+// ============================================================================
+export {
+  createCompactionContextInjectorHook,
+  getDefaultCompactionInstructions,
+} from "./compaction-context-injector";
+export type { CompactionContextInjectorOptions } from "./compaction-context-injector";
+
+// ============================================================================
 // Legacy Hook Registry Access
 // ============================================================================
 import { getHookRegistry as getLegacyHookRegistry } from "../hooks";
@@ -201,6 +337,34 @@ export interface HookInitOptions {
   preemptiveCompaction?: boolean;
   /** Enable prompt context injection */
   promptContextInjector?: boolean;
+  /** Enable session notifications */
+  sessionNotification?: boolean;
+  /** Enable comment checker */
+  commentChecker?: boolean;
+  /** Enable directory agents injector */
+  directoryAgentsInjector?: boolean;
+  /** Enable empty task response detector */
+  emptyTaskResponseDetector?: boolean;
+  /** Enable think mode */
+  thinkMode?: boolean;
+  /** Enable keyword detector */
+  keywordDetector?: boolean;
+  /** Enable auto slash command */
+  autoSlashCommand?: boolean;
+  /** Enable background notification */
+  backgroundNotification?: boolean;
+  /** Enable ralph loop */
+  ralphLoop?: boolean;
+  /** Enable interactive bash session */
+  interactiveBashSession?: boolean;
+  /** Enable non-interactive environment */
+  nonInteractiveEnv?: boolean;
+  /** Enable empty message sanitizer */
+  emptyMessageSanitizer?: boolean;
+  /** Enable agent usage reminder */
+  agentUsageReminder?: boolean;
+  /** Enable compaction context injector */
+  compactionContextInjector?: boolean;
   /** Debug mode */
   debug?: boolean;
 }
@@ -221,6 +385,20 @@ const DEFAULT_HOOK_OPTIONS: HookInitOptions = {
   contextLimitRecovery: true,
   preemptiveCompaction: true,
   promptContextInjector: true,
+  sessionNotification: false, // Disabled by default (OS notifications)
+  commentChecker: true,
+  directoryAgentsInjector: true,
+  emptyTaskResponseDetector: true,
+  thinkMode: true,
+  keywordDetector: true,
+  autoSlashCommand: true,
+  backgroundNotification: true,
+  ralphLoop: false, // Disabled by default (opt-in feature)
+  interactiveBashSession: true,
+  nonInteractiveEnv: true,
+  emptyMessageSanitizer: true,
+  agentUsageReminder: true,
+  compactionContextInjector: true,
   debug: false,
 };
 
@@ -241,6 +419,20 @@ import { createEditErrorRecoveryHook } from "./edit-error-recovery";
 import { createRulesInjectorHook } from "./rules-injector";
 import { createDirectoryReadmeInjectorHook } from "./directory-readme-injector";
 import { createPromptContextInjectorHook } from "./prompt-context-injector";
+import { createSessionNotificationHook } from "./session-notification";
+import { createCommentCheckerHook } from "./comment-checker";
+import { createDirectoryAgentsInjectorHook } from "./directory-agents-injector";
+import { createEmptyTaskResponseDetectorHook } from "./empty-task-response-detector";
+import { createThinkModeHook } from "./think-mode";
+import { createKeywordDetectorHook } from "./keyword-detector";
+import { createAutoSlashCommandHook } from "./auto-slash-command";
+import { createBackgroundNotificationHook } from "./background-notification";
+import { createRalphLoopHook } from "./ralph-loop";
+import { createInteractiveBashSessionHook } from "./interactive-bash-session";
+import { createNonInteractiveEnvHook } from "./non-interactive-env";
+import { createEmptyMessageSanitizerHook } from "./empty-message-sanitizer";
+import { createAgentUsageReminderHook } from "./agent-usage-reminder";
+import { createCompactionContextInjectorHook } from "./compaction-context-injector";
 
 /**
  * Initialize all hooks with the given options
@@ -306,6 +498,76 @@ export function initializeHooks(options: HookInitOptions = {}): void {
   if (opts.promptContextInjector) {
     registry.register(createPromptContextInjectorHook(undefined, { debug: opts.debug }));
   }
+
+  // Session Notification
+  if (opts.sessionNotification) {
+    registry.register(createSessionNotificationHook({ debug: opts.debug }));
+  }
+
+  // Comment Checker
+  if (opts.commentChecker) {
+    registry.register(createCommentCheckerHook({ debug: opts.debug }));
+  }
+
+  // Directory Agents Injector
+  if (opts.directoryAgentsInjector) {
+    registry.register(createDirectoryAgentsInjectorHook({ debug: opts.debug }));
+  }
+
+  // Empty Task Response Detector
+  if (opts.emptyTaskResponseDetector) {
+    registry.register(createEmptyTaskResponseDetectorHook({ debug: opts.debug }));
+  }
+
+  // Think Mode
+  if (opts.thinkMode) {
+    registry.register(createThinkModeHook({ debug: opts.debug }));
+  }
+
+  // Keyword Detector
+  if (opts.keywordDetector) {
+    registry.register(createKeywordDetectorHook({ debug: opts.debug }));
+  }
+
+  // Auto Slash Command
+  if (opts.autoSlashCommand) {
+    registry.register(createAutoSlashCommandHook({ debug: opts.debug }));
+  }
+
+  // Background Notification
+  if (opts.backgroundNotification) {
+    registry.register(createBackgroundNotificationHook({ debug: opts.debug }));
+  }
+
+  // Ralph Loop
+  if (opts.ralphLoop) {
+    registry.register(createRalphLoopHook({ debug: opts.debug }));
+  }
+
+  // Interactive Bash Session
+  if (opts.interactiveBashSession) {
+    registry.register(createInteractiveBashSessionHook({ debug: opts.debug }));
+  }
+
+  // Non-Interactive Environment
+  if (opts.nonInteractiveEnv) {
+    registry.register(createNonInteractiveEnvHook({ debug: opts.debug }));
+  }
+
+  // Empty Message Sanitizer
+  if (opts.emptyMessageSanitizer) {
+    registry.register(createEmptyMessageSanitizerHook({ debug: opts.debug }));
+  }
+
+  // Agent Usage Reminder
+  if (opts.agentUsageReminder) {
+    registry.register(createAgentUsageReminderHook({ debug: opts.debug }));
+  }
+
+  // Compaction Context Injector
+  if (opts.compactionContextInjector) {
+    registry.register(createCompactionContextInjectorHook({ debug: opts.debug }));
+  }
 }
 
 /**
@@ -322,17 +584,51 @@ export function initializeMinimalHooks(): void {
  */
 export function getAvailableHookFactories(): string[] {
   return [
+    // Session & Lifecycle
     "createSessionRecoveryHook",
     "createSessionLifecycleHook",
+    // Context Window
     "createContextWindowMonitorHook",
     "createContextWindowLimitRecoveryHook",
     "createPreemptiveCompactionHook",
+    // Tools
     "createToolOutputTruncatorHook",
     "createToolCallMonitorHook",
+    // Validation
     "createThinkingBlockValidatorHook",
+    // Error Recovery
     "createEditErrorRecoveryHook",
+    // Context Injection
     "createRulesInjectorHook",
     "createDirectoryReadmeInjectorHook",
     "createPromptContextInjectorHook",
+    // Session Notification
+    "createSessionNotificationHook",
+    // Comment Checker
+    "createCommentCheckerHook",
+    // Directory Agents Injector
+    "createDirectoryAgentsInjectorHook",
+    // Empty Task Response Detector
+    "createEmptyTaskResponseDetectorHook",
+    // Think Mode
+    "createThinkModeHook",
+    // Keyword Detector
+    "createKeywordDetectorHook",
+    // Auto Slash Command
+    "createAutoSlashCommandHook",
+    // Background Notification
+    "createBackgroundNotificationHook",
+    // Ralph Loop
+    "createRalphLoopHook",
+    // Interactive Bash Session
+    "createInteractiveBashSessionHook",
+    // Non-Interactive Environment
+    "createNonInteractiveEnvHook",
+    // Empty Message Sanitizer
+    "createEmptyMessageSanitizerHook",
+    // Agent Usage Reminder
+    "createAgentUsageReminderHook",
+    // Compaction Context Injector
+    "createCompactionContextInjectorHook",
   ];
 }
