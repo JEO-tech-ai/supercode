@@ -4,7 +4,8 @@ import type { AIRequest, AIResponse } from "../models/types";
  * Agent names (extended with new agents)
  */
 export type AgentName =
-  | "coin"            // Master orchestrator
+  | "cent"            // Primary orchestrator (default mode, like Sisyphus)
+  | "coin"            // Legacy orchestrator
   | "analyst"         // Code analysis specialist
   | "executor"        // Command execution specialist
   | "code_reviewer"   // Code review specialist

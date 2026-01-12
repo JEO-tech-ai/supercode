@@ -44,7 +44,7 @@
 | `ultrawork` / `ulw` | **Full Power Mode.** Activates all agents, parallel execution, deep exploration, and relentless execution until 100% completion. |
 | `search` / `find` | **Maximized Search.** Triggers Explorer and Librarian agents to crawl your entire codebase. |
 | `analyze` / `investigate` | **Deep Analysis.** Multi-phase expert consultation with AST-grep and LSP tools. |
-| `ralph mode` / `/ralph` | **Autonomous Loop.** Code → Test → Fail → Refactor → Repeat until Green. |
+| `ralph mode` / `/ralph-loop` | **Autonomous Loop.** Code → Test → Fail → Refactor → Repeat until Green. |
 
 That's it. The agent figures out the rest automatically.
 
@@ -162,9 +162,9 @@ supercode -m deepseek   # local/deepseek-coder-v2:latest
 - Capability detection (coding, vision, long_context)
 - Zero authentication required for local services
 
-### Cent Agent - 6-Phase Multi-Agent Orchestrator
+### Cent Agent - Default 6-Phase Multi-Agent Orchestrator
 
-Advanced multi-agent coordination system with structured workflow:
+The **Cent agent** is the default orchestrator (like Sisyphus in oh-my-opencode). It automatically handles all requests with a structured 6-phase workflow:
 
 | Phase | Name | Description |
 |-------|------|-------------|
@@ -176,7 +176,10 @@ Advanced multi-agent coordination system with structured workflow:
 | 5 | **Verification** | Verify results and ensure completion |
 
 ```bash
-# Enable Cent agent
+# Cent is the default orchestrator - no flag needed
+supercode
+
+# Explicitly specify (optional)
 supercode --orchestrator cent
 ```
 
@@ -186,7 +189,7 @@ Self-referential development loop for autonomous task completion:
 
 ```bash
 # Start Ralph Loop
-/ralph "implement user authentication with JWT"
+/ralph-loop "implement user authentication with JWT"
 
 # Or use trigger patterns
 ralph mode: build the entire feature
@@ -297,7 +300,7 @@ Hooks are the "superpowers" of SuperCode. They run in the background during ever
 | **Git** | `/diff`, `/commit`, `/status`, `/log`, `/branch`, `/pr` |
 | **Context** | `/compact`, `/context`, `/cost`, `/plan`, `/files` |
 | **Agent** | `/spawn`, `/monitor`, `/stop`, `/ralph` |
-| **Skills** | `/skills`, `/skill <id>`, `/ultrawork`, `/ulw`, `/gemini`, `/codex`, `/cent` |
+| **Skills** | `/skills`, `/skill <id>`, `/ultrawork`, `/ulw`, `/ralph-loop` |
 | **Debug** | `/bug`, `/doctor`, `/logs`, `/version` |
 | **System** | `/help`, `/commands`, `/config`, `/lsp`, `/sidebar`, `/fullscreen`, `/exit` |
 

@@ -139,12 +139,16 @@ class BackgroundManager implements IBackgroundManager {
 
   private getProviderForAgent(agent: AgentName): string {
     const providerMap: Record<AgentName, string> = {
+      cent: "anthropic",
       coin: "anthropic",
       analyst: "google",
       executor: "openai",
       code_reviewer: "anthropic",
       doc_writer: "google",
       explorer: "anthropic",
+      librarian: "google",
+      frontend: "anthropic",
+      multimodal: "google",
     };
     return providerMap[agent] || "default";
   }
