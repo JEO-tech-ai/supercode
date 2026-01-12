@@ -128,3 +128,80 @@ export interface ParsedOAuthError {
   code?: string;
   description?: string;
 }
+
+/**
+ * Request body format for Antigravity API calls
+ */
+export interface AntigravityRequestBody {
+  /** GCP project ID */
+  project: string;
+  /** Model identifier (e.g., "gemini-3-pro-preview") */
+  model: string;
+  /** User agent identifier */
+  userAgent: string;
+  /** Unique request ID */
+  requestId: string;
+  /** The actual request payload */
+  request: Record<string, unknown>;
+}
+
+/**
+ * Response format from Antigravity API
+ */
+export interface AntigravityResponse {
+  id?: string;
+  object?: string;
+  created?: number;
+  model?: string;
+  choices?: AntigravityResponseChoice[];
+  usage?: AntigravityUsage;
+  error?: AntigravityError;
+}
+
+/**
+ * Single response choice in Antigravity response
+ */
+export interface AntigravityResponseChoice {
+  index: number;
+  message?: {
+    role: "assistant";
+    content?: string;
+    tool_calls?: AntigravityToolCall[];
+  };
+  delta?: {
+    role?: "assistant";
+    content?: string;
+    tool_calls?: AntigravityToolCall[];
+  };
+  finish_reason?: "stop" | "tool_calls" | "length" | "content_filter" | null;
+}
+
+/**
+ * Tool call in Antigravity response
+ */
+export interface AntigravityToolCall {
+  id: string;
+  type: "function";
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+/**
+ * Token usage statistics
+ */
+export interface AntigravityUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+
+/**
+ * Error response from Antigravity API
+ */
+export interface AntigravityError {
+  message: string;
+  type?: string;
+  code?: string | number;
+}

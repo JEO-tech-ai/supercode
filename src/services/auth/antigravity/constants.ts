@@ -59,3 +59,6 @@ export const MAX_REFRESH_RETRIES = 3;
 
 // Retry delay base (exponential backoff: 1s, 2s, 4s)
 export const RETRY_DELAY_BASE_MS = 1000;
+
+// Default thought signature to skip validation (CLIProxyAPI approach)
+export const SKIP_THOUGHT_SIGNATURE_VALIDATOR = "skip_thought_signature_validator";
