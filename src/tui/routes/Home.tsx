@@ -4,10 +4,10 @@ import { useTheme } from "../context/theme";
 import { useCommand, useCommands } from "../context/command";
 import { useToast } from "../context/toast";
 import { Logo } from "../component/Logo";
-import { Prompt } from "../component/prompt/Prompt";
+import { AdvancedPrompt } from "../component/prompt/AdvancedPrompt";
 import { ToastContainer } from "../ui/Toast";
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
 interface HomeProps {
   mcpCount?: number;
@@ -82,8 +82,8 @@ export function Home({ mcpCount = 0, directory }: HomeProps) {
         <Logo />
         
         <Box marginTop={2} width={75}>
-          <Prompt
-            placeholder="What would you like to do?"
+          <AdvancedPrompt
+            placeholder="What would you like to do? (/ commands, @ files)"
             hint={hint}
           />
         </Box>

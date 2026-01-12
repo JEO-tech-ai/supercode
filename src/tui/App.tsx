@@ -14,6 +14,8 @@ import {
 import { Home } from "./routes/Home";
 import { Session } from "./routes/session";
 import { CommandPalette } from "./ui/CommandPalette";
+import { HistoryProvider } from "./component/prompt/History";
+import type { PromptPart } from "./component/prompt/FileReference";
 
 interface AppContentProps {
   provider?: string;
@@ -142,11 +144,13 @@ export function TuiApp({
         <RouteProvider initialRoute={initialRoute}>
           <DialogProvider>
             <CommandProvider>
-              <AppContent
-                provider={provider}
-                model={model}
-                onSendMessage={onSendMessage}
-              />
+              <HistoryProvider>
+                <AppContent
+                  provider={provider}
+                  model={model}
+                  onSendMessage={onSendMessage}
+                />
+              </HistoryProvider>
             </CommandProvider>
           </DialogProvider>
         </RouteProvider>
