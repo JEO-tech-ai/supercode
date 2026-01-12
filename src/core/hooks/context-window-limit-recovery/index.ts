@@ -1,9 +1,11 @@
 /**
  * Context Window Limit Recovery Hook
  * Handles automatic recovery from token limit errors via compaction.
+ * Includes dynamic context pruning strategies.
  * Adapted from Oh-My-OpenCode for SuperCode integration
  */
 import type { Hook, HookContext, HookResult } from "../types";
+import type { SessionMessage } from "../../session/types";
 import type {
   ParsedTokenLimitError,
   AutoCompactState,
@@ -16,6 +18,13 @@ import type {
   DEFAULT_RETRY_CONFIG,
   DEFAULT_TRUNCATE_CONFIG,
 } from "./types";
+import type { DynamicContextPruningConfig, PruningResult } from "./pruning-types";
+import {
+  executeDynamicContextPruning,
+  applyPruning,
+  getPruningStats,
+  DEFAULT_PRUNING_CONFIG,
+} from "./pruning-executor";
 import logger from "../../../shared/logger";
 
 /**
@@ -369,3 +378,29 @@ export function resetCompactionState(): void {
 }
 
 export type { ParsedTokenLimitError, ContextWindowLimitRecoveryOptions, CompactionResult };
+
+// Re-export pruning modules
+export {
+  executeDynamicContextPruning,
+  applyPruning,
+  getPruningStats,
+  DEFAULT_PRUNING_CONFIG,
+} from "./pruning-executor";
+
+export type {
+  PruningResult,
+  PruningState,
+  DynamicContextPruningConfig,
+  DeduplicationConfig,
+  SupersedeWritesConfig,
+  PurgeErrorsConfig,
+  TruncateOutputsConfig,
+  ToolCallSignature,
+  FileOperation,
+  ErroredToolCall,
+} from "./pruning-types";
+
+export { createToolSignature, executeDeduplication } from "./pruning-deduplication";
+export { executeSupersedeWrites } from "./pruning-supersede";
+export { executePurgeErrors } from "./pruning-purge-errors";
+export { executeTruncateOutputs, truncateOutput, applyTruncation } from "./pruning-truncate";

@@ -103,6 +103,28 @@ export interface TruncateConfig {
 }
 
 /**
+ * Dynamic Context Pruning (DCP) configuration for recovery options
+ * References DynamicContextPruningConfig from pruning-types.ts
+ */
+export interface DcpOptions {
+  /** Enable DCP */
+  enabled: boolean;
+  /** Notification level */
+  notification?: "off" | "simple" | "detailed";
+  /** Turn protection (preserve recent N turns) */
+  turnProtection?: number;
+  /** Protected tool names */
+  protectedTools?: string[];
+  /** Strategy configurations */
+  strategies?: {
+    deduplication?: { enabled?: boolean; protectedTools?: string[] };
+    supersede_writes?: { enabled?: boolean; aggressive?: boolean };
+    purge_errors?: { enabled?: boolean; turns?: number };
+    truncate_outputs?: { enabled?: boolean; maxOutputSize?: number; targetSize?: number };
+  };
+}
+
+/**
  * Context window limit recovery options
  */
 export interface ContextWindowLimitRecoveryOptions {
@@ -110,6 +132,8 @@ export interface ContextWindowLimitRecoveryOptions {
   experimental?: boolean;
   /** Use DCP for compaction */
   dcpForCompaction?: boolean;
+  /** DCP configuration */
+  dcpConfig?: DcpOptions;
   /** Retry configuration */
   retryConfig?: Partial<RetryConfig>;
   /** Truncate configuration */
