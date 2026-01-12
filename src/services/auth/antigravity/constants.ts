@@ -1,12 +1,21 @@
 /**
  * Antigravity OAuth configuration constants
  * Adapted from Oh-My-OpenCode for SuperCode integration
+ *
+ * Security: Credentials are loaded from environment variables when available
  */
 
 // OAuth 2.0 Client Credentials (Google Cloud Code AI Companion)
+// Load from environment variables for security, fallback to defaults for development
 export const ANTIGRAVITY_CLIENT_ID =
+  process.env.ANTIGRAVITY_CLIENT_ID ||
+  process.env.GOOGLE_CLIENT_ID ||
   "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com";
-export const ANTIGRAVITY_CLIENT_SECRET = "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";
+
+export const ANTIGRAVITY_CLIENT_SECRET =
+  process.env.ANTIGRAVITY_CLIENT_SECRET ||
+  process.env.GOOGLE_CLIENT_SECRET ||
+  "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";
 
 // OAuth Callback
 export const ANTIGRAVITY_CALLBACK_PORT = 51121;

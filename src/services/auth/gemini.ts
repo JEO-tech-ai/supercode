@@ -17,8 +17,16 @@ import type {
 } from "./types";
 import logger from "../../shared/logger";
 
-const ANTIGRAVITY_CLIENT_ID = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com";
-const ANTIGRAVITY_CLIENT_SECRET = "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";
+// Load from environment variables for security, fallback to defaults
+const ANTIGRAVITY_CLIENT_ID =
+  process.env.GOOGLE_CLIENT_ID ||
+  process.env.ANTIGRAVITY_CLIENT_ID ||
+  "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com";
+
+const ANTIGRAVITY_CLIENT_SECRET =
+  process.env.GOOGLE_CLIENT_SECRET ||
+  process.env.ANTIGRAVITY_CLIENT_SECRET ||
+  "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";
 const ANTIGRAVITY_SCOPES = [
   "https://www.googleapis.com/auth/cloud-platform",
   "https://www.googleapis.com/auth/userinfo.email",
