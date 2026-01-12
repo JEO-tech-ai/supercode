@@ -4,7 +4,7 @@ import { render } from "ink";
 import type { SuperCoinConfig } from "../../config/schema";
 import { getTodoManager } from "../../services/agents/todo-manager";
 import { sessionManager } from "../../core/session/manager";
-import { LiveDashboard } from "../components/LiveDashboard";
+import LiveDashboard from "../components/LiveDashboard";
 
 export function createDashboardCommand(config: SuperCoinConfig): Command {
   const dashboard = new Command("dashboard")

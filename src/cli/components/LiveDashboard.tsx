@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import Dashboard from "./Dashboard";
-import { getSessionManager } from "../../core/session/manager";
+import { getSessionManager } from "../../core/session";
 import { getTodoManager } from "../../services/agents/todo-manager";
 import { getAgentRegistry } from "../../services/agents/registry";
 import { getBackgroundManager } from "../../services/agents/background";
