@@ -13,6 +13,7 @@
     "@solidjs/start": "^1.1.1",
     "@supercoin/auth": "workspace:*",
     "@supercoin/ui": "workspace:*",
+    "jose": "^6.0.0",
     "solid-js": "^1.9.10",
     "vinxi": "^0.5.10"
   },

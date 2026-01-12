@@ -1,4 +1,12 @@
 import { APIEvent } from "@solidjs/start/server";
+import { jwtVerify, SignJWT } from "jose";
+
+interface SessionPayload {
+  id: string;
+  userId: string;
+  email: string;
+  expiresAt: number;
+}
 
 /**
  * POST /auth/refresh
@@ -23,31 +31,68 @@ export async function POST(event: APIEvent) {
     );
   }
 
-  // TODO: Implement actual token refresh logic using refresh_token
-  // For now, we validate the session and return the current state
-  // In production, this would:
-  // 1. Decode the JWT to get the refresh token
-  // 2. Call the OAuth provider to refresh the access token
-  // 3. Issue a new session JWT with updated tokens
+  const jwtSecret = process.env.JWT_SECRET || "dev-secret-change-in-production";
+  const encoder = new TextEncoder();
+  const secret = encoder.encode(jwtSecret);
 
   try {
-    // Validate current session is still valid
-    // If the session is expired or invalid, return 401
-    return Response.json({
-      success: true,
-      message: "Session is valid",
-    });
+    // Verify current session
+    const { payload } = await jwtVerify(sessionToken, secret);
+    const session = payload as unknown as SessionPayload;
+
+    // Check if session has expired
+    if (session.expiresAt && session.expiresAt < Date.now()) {
+      return Response.json(
+        {
+          error: "reauthentication_required",
+          message: "Session expired. Please log in again.",
+        },
+        {
+          status: 401,
+          headers: {
+            "Set-Cookie": `supercoin_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`,
+          },
+        }
+      );
+    }
+
+    // Create a new session token with extended expiration
+    const newToken = await new SignJWT({
+      id: crypto.randomUUID(),
+      userId: session.userId,
+      email: session.email,
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("7d")
+      .sign(secret);
+
+    // Return success with new session cookie
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: "Session refreshed",
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Set-Cookie": `supercoin_session=${newToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800`,
+        },
+      }
+    );
   } catch (error) {
-    // Token refresh failed - likely invalid_grant
+    // Token validation failed
+    console.error("Session refresh error:", error);
     return Response.json(
       {
         error: "reauthentication_required",
-        message: "Session expired. Please log in again.",
+        message: "Invalid session. Please log in again.",
       },
       {
         status: 401,
         headers: {
-          // Clear the invalid session cookie
           "Set-Cookie": `supercoin_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`,
         },
       }
