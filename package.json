@@ -1,10 +1,10 @@
 {
-  "name": "supercoin",
-  "version": "0.1.0",
+  "name": "supercode",
+  "version": "0.3.0",
   "private": true,
-  "description": "Unified AI CLI hub for Claude, Codex, Gemini, and localhost models",
+  "description": "Modern AI-powered coding assistant with OpenCode-level TUI",
   "bin": {
-    "supercoin": "./src/cli/index.ts"
+    "supercode": "./src/cli/index.ts"
   },
   "type": "module",
   "packageManager": "bun@1.3.5",
@@ -18,12 +18,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/JEO-tech-ai/supercoin.git"
+    "url": "https://github.com/JEO-tech-ai/supercode.git"
   },
   "bugs": {
-    "url": "https://github.com/JEO-tech-ai/supercoin/issues"
+    "url": "https://github.com/JEO-tech-ai/supercode/issues"
   },
-  "homepage": "https://github.com/JEO-tech-ai/supercoin#readme",
+  "homepage": "https://github.com/JEO-tech-ai/supercode#readme",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -65,8 +65,10 @@
     "claude",
     "codex",
     "gemini",
-    "supercoin",
-    "monorepo"
+    "supercode",
+    "monorepo",
+    "tui",
+    "multi-agent"
   ],
   "author": "JEO-tech-ai",
   "license": "MIT"

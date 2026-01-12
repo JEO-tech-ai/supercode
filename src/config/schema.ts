@@ -6,7 +6,7 @@ const LocalhostProviderSchema = z.object({
   defaultModel: z.string().optional(),
 });
 
-export const SuperCoinConfigSchema = z.object({
+export const SuperCodeConfigSchema = z.object({
   default_model: z.string().default("anthropic/claude-sonnet-4-5"),
   fallback_models: z.array(z.string()).default([]),
   providers: z.object({
@@ -99,9 +99,13 @@ export const SuperCoinConfigSchema = z.object({
   }).optional(),
 });
 
-export type SuperCoinConfig = z.infer<typeof SuperCoinConfigSchema>;
+export type SuperCodeConfig = z.infer<typeof SuperCodeConfigSchema>;
 
-export function getDefaultConfig(): SuperCoinConfig {
+// Backward compatibility
+export type SuperCoinConfig = SuperCodeConfig;
+export const SuperCoinConfigSchema = SuperCodeConfigSchema;
+
+export function getDefaultConfig(): SuperCodeConfig {
   return {
     default_model: "anthropic/claude-sonnet-4-5",
     fallback_models: [],

@@ -1,4 +1,4 @@
-name: SuperCoin CI
+name: SuperCode CI
 
 on:
   push:
@@ -28,4 +28,4 @@ jobs:
       run: bun test
 
     - name: Build (excluding desktop)
-      run: bun turbo run build --filter='!@supercoin/desktop'
+      run: bun turbo run build --filter='!@supercode/desktop'

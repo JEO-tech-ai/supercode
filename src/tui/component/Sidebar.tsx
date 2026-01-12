@@ -627,7 +627,7 @@ export function Sidebar({
         <Box gap={1}>
           <Text color={theme.success}>●</Text>
           <Text color={theme.text} bold>Super</Text>
-          <Text color={theme.primary} bold>Coin</Text>
+          <Text color={theme.primary} bold>Code</Text>
           <Text color={theme.textMuted}>v0.3.0</Text>
         </Box>
         <Text color={theme.textMuted} dimColor>

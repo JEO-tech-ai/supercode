@@ -9,7 +9,7 @@ import {
 import type { IAgentRegistry, ITodoManager, IBackgroundManager, ISpawnInput } from "./services/agents";
 import { initializeCore, getSessionManager, getHookRegistry, getToolRegistry } from "./core";
 import type { ISessionManager, IHookRegistry, IToolRegistry } from "./core";
-import type { SuperCoinConfig } from "./config/schema";
+import type { SuperCodeConfig } from "./config/schema";
 import logger from "./shared/logger";
 
 // Orchestrator agent system
@@ -21,13 +21,13 @@ import {
   type AgentDefinition,
 } from "./agents";
 
-export interface SuperCoinOptions {
-  config: SuperCoinConfig;
+export interface SuperCodeOptions {
+  config: SuperCodeConfig;
   workdir?: string;
 }
 
-export class SuperCoin {
-  private config: SuperCoinConfig;
+export class SuperCode {
+  private config: SuperCodeConfig;
   private workdir: string;
   private initialized = false;
 
@@ -35,7 +35,7 @@ export class SuperCoin {
   private _models: ModelRouter | null = null;
   private _orchestratorAgents: AgentRegistry | null = null;
 
-  constructor(options: SuperCoinOptions) {
+  constructor(options: SuperCodeOptions) {
     this.config = options.config;
     this.workdir = options.workdir || process.cwd();
   }
@@ -47,7 +47,7 @@ export class SuperCoin {
     initializeAgents();
 
     this.initialized = true;
-    logger.debug("SuperCoin initialized");
+    logger.debug("SuperCode initialized");
   }
 
   get auth(): AuthHub {
@@ -226,6 +226,12 @@ export class SuperCoin {
   }
 }
 
-export function createSuperCoin(config: SuperCoinConfig, workdir?: string): SuperCoin {
-  return new SuperCoin({ config, workdir });
+export function createSuperCode(config: SuperCodeConfig, workdir?: string): SuperCode {
+  return new SuperCode({ config, workdir });
 }
+
+// Backward compatibility aliases
+export type SuperCoinConfig = SuperCodeConfig;
+export type SuperCoinOptions = SuperCodeOptions;
+export const SuperCoin = SuperCode;
+export const createSuperCoin = createSuperCode;

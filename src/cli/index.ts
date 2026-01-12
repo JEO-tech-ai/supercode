@@ -75,7 +75,7 @@ function handleChatError(error: unknown, provider: string, model: string) {
 async function runInteractiveMode() {
   UI.empty();
   process.stderr.write(UI.logo() + EOL + EOL);
-  clack.intro("🪙 SuperCoin - Unified AI CLI Hub");
+  clack.intro("⚡ SuperCode - AI-Powered Coding Assistant");
 
   await runDirectChatMode();
 
@@ -375,7 +375,7 @@ async function runChatFlow() {
       { value: "ollama", label: "🦙 Ollama (Local)", hint: "Privacy-first, cost-free" },
       { value: "lmstudio", label: "💻 LM Studio (Local)", hint: "Run models locally" },
       { value: "llamacpp", label: "🔧 llama.cpp (Local)", hint: "Raw performance" },
-      { value: "supercent", label: "🪙 SuperCent", hint: "SuperCoin's native AI" },
+      { value: "supercent", label: "⚡ SuperCent", hint: "SuperCode's native AI" },
       { value: "anthropic", label: "🤖 Claude (Anthropic)", hint: "Requires API key" },
       { value: "openai", label: "⚡ Codex (OpenAI)", hint: "Requires API key" },
       { value: "google", label: "🔮 Gemini (Google)", hint: "OAuth or API key" },
@@ -494,32 +494,32 @@ async function runAuthFlow() {
     throw new CancelledError();
   }
 
-  clack.log.info(`Run: supercoin auth ${authAction} --help`);
+  clack.log.info(`Run: supercode auth ${authAction} --help`);
   clack.note("Use command-line for auth operations", "Authentication");
 }
 
 async function runModelsFlow() {
-  clack.log.info("Run: supercoin models list");
+  clack.log.info("Run: supercode models list");
   clack.note("Use command-line for model operations", "Models");
 }
 
 async function runConfigFlow() {
-  clack.log.info("Run: supercoin config show");
+  clack.log.info("Run: supercode config show");
   clack.note("Use command-line for config operations", "Configuration");
 }
 
 async function runServerFlow() {
-  clack.log.info("Run: supercoin server start");
+  clack.log.info("Run: supercode server start");
   clack.note("Use command-line for server operations", "Server");
 }
 
 async function runDoctorFlow() {
-  clack.log.info("Run: supercoin doctor");
+  clack.log.info("Run: supercode doctor");
   clack.note("Use command-line for diagnostics", "Doctor");
 }
 
 async function runDashboardFlow() {
-  clack.log.info("Run: supercoin dashboard");
+  clack.log.info("Run: supercode dashboard");
   clack.note("Use command-line for dashboard", "Dashboard");
 }
 
@@ -580,12 +580,12 @@ async function runSessionFlow() {
   }
 
   if (action === "continue") {
-    clack.log.info(`Run: supercoin run --session ${session.sessionId}`);
+    clack.log.info(`Run: supercode run --session ${session.sessionId}`);
     return;
   }
 
   if (action === "show") {
-    clack.log.info(`Run: supercoin session show ${session.sessionId}`);
+    clack.log.info(`Run: supercode session show ${session.sessionId}`);
     return;
   }
 
@@ -652,8 +652,8 @@ async function main() {
   const config = await loadConfig();
 
   program
-    .name("supercoin")
-    .description("Unified AI CLI hub for Claude, Codex, Gemini, and localhost models")
+    .name("supercode")
+    .description("Modern AI-powered coding assistant with OpenCode-level TUI")
     .version(VERSION)
     .option("-p, --provider <name>", "AI provider (anthropic|openai|google|ollama|lmstudio|llamacpp)")
     .option("-m, --model <id>", "AI model to use")

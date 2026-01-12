@@ -10,7 +10,7 @@ import type {
 export class SelfDocumentationGenerator {
   private docsPath: string;
 
-  constructor(docsPath: string = path.join(process.cwd(), '.supercoin', 'docs')) {
+  constructor(docsPath: string = path.join(process.cwd(), '.supercode', 'docs')) {
     this.docsPath = docsPath;
   }
 

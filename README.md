@@ -1,4 +1,4 @@
-# SuperCoin
+# SuperCode
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Bun](https://img.shields.io/badge/Bun-1.0+-black?logo=bun)](https://bun.sh)
@@ -10,7 +10,7 @@ Modern AI-powered coding assistant with an **OpenCode-level** advanced Text User
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ✨ SuperCoin v0.3.0                                              claude-4  │
+│  ⚡ SuperCode v0.3.0                                              claude-4  │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  User: @explorer find all React components @src/                            │
@@ -32,7 +32,7 @@ Modern AI-powered coding assistant with an **OpenCode-level** advanced Text User
 - **Multi-Provider Support**: Claude, Codex, Gemini, Ollama, OpenAI, and localhost models
 - **Localhost-First**: Default to Ollama for privacy and cost-free local development
 - **AI SDK Integration**: Universal provider abstraction powered by Vercel AI SDK
-- **Project Configuration**: Per-project settings via `supercoin.json`
+- **Project Configuration**: Per-project settings via `supercode.json`
 
 ### 🖥️ Advanced TUI (OpenCode-level)
 
@@ -140,8 +140,8 @@ Modern AI-powered coding assistant with an **OpenCode-level** advanced Text User
 │ ⎇ feature/auth               │
 │ +2 ~3 ?1                     │
 ├──────────────────────────────┤
-│ 📂 supercoin                 │
-│ ● SuperCoin v0.3.0           │
+│ 📂 supercode                 │
+│ ● SuperCode v0.3.0           │
 │ 1-7: toggle sections         │
 └──────────────────────────────┘
 ```
@@ -179,8 +179,8 @@ Modern AI-powered coding assistant with an **OpenCode-level** advanced Text User
 curl -fsSL https://bun.sh/install | bash
 
 # Clone and install
-git clone https://github.com/JEO-tech-ai/supercoin.git
-cd supercoin
+git clone https://github.com/JEO-tech-ai/supercode.git
+cd supercode
 bun install
 
 # Run
@@ -191,7 +191,7 @@ bun src/cli/index.ts
 
 ```bash
 bun link
-supercoin --help
+supercode --help
 ```
 
 ## Usage
@@ -200,37 +200,37 @@ supercoin --help
 
 ```bash
 # Start the TUI (default)
-supercoin
+supercode
 
 # Or explicitly
-supercoin tui
+supercode tui
 
 # With specific provider and model
-supercoin --provider anthropic --model claude-4
+supercode --provider anthropic --model claude-4
 
 # Classic mode (legacy @clack/prompts)
-supercoin --classic
+supercode --classic
 ```
 
 ### Quick Examples
 
 ```bash
 # Start with Ollama (default, privacy-first)
-supercoin
+supercode
 
 # Use Claude
-supercoin --provider anthropic --model claude-4-sonnet
+supercode --provider anthropic --model claude-4-sonnet
 
 # Use OpenAI
-supercoin --provider openai --model gpt-4-turbo
+supercode --provider openai --model gpt-4-turbo
 
 # Use Gemini
-supercoin --provider google --model gemini-2.0-flash
+supercode --provider google --model gemini-2.0-flash
 ```
 
 ## Configuration
 
-### Project Configuration (`supercoin.json`)
+### Project Configuration (`supercode.json`)
 
 ```json
 {
@@ -259,18 +259,18 @@ supercoin --provider google --model gemini-2.0-flash
 
 ```bash
 # Set default provider
-supercoin config set provider ollama
+supercode config set provider ollama
 
 # Configure API keys
-supercoin auth setup anthropic
-supercoin auth setup openai
-supercoin auth setup google
+supercode auth setup anthropic
+supercode auth setup openai
+supercode auth setup google
 ```
 
 ## Project Structure
 
 ```
-supercoin/
+supercode/
 ├── src/
 │   ├── cli/                    # CLI entry point and commands
 │   │   ├── commands/           # CLI command handlers
@@ -315,7 +315,7 @@ supercoin/
 │   └── config/                 # Configuration management
 ├── docs/                       # Documentation
 ├── tests/                      # Test suites
-└── supercoin.json              # Project configuration
+└── supercode.json              # Project configuration
 ```
 
 ## Themes
@@ -338,7 +338,7 @@ supercoin/
 
 ## MCP (Model Context Protocol) Integration
 
-SuperCoin supports MCP servers for extended capabilities:
+SuperCode supports MCP servers for extended capabilities:
 
 ```bash
 # View MCP status
@@ -412,10 +412,10 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 ## License
 
-MIT © SuperCoin Contributors
+MIT © SuperCode Contributors
 
 ---
 
 Made with ❤️ using Bun, React/Ink, and TypeScript
 
-**[GitHub](https://github.com/JEO-tech-ai/supercoin)** • **[Documentation](https://supercoin.dev/docs)** • **[Discord](https://discord.gg/supercoin)**
+**[GitHub](https://github.com/JEO-tech-ai/supercode)** • **[Documentation](https://supercode.dev/docs)** • **[Discord](https://discord.gg/supercode)**

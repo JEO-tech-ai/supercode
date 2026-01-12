@@ -18,7 +18,7 @@ export class KnowledgeBaseManager extends EventEmitter {
   private storagePath: string;
   private index: Map<string, Set<string>> = new Map();
 
-  constructor(storagePath: string = path.join(process.cwd(), '.supercoin', 'knowledge')) {
+  constructor(storagePath: string = path.join(process.cwd(), '.supercode', 'knowledge')) {
     super();
     this.storagePath = storagePath;
     this.initialize();

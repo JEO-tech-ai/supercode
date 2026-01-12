@@ -3,7 +3,7 @@ import { readFile } from "fs/promises";
 import { join } from "path";
 import type { AISDKProviderName } from "../services/models/ai-sdk/types";
 
-const SuperCoinConfigSchema = z.object({
+const SuperCodeConfigSchema = z.object({
   provider: z.enum(["anthropic", "openai", "google", "ollama", "lmstudio", "llamacpp", "supercent"]).default("ollama"),
   model: z.string().optional(),
   baseURL: z.string().optional(),
@@ -12,23 +12,27 @@ const SuperCoinConfigSchema = z.object({
   streaming: z.boolean().default(true),
 });
 
-export type SuperCoinConfig = z.infer<typeof SuperCoinConfigSchema>;
+export type SuperCodeConfig = z.infer<typeof SuperCodeConfigSchema>;
 
-const CONFIG_FILENAMES = ["supercoin.json", ".supercoin.json", "opencode.json", ".opencode.json"];
+// Backward compatibility
+export type SuperCoinConfig = SuperCodeConfig;
+const SuperCoinConfigSchema = SuperCodeConfigSchema;
 
-export async function loadProjectConfig(cwd: string = process.cwd()): Promise<SuperCoinConfig> {
+const CONFIG_FILENAMES = ["supercode.json", ".supercode.json", "supercoin.json", ".supercoin.json", "opencode.json", ".opencode.json"];
+
+export async function loadProjectConfig(cwd: string = process.cwd()): Promise<SuperCodeConfig> {
   for (const filename of CONFIG_FILENAMES) {
     try {
       const configPath = join(cwd, filename);
       const content = await readFile(configPath, "utf-8");
       const parsed = JSON.parse(content);
-      return SuperCoinConfigSchema.parse(parsed);
+      return SuperCodeConfigSchema.parse(parsed);
     } catch {
       continue;
     }
   }
 
-  return SuperCoinConfigSchema.parse({});
+  return SuperCodeConfigSchema.parse({});
 }
 
 export function getDefaultProvider(): AISDKProviderName {
@@ -82,4 +86,4 @@ export async function resolveProviderFromConfig(cwd?: string, mode: "normal" | "
 }
 
 export { loadProjectConfig as loadOpenCodeConfig };
-export type { SuperCoinConfig as OpenCodeConfig };
+export type { SuperCodeConfig as OpenCodeConfig };
