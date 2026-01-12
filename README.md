@@ -16,7 +16,7 @@ Unified AI CLI hub for Claude, Codex, Gemini, SuperCent, and localhost models.
 - **AI SDK Integration**: Universal provider abstraction powered by Vercel AI SDK
 - **Interactive TUI**: Beautiful command-line interface powered by @clack/prompts
 - **Project Configuration**: Per-project settings via `supercoin.json`
-- **Extensible**: Advanced hook system (22 hooks) and multi-agent orchestration (9 agents)
+- **Extensible**: Advanced hook system (36 hooks) and multi-agent orchestration (9 agents)
 - **LSP Integration**: 11 Language Server Protocol tools for code intelligence
 - **AST-Grep**: AST-aware code search and transformation
 
@@ -260,26 +260,47 @@ supercoin --no-tui
 
 ## ⚡ Advanced Capabilities
 
-### Hook System (22 Hooks)
+### Hook System (36 Hooks)
 
 SuperCoin features a comprehensive hook system for extensibility:
 
 | Category | Hooks |
 |----------|-------|
-| **Session** | session.start, session.end, session.idle, session.error |
+| **Session** | session.start, session.end, session.idle, session.error, session.compacting |
 | **Message** | message.before, message.after |
 | **Tool** | tool.before, tool.after, tool.error |
 | **Agent** | agent.spawn, agent.complete, agent.error |
-| **Context** | context.window.warning, context.window.critical, context.compaction |
+| **Context** | context.window.warning, context.window.critical, context.compacting |
 
-**Specialized Hooks:**
+**Core Hooks (12):**
 - **Session Recovery**: Automatic session resumption on failure
+- **Session Lifecycle**: Track session states and transitions
 - **Context Window Monitor**: Token usage tracking and warnings
+- **Context Window Limit Recovery**: Handle token limit errors
 - **Preemptive Compaction**: Smart context management before limits
 - **Edit Error Recovery**: Automatic fix for common edit errors
 - **Thinking Block Validator**: Validation for extended thinking responses
 - **Tool Output Truncator**: Intelligent output size management
+- **Tool Call Monitor**: Track tool usage statistics
 - **Rules Injector**: Inject CLAUDE.md and .rules files
+- **Directory README Injector**: Inject README.md context
+- **Prompt Context Injector**: Dynamic context injection
+
+**Advanced Hooks (14):**
+- **Session Notification**: OS-level notifications for session events
+- **Background Notification**: Notify on background task completion
+- **Comment Checker**: Detect TODO/FIXME in generated code
+- **Directory Agents Injector**: Inject AGENTS.md configuration
+- **Compaction Context Injector**: Context for session compaction
+- **Think Mode**: Extended reasoning on "think" keywords
+- **Keyword Detector**: Activate modes based on keywords
+- **Auto Slash Command**: Process /plan, /review, /test commands
+- **Agent Usage Reminder**: Suggest agent usage over direct tools
+- **Empty Task Response Detector**: Detect empty Task responses
+- **Ralph Loop**: Autonomous task completion loop
+- **Interactive Bash Session**: Track tmux/screen sessions
+- **Non-Interactive Env**: Set env vars for non-interactive commands
+- **Empty Message Sanitizer**: Ensure non-empty message content
 
 ### LSP Tools (11 Tools)
 
@@ -894,7 +915,7 @@ This architecture allows adding 75+ providers with minimal code.
 - [ ] Workflow automation engine (planned)
 - [ ] Plugin system (planned)
 
-### ✅ Phase 6: Hook System Enhancement
+### ✅ Phase 6: Hook System Enhancement (36 Hooks)
 - [x] Hook registry with 18 event types (`src/core/hooks/`)
 - [x] Session recovery hooks (`src/core/hooks/session-recovery/`)
 - [x] Context window management (`src/core/hooks/context-window-limit-recovery/`)
@@ -904,6 +925,19 @@ This architecture allows adding 75+ providers with minimal code.
 - [x] Tool output truncator (`src/core/hooks/tool-output-truncator.ts`)
 - [x] Rules injector (`src/core/hooks/rules-injector/`)
 - [x] Context window monitor (`src/core/hooks/context-window-monitor.ts`)
+- [x] Session notification (`src/core/hooks/session-notification.ts`)
+- [x] Background notification (`src/core/hooks/background-notification.ts`)
+- [x] Comment checker (`src/core/hooks/comment-checker.ts`)
+- [x] Directory agents injector (`src/core/hooks/directory-agents-injector.ts`)
+- [x] Think mode (`src/core/hooks/think-mode.ts`)
+- [x] Keyword detector (`src/core/hooks/keyword-detector.ts`)
+- [x] Auto slash command (`src/core/hooks/auto-slash-command.ts`)
+- [x] Ralph loop (`src/core/hooks/ralph-loop.ts`)
+- [x] Interactive bash session (`src/core/hooks/interactive-bash-session.ts`)
+- [x] Non-interactive env (`src/core/hooks/non-interactive-env.ts`)
+- [x] Empty message sanitizer (`src/core/hooks/empty-message-sanitizer.ts`)
+- [x] Agent usage reminder (`src/core/hooks/agent-usage-reminder.ts`)
+- [x] Compaction context injector (`src/core/hooks/compaction-context-injector.ts`)
 
 ### ✅ Phase 7: Tool System Enhancement
 - [x] LSP types and client (`src/core/tools/lsp/`)

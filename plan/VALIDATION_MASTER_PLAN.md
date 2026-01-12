@@ -53,10 +53,14 @@ SuperCode 프로젝트가 Oh-My-OpenCode와 동일한 구조와 동작방식을 
 ### 훅 시스템
 | 항목 | Oh-My-OpenCode | SuperCode | 상태 |
 |------|----------------|-----------|------|
-| 훅 수 | 40+ | 22+ | 핵심 기능 구현 |
+| 훅 수 | 40+ | 36+ | 동등 수준 |
 | 세션 관리 | O | O | PASS |
 | 컨텍스트 모니터링 | O | O | PASS |
 | 에러 복구 | O | O | PASS |
+| 세션 알림 | O | O | PASS |
+| 코멘트 체커 | O | O | PASS |
+| Think Mode | O | O | PASS |
+| Ralph Loop | O | O | PASS |
 
 ---
 
@@ -108,16 +112,33 @@ SuperCode 프로젝트가 Oh-My-OpenCode와 동일한 구조와 동작방식을 
 ### SuperCode가 Oh-My-OpenCode와 동등하거나 향상된 영역
 
 1. **인증 시스템**: 4개 프로바이더 완전 지원 (동등)
-2. **훅 시스템**: 22개 핵심 훅 구현 (동등)
+2. **훅 시스템**: 36개 훅 구현 (동등) - 14개 추가 훅 구현 완료
 3. **에이전트 시스템**: 9개 에이전트 + 향상된 메타데이터 (향상)
 4. **도구 시스템**: LSP 11개 + AST-Grep 3개 (향상)
 5. **아키텍처**: 모노레포 + 다중 플랫폼 지원 (향상)
 
-### 미구현 또는 다른 접근방식
+### 다른 접근방식
 
-1. **Ralph Loop**: SuperCode에서 다른 방식으로 구현
-2. **OpenCode 플러그인 모드**: SuperCode는 독립 실행형
-3. **일부 특수 훅**: 세션 알림, 코멘트 체커 등
+1. **OpenCode 플러그인 모드**: SuperCode는 독립 실행형으로 설계됨
+
+### 추가 구현된 훅 (14개)
+
+| 카테고리 | 훅 이름 | 설명 |
+|---------|--------|------|
+| 세션 알림 | session-notification | OS 수준 알림 |
+| | background-notification | 백그라운드 작업 알림 |
+| 코드 품질 | comment-checker | TODO/FIXME 감지 |
+| 컨텍스트 | directory-agents-injector | AGENTS.md 주입 |
+| | compaction-context-injector | 압축 컨텍스트 |
+| UX | think-mode | 확장 추론 모드 |
+| | keyword-detector | 키워드 감지 |
+| | auto-slash-command | 슬래시 명령어 |
+| | agent-usage-reminder | 에이전트 사용 권고 |
+| 작업 관리 | empty-task-response-detector | 빈 응답 감지 |
+| | ralph-loop | 자율 작업 루프 |
+| 셸 환경 | interactive-bash-session | 세션 추적 |
+| | non-interactive-env | 비대화형 환경 |
+| | empty-message-sanitizer | 메시지 정리 |
 
 ### 최종 평가
 
@@ -128,5 +149,7 @@ SuperCode 프로젝트가 Oh-My-OpenCode와 동일한 구조와 동작방식을 
 
 ## 검증 완료
 - 검증일: 2026-01-12
+- 최종 업데이트: 2026-01-12 (14개 추가 훅 구현 완료)
 - 검증자: Claude Opus 4.5 (Multi-Agent Workflow)
 - 테스트 결과: 155 pass, 0 fail
+- 훅 팩토리: 26개 등록
