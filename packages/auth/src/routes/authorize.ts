@@ -32,6 +32,9 @@ export function createAuthorizeRoute() {
     }
     
     // Default: GitHub
+    if (!config.githubClientId) {
+        return c.text("GitHub Client ID not configured", 500);
+    }
     const authUrl = new URL("https://github.com/login/oauth/authorize");
     authUrl.searchParams.set("client_id", config.githubClientId);
     authUrl.searchParams.set("redirect_uri", redirectUri);

@@ -945,11 +945,11 @@ This architecture allows adding 75+ providers with minimal code.
 - [x] Cost-aware agent selection (FREE, CHEAP, EXPENSIVE)
 
 ### ✅ Phase 9: Authentication & Security Enhancement (New)
-- [x] Unified OAuth 2.0 flow with PKCE (`src/services/auth/pkce.ts`)
+- [x] Unified OAuth 2.0 flow with PKCE (`packages/auth/src/pkce.ts`)
 - [x] Multi-provider support: GitHub, Google (Gemini), Claude, Codex
-- [x] Antigravity integration (Google OAuth alias) (`src/providers/antigravity.ts`)
-- [x] Claude Pro/Max OAuth token refresh logic (`src/providers/claude.ts`)
-- [x] Codex (OpenAI) token validation (`src/providers/codex.ts`)
+- [x] Antigravity integration (Google OAuth alias) (`packages/auth/src/providers/antigravity.ts`)
+- [x] Claude Pro/Max OAuth token refresh logic (`packages/auth/src/providers/claude.ts`)
+- [x] Codex (OpenAI) token validation (`packages/auth/src/providers/codex.ts`)
 - [x] Secure token storage and session management
 - [x] Multi-account load balancing structures (Antigravity strategy)
 

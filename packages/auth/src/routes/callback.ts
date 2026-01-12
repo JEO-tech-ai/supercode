@@ -67,6 +67,10 @@ export function createCallbackRoute() {
           const origin = config.baseUrl ?? new URL(c.req.url).origin;
           const redirectUri = `${origin}/auth/callback?provider=${provider}`;
           
+          if (!config.googleClientId || !config.googleClientSecret) {
+            throw new Error("Google credentials not configured");
+          }
+
           const tokens = await exchangeGoogleCode(
               code,
               config.googleClientId,
@@ -84,6 +88,10 @@ export function createCallbackRoute() {
           // TODO: Store tokens.refresh_token if present for Antigravity logic
       } else {
           // GitHub Flow
+          if (!config.githubClientId || !config.githubClientSecret) {
+            throw new Error("GitHub credentials not configured");
+          }
+
           const accessToken = await exchangeCodeForToken(
             code,
             config.githubClientId,
