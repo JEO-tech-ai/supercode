@@ -1,5 +1,47 @@
-import type { Agent, AgentContext, AgentResult } from "./types";
+import type { Agent, AgentContext, AgentResult, AgentPromptMetadata } from "./types";
 import { streamAIResponse } from "../models/ai-sdk";
+
+/**
+ * Explorer agent metadata for delegation
+ */
+export const EXPLORER_METADATA: AgentPromptMetadata = {
+  category: "exploration",
+  cost: "FREE",
+  triggers: [
+    {
+      domain: "Internal Codebase",
+      trigger: "Where is X?, Find code that does Y, Which file has Z → explorer",
+    },
+    {
+      domain: "Code Search",
+      trigger: "2+ modules involved or broad search needed → fire explorer in background",
+    },
+  ],
+  useWhen: [
+    "Searching internal codebase",
+    "Finding file locations",
+    "Locating function definitions",
+    "Understanding code structure",
+    "Broad searches across multiple files",
+  ],
+  avoidWhen: [
+    "External library research (use librarian)",
+    "Single known file (use read directly)",
+    "Simple grep with known pattern (use grep directly)",
+  ],
+  keyTrigger: "2+ modules involved → fire explorer background",
+  dedicatedSection: `
+The Explorer is a fast codebase grep specialist for internal searches.
+
+**Fire 1-3 times in parallel** for broad searches.
+Always run in **background** to not block the main flow.
+
+**Success Criteria**:
+- Absolute file paths
+- Complete results
+- Actionable information
+`,
+};
 
 export class ExplorerAgent implements Agent {
   readonly name = "explorer" as const;
@@ -16,6 +58,8 @@ export class ExplorerAgent implements Agent {
     "lsp_goto_definition",
     "lsp_workspace_symbols",
   ];
+
+  readonly metadata = EXPLORER_METADATA;
 
   private readonly systemPrompt = `You are a fast codebase explorer. Your job is to quickly find information.
 

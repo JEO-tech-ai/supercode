@@ -2,7 +2,7 @@
  * Authentication Types
  */
 
-export type AuthProviderName = "claude" | "codex" | "gemini";
+export type AuthProviderName = "claude" | "codex" | "gemini" | "antigravity";
 
 export interface TokenData {
   accessToken: string;

@@ -16,7 +16,9 @@ Unified AI CLI hub for Claude, Codex, Gemini, SuperCent, and localhost models.
 - **AI SDK Integration**: Universal provider abstraction powered by Vercel AI SDK
 - **Interactive TUI**: Beautiful command-line interface powered by @clack/prompts
 - **Project Configuration**: Per-project settings via `supercoin.json`
-- **Extensible**: Hook system and agent configuration
+- **Extensible**: Advanced hook system (22 hooks) and multi-agent orchestration (9 agents)
+- **LSP Integration**: 11 Language Server Protocol tools for code intelligence
+- **AST-Grep**: AST-aware code search and transformation
 
 
 
@@ -257,6 +259,83 @@ supercoin --no-tui
 | `-q, --quiet` | Minimal output | `-q` |
 
 ## ⚡ Advanced Capabilities
+
+### Hook System (22 Hooks)
+
+SuperCoin features a comprehensive hook system for extensibility:
+
+| Category | Hooks |
+|----------|-------|
+| **Session** | session.start, session.end, session.idle, session.error |
+| **Message** | message.before, message.after |
+| **Tool** | tool.before, tool.after, tool.error |
+| **Agent** | agent.spawn, agent.complete, agent.error |
+| **Context** | context.window.warning, context.window.critical, context.compaction |
+
+**Specialized Hooks:**
+- **Session Recovery**: Automatic session resumption on failure
+- **Context Window Monitor**: Token usage tracking and warnings
+- **Preemptive Compaction**: Smart context management before limits
+- **Edit Error Recovery**: Automatic fix for common edit errors
+- **Thinking Block Validator**: Validation for extended thinking responses
+- **Tool Output Truncator**: Intelligent output size management
+- **Rules Injector**: Inject CLAUDE.md and .rules files
+
+### LSP Tools (11 Tools)
+
+Code intelligence powered by Language Server Protocol:
+
+| Tool | Description |
+|------|-------------|
+| `lsp_hover` | Get documentation and type info at cursor |
+| `lsp_goto_definition` | Jump to symbol definition |
+| `lsp_find_references` | Find all references to a symbol |
+| `lsp_document_symbols` | List all symbols in a file |
+| `lsp_workspace_symbols` | Search symbols across workspace |
+| `lsp_diagnostics` | Get errors and warnings |
+| `lsp_servers` | List available LSP servers |
+| `lsp_prepare_rename` | Check if rename is valid |
+| `lsp_rename` | Rename symbol across files |
+| `lsp_code_actions` | Get quick fixes and refactorings |
+| `lsp_code_action_resolve` | Apply a code action |
+
+**Supported Languages**: TypeScript, JavaScript, Python, Go, Rust, Java, C/C++, Ruby, PHP, and 20+ more.
+
+### AST-Grep Tools (3 Tools)
+
+AST-aware code search and transformation:
+
+| Tool | Description |
+|------|-------------|
+| `ast_grep_search` | Search code patterns with AST awareness |
+| `ast_grep_replace` | Replace code patterns (dry-run supported) |
+| `ast_grep_check` | Check AST-Grep environment |
+
+**Features:**
+- Meta-variables: `$VAR` for single node, `$$$` for multiple
+- Pattern matching across 25 languages
+- Dry-run mode for safe preview
+
+### Multi-Agent System (9 Agents)
+
+Sisyphus-style orchestration with specialized agents:
+
+| Agent | Category | Purpose |
+|-------|----------|---------|
+| **Coin** | Orchestrator | Master coordinator, delegation, verification |
+| **Explorer** | Exploration | Fast internal codebase search |
+| **Librarian** | Exploration | External research (GitHub, docs, web) |
+| **Analyst** | Advisor | Architecture, security, performance review |
+| **Frontend** | Specialist | UI/UX, styling, visual design |
+| **Doc Writer** | Specialist | Technical documentation |
+| **Executor** | Utility | Command execution, automation |
+| **Code Reviewer** | Utility | Code review with severity levels |
+| **Multimodal** | Utility | PDF/image analysis |
+
+**Delegation System:**
+- Dynamic prompt generation based on available agents
+- Cost-aware agent selection (FREE, CHEAP, EXPENSIVE)
+- Parallel background execution for exploration agents
 
 ### UltraWork Mode
 For tasks requiring maximum precision and multi-step reasoning, activate **UltraWork Mode**.
@@ -814,6 +893,33 @@ This architecture allows adding 75+ providers with minimal code.
 - [ ] Smart CLI shell (planned)
 - [ ] Workflow automation engine (planned)
 - [ ] Plugin system (planned)
+
+### ✅ Phase 6: Hook System Enhancement
+- [x] Hook registry with 18 event types (`src/core/hooks/`)
+- [x] Session recovery hooks (`src/core/hooks/session-recovery/`)
+- [x] Context window management (`src/core/hooks/context-window-limit-recovery/`)
+- [x] Preemptive compaction (`src/core/hooks/preemptive-compaction/`)
+- [x] Edit error recovery (`src/core/hooks/edit-error-recovery/`)
+- [x] Thinking block validator (`src/core/hooks/thinking-block-validator.ts`)
+- [x] Tool output truncator (`src/core/hooks/tool-output-truncator.ts`)
+- [x] Rules injector (`src/core/hooks/rules-injector/`)
+- [x] Context window monitor (`src/core/hooks/context-window-monitor.ts`)
+
+### ✅ Phase 7: Tool System Enhancement
+- [x] LSP types and client (`src/core/tools/lsp/`)
+- [x] 11 LSP tools (hover, definition, references, symbols, diagnostics, rename, code actions)
+- [x] 31 built-in LSP server configurations
+- [x] AST-Grep CLI wrapper (`src/core/tools/ast-grep/cli.ts`)
+- [x] 3 AST-Grep tools (search, replace, check)
+- [x] Tool registry update with 'code' category
+
+### ✅ Phase 8: Agent System Enhancement
+- [x] Agent metadata system (`AgentPromptMetadata`)
+- [x] Sisyphus prompt builder (`src/services/agents/sisyphus/`)
+- [x] Dynamic delegation table generation
+- [x] 3 new agents: Librarian, Frontend, Multimodal
+- [x] Metadata for existing agents (Explorer, Analyst, DocWriter)
+- [x] Cost-aware agent selection (FREE, CHEAP, EXPENSIVE)
 
 ### Test Coverage
 - **155 tests passing**

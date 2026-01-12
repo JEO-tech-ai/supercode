@@ -1,5 +1,51 @@
-import type { Agent, AgentContext, AgentResult } from "./types";
+import type { Agent, AgentContext, AgentResult, AgentPromptMetadata } from "./types";
 import { streamAIResponse } from "../models/ai-sdk";
+
+/**
+ * Analyst agent metadata for delegation
+ */
+export const ANALYST_METADATA: AgentPromptMetadata = {
+  category: "advisor",
+  cost: "EXPENSIVE",
+  triggers: [
+    {
+      domain: "Architecture",
+      trigger: "Complex architecture decisions, system design → consult analyst",
+    },
+    {
+      domain: "Code Review",
+      trigger: "Significant code review, security audit → analyst",
+    },
+    {
+      domain: "Debugging",
+      trigger: "2+ failed fix attempts, complex debugging → escalate to analyst",
+    },
+  ],
+  useWhen: [
+    "Complex architecture decisions",
+    "Significant code review before merge",
+    "Security audit of critical code",
+    "Performance analysis",
+    "After 2+ failed attempts at fixing an issue",
+    "Unfamiliar patterns or technologies",
+  ],
+  avoidWhen: [
+    "Simple file operations",
+    "First fix attempt (try yourself first)",
+    "Questions answerable from code you already read",
+    "Trivial decisions",
+  ],
+  dedicatedSection: `
+The Analyst is a strategic advisor for complex decisions.
+
+**Consult when**:
+- Architecture decisions that affect multiple components
+- Security-critical code review
+- After 2+ failed fix attempts
+
+**Effort Tags**: Quick (minutes), Short (hour), Medium (hours), Large (days)
+`,
+};
 
 export class AnalystAgent implements Agent {
   readonly name = "analyst" as const;
@@ -14,6 +60,8 @@ export class AnalystAgent implements Agent {
   ];
 
   readonly allowedTools = ["read", "grep", "glob"];
+
+  readonly metadata = ANALYST_METADATA;
 
   private readonly systemPrompt = `You are a specialized code analyst with expertise in:
 - Large-scale codebase analysis (1M+ tokens)

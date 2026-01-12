@@ -52,6 +52,7 @@ export type ToolCategory =
   | 'database'
   | 'ai'
   | 'system'
+  | 'code'      // LSP, AST-Grep, and other code intelligence tools
   | 'custom';
 
 export interface RateLimit {

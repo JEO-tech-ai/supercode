@@ -5,6 +5,7 @@
 import { ClaudeAuthProvider } from "./claude";
 import { CodexAuthProvider } from "./codex";
 import { GeminiAuthProvider } from "./gemini";
+import { AntigravityAuthProvider } from "./antigravity";
 import { getTokenStore } from "../../server/store/token-store";
 import type {
   AuthProvider,
@@ -25,6 +26,7 @@ export class AuthHub {
       ["claude", new ClaudeAuthProvider()],
       ["codex", new CodexAuthProvider()],
       ["gemini", new GeminiAuthProvider()],
+      ["antigravity", new AntigravityAuthProvider()],
     ]);
   }
 
@@ -176,6 +178,7 @@ export class AuthHub {
       anthropic: "claude",
       openai: "codex",
       google: "gemini",
+      antigravity: "antigravity",
     };
     return mapping[modelProvider] || null;
   }

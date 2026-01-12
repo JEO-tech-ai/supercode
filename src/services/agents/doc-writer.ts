@@ -1,5 +1,41 @@
-import type { Agent, AgentContext, AgentResult } from "./types";
+import type { Agent, AgentContext, AgentResult, AgentPromptMetadata } from "./types";
 import { streamAIResponse } from "../models/ai-sdk";
+
+/**
+ * Doc Writer agent metadata for delegation
+ */
+export const DOC_WRITER_METADATA: AgentPromptMetadata = {
+  category: "specialist",
+  cost: "CHEAP",
+  triggers: [
+    {
+      domain: "Documentation",
+      trigger: "README, API docs, user guides, architecture docs → doc_writer",
+    },
+    {
+      domain: "Technical Writing",
+      trigger: "Changelog, release notes, migration guides → doc_writer",
+    },
+  ],
+  useWhen: [
+    "Writing or updating README files",
+    "Creating API documentation",
+    "Writing user guides or tutorials",
+    "Documenting architecture",
+    "Creating changelogs or release notes",
+  ],
+  avoidWhen: [
+    "Code changes (use other agents)",
+    "Inline code comments (do directly)",
+    "Simple formatting fixes",
+  ],
+  dedicatedSection: `
+The Documentation Writer creates crystal-clear, comprehensive docs.
+
+**Output**: Well-structured Markdown with examples.
+**Verify**: All code examples must be tested.
+`,
+};
 
 export class DocWriterAgent implements Agent {
   readonly name = "doc_writer" as const;
@@ -14,6 +50,8 @@ export class DocWriterAgent implements Agent {
   ];
 
   readonly allowedTools = ["read", "write", "grep", "glob"];
+
+  readonly metadata = DOC_WRITER_METADATA;
 
   private readonly systemPrompt = `You are a technical documentation specialist with expertise in:
 - API documentation (OpenAPI, JSDoc, TSDoc)
