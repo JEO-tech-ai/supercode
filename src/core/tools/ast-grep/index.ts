@@ -19,6 +19,15 @@ export {
   formatReplaceResult,
 } from "./cli";
 
+// Downloader exports
+export {
+  getCacheDir,
+  getCachedBinaryPath,
+  ensureAstGrepBinary,
+  downloadAstGrep,
+  getDownloadedVersion,
+} from "./downloader";
+
 // Tool exports
 export {
   astGrepSearchTool,

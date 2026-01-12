@@ -9,6 +9,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { RunOptions, SgResult, CliMatch, EnvironmentCheckResult } from "./types";
+import { getCachedBinaryPath, ensureAstGrepBinary } from "./downloader";
 import logger from "../../../shared/logger";
 
 /**
@@ -53,6 +54,13 @@ export async function getAstGrepPath(): Promise<string | null> {
     cachedBinaryPath = null;
   }
 
+  // Check downloaded/cached binary first
+  const downloadedPath = getCachedBinaryPath();
+  if (downloadedPath) {
+    cachedBinaryPath = downloadedPath;
+    return downloadedPath;
+  }
+
   // Check search paths
   for (const path of SEARCH_PATHS) {
     if (existsSync(path)) {
@@ -93,12 +101,22 @@ export async function isCliAvailable(): Promise<boolean> {
 
 /**
  * Ensure CLI is available
+ * Will attempt to download if not found
  */
 export async function ensureCliAvailable(): Promise<boolean> {
   if (await isCliAvailable()) return true;
 
+  // Try to download automatically
+  logger.info("[ast-grep] CLI not found, attempting to download...");
+  const downloadedPath = await ensureAstGrepBinary();
+
+  if (downloadedPath) {
+    cachedBinaryPath = downloadedPath;
+    return true;
+  }
+
   logger.warn(
-    "[ast-grep] CLI not found. Install with: npm install -g @ast-grep/cli, " +
+    "[ast-grep] CLI not found and auto-download failed. Install with: npm install -g @ast-grep/cli, " +
     "cargo install ast-grep --locked, or brew install ast-grep"
   );
 
