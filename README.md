@@ -835,20 +835,65 @@ bun run build
 
 ### TUI Architecture
 
-SuperCoin features a chat-first CLI interface:
+SuperCoin features a modern, OpenCode-style Text UI built with React/Ink:
 
-1. **Interactive Mode** (default): Rich terminal UI with `@clack/prompts`
+1. **New TUI Mode** (default in v0.2.0): Modern React-based terminal UI
+   - **Theme System**: 5 built-in themes (catppuccin, dracula, nord, tokyo-night, monokai)
+   - **Command Palette**: `Ctrl+X` for quick command access
+   - **Route System**: Home and Session views with smooth navigation
+   - **Toast Notifications**: Informative feedback system
+   - **Keyboard Shortcuts**: Intuitive keybindings throughout
+   - **Message List**: Clean conversation display with streaming support
+
+2. **Classic Mode** (`--classic`): Original `@clack/prompts` interface
    - Direct chat input by default (no menu navigation required)
    - Slash commands for navigation (`/menu`, `/session`, `/help`, etc.)
    - ASCII logo display on startup
    - Real-time spinners and progress updates
-   - Consistent cancel handling via `CancelledError`
-   - Styled output with UI utilities (`src/shared/ui.ts`)
 
-2. **Command-Line Mode**: Direct execution with flags
+3. **Command-Line Mode**: Direct execution with flags
    - Full control via `--provider`, `--model`, etc.
    - JSON output support for scripting
    - Quiet mode for minimal output
+
+#### TUI Components (`src/tui/`)
+
+```
+src/tui/
+├── App.tsx                 # Main app with provider composition
+├── context/                # React contexts
+│   ├── theme/             # Theme system (5 themes)
+│   ├── route.tsx          # Navigation routing
+│   ├── dialog.tsx         # Modal dialogs
+│   ├── toast.tsx          # Toast notifications
+│   └── command.tsx        # Command palette
+├── component/              # Reusable components
+│   ├── Logo.tsx           # ASCII art logo
+│   ├── Border.tsx         # Styled borders
+│   └── prompt/            # Input components
+├── routes/                 # View routes
+│   ├── Home.tsx           # Home screen
+│   └── session/           # Session view
+└── ui/                     # UI utilities
+    ├── Toast.tsx          # Toast container
+    └── CommandPalette.tsx # Command palette
+```
+
+#### Launch TUI
+
+```bash
+# New TUI (default)
+supercoin
+
+# Or explicitly
+supercoin tui
+
+# With theme options
+supercoin tui --theme dracula --mode dark
+
+# Classic mode
+supercoin --classic
+```
 
 ### AI SDK Providers
 

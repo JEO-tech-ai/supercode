@@ -9,6 +9,7 @@ import { createConfigCommand } from "./commands/config";
 import { createDoctorCommand } from "./commands/doctor";
 import { createDashboardCommand } from "./commands/dashboard";
 import { createSessionCommand } from "./commands/session";
+import { createTuiCommand } from "./commands/tui";
 import { sessionManager } from "../core/session/manager";
 import { resolveProviderFromConfig } from "../config/project";
 import { streamAIResponse, checkLocalhostAvailability, checkOllamaModel, getAvailableOllamaModels } from "../services/models/ai-sdk";
@@ -18,7 +19,12 @@ import logger from "../shared/logger";
 import { EOL } from "os";
 import { runPrompt, runInteractive } from "./run";
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
+
+// Import for new TUI
+import React from "react";
+import { render } from "ink";
+import { TuiApp } from "../tui";
 
 process.on("unhandledRejection", (e) => {
   logger.error("rejection", e instanceof Error ? e : new Error(String(e)));
@@ -74,6 +80,43 @@ async function runInteractiveMode() {
   await runDirectChatMode();
 
   clack.outro("✨ Done!");
+}
+
+async function runNewTui() {
+  const projectConfig = await resolveProviderFromConfig();
+  const provider = projectConfig.provider as AISDKProviderName;
+  const model = projectConfig.model;
+
+  // Message handler that integrates with AI SDK
+  const handleSendMessage = async (message: string, sessionId: string): Promise<string> => {
+    let response = "";
+
+    await streamAIResponse({
+      provider,
+      model,
+      baseURL: projectConfig.baseURL,
+      temperature: projectConfig.temperature,
+      maxTokens: projectConfig.maxTokens,
+      messages: [{ role: "user", content: message }],
+      onChunk: (text) => {
+        response += text;
+      },
+    });
+
+    return response;
+  };
+
+  const { waitUntilExit } = render(
+    React.createElement(TuiApp, {
+      initialTheme: "catppuccin",
+      initialMode: "dark",
+      provider,
+      model,
+      onSendMessage: handleSendMessage,
+    })
+  );
+
+  await waitUntilExit();
 }
 
 async function runDirectChatMode() {
@@ -630,14 +673,21 @@ async function main() {
   program.addCommand(createDashboardCommand(config));
   program.addCommand(createSessionCommand());
   program.addCommand(createRunCommand());
+  program.addCommand(createTuiCommand(config));
 
   program
     .argument("[prompt...]", "Prompt for AI")
+    .option("--classic", "Use classic clack-based UI instead of new TUI")
     .action(async (promptParts: string[], options) => {
       const prompt = promptParts.join(" ");
 
       if (!prompt && options.tui !== false) {
-        await runInteractiveMode();
+        // Use new TUI by default, --classic for old UI
+        if (options.classic) {
+          await runInteractiveMode();
+        } else {
+          await runNewTui();
+        }
         return;
       }
 
