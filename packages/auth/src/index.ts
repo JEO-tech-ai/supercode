@@ -85,3 +85,12 @@ export {
   type TokenRefreshConfig,
   type TokenRefreshResult,
 } from "./token";
+
+// Token manager exports
+export {
+  TokenManager,
+  createTokenManager,
+  type TokenManagerConfig,
+  type TokenManagerEvent,
+  type TokenManagerEventListener,
+} from "./token-manager";
