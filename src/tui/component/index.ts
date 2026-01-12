@@ -1,6 +1,16 @@
 export { Logo } from "./Logo";
 export { Border } from "./Border";
-export { Sidebar } from "./Sidebar";
+export { 
+  Sidebar, 
+  type TodoItem, 
+  type ModifiedFile, 
+  type SubAgentInfo, 
+  type MCPServerInfo, 
+  type LSPServerInfo 
+} from "./Sidebar";
+export { SubAgentMonitor, type SubAgent } from "./SubAgentMonitor";
+export { MCPPanel, MCPStatus, type MCPServer, type MCPTool, type MCPResource, type MCPPrompt } from "./MCPPanel";
+export { LSPPanel, LSPStatus, type LSPServer, type LSPCapabilities } from "./LSPPanel";
 export { 
   Prompt, 
   SimplePrompt, 
@@ -14,5 +24,8 @@ export {
   parseReferences,
   type PromptPart,
   type FileReference,
+  type AgentReference,
+  type SymbolReference,
+  type URLReference,
   type HistoryEntry,
 } from "./prompt";

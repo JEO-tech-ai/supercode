@@ -9,38 +9,177 @@ export interface FileReference {
   path: string;
   displayPath: string;
   lineRange?: { start: number; end?: number };
+  size?: number;
+  extension?: string;
 }
 
 export interface AgentReference {
   type: "agent";
   name: string;
+  description?: string;
 }
 
-export type PromptPart = FileReference | AgentReference | { type: "text"; text: string };
+export interface SymbolReference {
+  type: "symbol";
+  name: string;
+  kind: "function" | "class" | "variable" | "type" | "interface";
+  file?: string;
+  line?: number;
+}
+
+export interface URLReference {
+  type: "url";
+  url: string;
+  title?: string;
+}
+
+export type PromptPart = 
+  | FileReference 
+  | AgentReference 
+  | SymbolReference
+  | URLReference
+  | { type: "text"; text: string };
 
 interface FileReferenceMenuProps {
   visible: boolean;
   filter: string;
-  onSelect: (ref: FileReference) => void;
+  onSelect: (ref: FileReference | AgentReference) => void;
   onClose: () => void;
   selectedIndex: number;
   onNavigate: (direction: -1 | 1) => void;
   cwd?: string;
+  showAgents?: boolean;
+  showFiles?: boolean;
+  showSymbols?: boolean;
 }
 
-// Available agents for @ mention
-const AGENTS = [
-  { name: "explorer", description: "Fast codebase search" },
-  { name: "analyst", description: "Architecture & security review" },
-  { name: "frontend", description: "UI/UX specialist" },
-  { name: "docwriter", description: "Technical documentation" },
-  { name: "executor", description: "Command execution" },
-  { name: "reviewer", description: "Code review" },
+// Available agents for @ mention with enhanced descriptions
+const AGENTS: Array<{ name: string; description: string; icon: string; capabilities: string[] }> = [
+  { 
+    name: "explorer", 
+    description: "Fast codebase search & navigation",
+    icon: "🔍",
+    capabilities: ["grep", "find", "semantic-search"]
+  },
+  { 
+    name: "analyst", 
+    description: "Architecture & security review",
+    icon: "📊",
+    capabilities: ["analyze", "review", "security-scan"]
+  },
+  { 
+    name: "frontend", 
+    description: "UI/UX specialist (React, Vue, etc.)",
+    icon: "🎨",
+    capabilities: ["component", "style", "accessibility"]
+  },
+  { 
+    name: "docwriter", 
+    description: "Technical documentation writer",
+    icon: "📝",
+    capabilities: ["readme", "api-docs", "comments"]
+  },
+  { 
+    name: "executor", 
+    description: "Command & script execution",
+    icon: "⚡",
+    capabilities: ["shell", "npm", "docker"]
+  },
+  { 
+    name: "reviewer", 
+    description: "Code review & best practices",
+    icon: "👀",
+    capabilities: ["review", "lint", "suggest"]
+  },
+  { 
+    name: "librarian", 
+    description: "Dependency & package management",
+    icon: "📚",
+    capabilities: ["deps", "upgrade", "audit"]
+  },
+  { 
+    name: "multimodal", 
+    description: "Image & screenshot analysis",
+    icon: "🖼️",
+    capabilities: ["vision", "ocr", "diagram"]
+  },
+  { 
+    name: "sisyphus", 
+    description: "Persistent long-running tasks",
+    icon: "🏔️",
+    capabilities: ["long-task", "retry", "checkpoint"]
+  },
 ];
+
+// File type icons
+const FILE_ICONS: Record<string, string> = {
+  ts: "📘",
+  tsx: "📘",
+  js: "📒",
+  jsx: "📒",
+  py: "🐍",
+  rs: "🦀",
+  go: "🐹",
+  java: "☕",
+  rb: "💎",
+  php: "🐘",
+  c: "🔧",
+  cpp: "⚙️",
+  h: "📑",
+  css: "🎨",
+  scss: "🎨",
+  html: "🌐",
+  json: "📋",
+  yaml: "📄",
+  yml: "📄",
+  md: "📝",
+  txt: "📄",
+  sh: "💻",
+  bash: "💻",
+  zsh: "💻",
+  dockerfile: "🐳",
+  sql: "🗃️",
+  graphql: "◈",
+  default: "📄",
+  directory: "📁",
+};
+
+function getFileIcon(filename: string, isDirectory: boolean): string {
+  if (isDirectory) return FILE_ICONS.directory;
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  return FILE_ICONS[ext] || FILE_ICONS.default;
+}
+
+function formatFileSize(bytes?: number): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+// Glob pattern matching utility
+function matchGlob(pattern: string, filepath: string): boolean {
+  // Convert glob to regex
+  const regexPattern = pattern
+    .replace(/\*\*/g, "<<<GLOBSTAR>>>")
+    .replace(/\*/g, "[^/]*")
+    .replace(/<<<GLOBSTAR>>>/g, ".*")
+    .replace(/\?/g, ".")
+    .replace(/\./g, "\\.");
+  
+  const regex = new RegExp(`^${regexPattern}$`, "i");
+  return regex.test(filepath);
+}
+
+// Check if query contains glob patterns
+function isGlobPattern(query: string): boolean {
+  return query.includes("*") || query.includes("?") || query.includes("[");
+}
 
 export function useFileSearch(query: string, cwd: string = process.cwd()) {
   const [files, setFiles] = useState<FileReference[]>([]);
   const [loading, setLoading] = useState(false);
+  const [recentFiles, setRecentFiles] = useState<string[]>([]);
 
   useEffect(() => {
     if (!query) {
@@ -50,56 +189,122 @@ export function useFileSearch(query: string, cwd: string = process.cwd()) {
 
     setLoading(true);
 
-    // Parse line range from query (e.g., "file.ts#10-20")
-    const hashIndex = query.lastIndexOf("#");
+    // Parse line range from query (e.g., "file.ts#10-20" or "file.ts:10-20")
+    const rangeMatch = query.match(/^(.+?)(?:#|:)(\d+)(?:-(\d+))?$/);
     let searchQuery = query;
     let lineRange: { start: number; end?: number } | undefined;
 
-    if (hashIndex !== -1) {
-      const linePart = query.slice(hashIndex + 1);
-      const match = linePart.match(/^(\d+)(?:-(\d*))?$/);
-      if (match) {
-        searchQuery = query.slice(0, hashIndex);
-        lineRange = {
-          start: parseInt(match[1], 10),
-          end: match[2] ? parseInt(match[2], 10) : undefined,
-        };
-      }
+    if (rangeMatch) {
+      searchQuery = rangeMatch[1];
+      lineRange = {
+        start: parseInt(rangeMatch[2], 10),
+        end: rangeMatch[3] ? parseInt(rangeMatch[3], 10) : undefined,
+      };
     }
 
-    // Simple file search using fs
+    const isGlob = isGlobPattern(searchQuery);
+
+    // Enhanced file search
     const searchFiles = async () => {
       try {
         const results: FileReference[] = [];
+        const visited = new Set<string>();
+
+        // Ignore patterns
+        const ignorePatterns = [
+          "node_modules",
+          ".git",
+          "dist",
+          "build",
+          ".next",
+          ".nuxt",
+          "coverage",
+          "__pycache__",
+          ".pytest_cache",
+          "target",
+          "vendor",
+          ".idea",
+          ".vscode",
+        ];
+
+        const shouldIgnore = (name: string) => {
+          if (name.startsWith(".") && name !== ".supercoin") return true;
+          return ignorePatterns.includes(name);
+        };
+
         const searchDir = (dir: string, depth: number = 0) => {
-          if (depth > 4) return; // Max depth
+          if (depth > 6) return; // Max depth
+          if (results.length >= 100) return;
           
           try {
             const entries = fs.readdirSync(dir, { withFileTypes: true });
+            
+            // Sort: directories first, then by name
+            entries.sort((a, b) => {
+              if (a.isDirectory() && !b.isDirectory()) return -1;
+              if (!a.isDirectory() && b.isDirectory()) return 1;
+              return a.name.localeCompare(b.name);
+            });
+
             for (const entry of entries) {
-              // Skip hidden files and common ignore patterns
-              if (entry.name.startsWith(".")) continue;
-              if (entry.name === "node_modules") continue;
-              if (entry.name === "dist") continue;
-              if (entry.name === ".git") continue;
+              if (shouldIgnore(entry.name)) continue;
+              if (results.length >= 100) break;
 
               const fullPath = path.join(dir, entry.name);
               const relativePath = path.relative(cwd, fullPath);
 
-              if (relativePath.toLowerCase().includes(searchQuery.toLowerCase())) {
+              if (visited.has(fullPath)) continue;
+              visited.add(fullPath);
+
+              // Check match
+              let matches = false;
+              if (isGlob) {
+                matches = matchGlob(searchQuery, relativePath);
+              } else {
+                // Fuzzy match: check if all characters appear in order
+                const query = searchQuery.toLowerCase();
+                const target = relativePath.toLowerCase();
+                
+                // Exact substring match
+                if (target.includes(query)) {
+                  matches = true;
+                } else {
+                  // Fuzzy match
+                  let queryIdx = 0;
+                  for (let i = 0; i < target.length && queryIdx < query.length; i++) {
+                    if (target[i] === query[queryIdx]) {
+                      queryIdx++;
+                    }
+                  }
+                  matches = queryIdx === query.length;
+                }
+              }
+
+              if (matches) {
+                let fileSize: number | undefined;
+                if (!entry.isDirectory()) {
+                  try {
+                    const stat = fs.statSync(fullPath);
+                    fileSize = stat.size;
+                  } catch {}
+                }
+
+                const ext = entry.name.split(".").pop()?.toLowerCase();
+
                 results.push({
                   type: entry.isDirectory() ? "directory" : "file",
                   path: fullPath,
                   displayPath: relativePath + (entry.isDirectory() ? "/" : ""),
                   lineRange,
+                  size: fileSize,
+                  extension: ext,
                 });
               }
 
-              if (entry.isDirectory() && results.length < 50) {
+              // Recurse into directories
+              if (entry.isDirectory() && results.length < 100) {
                 searchDir(fullPath, depth + 1);
               }
-
-              if (results.length >= 50) return;
             }
           } catch {
             // Ignore permission errors
@@ -107,7 +312,20 @@ export function useFileSearch(query: string, cwd: string = process.cwd()) {
         };
 
         searchDir(cwd);
-        setFiles(results.slice(0, 20));
+
+        // Sort results by relevance
+        results.sort((a, b) => {
+          // Exact matches first
+          const aExact = a.displayPath.toLowerCase().includes(searchQuery.toLowerCase());
+          const bExact = b.displayPath.toLowerCase().includes(searchQuery.toLowerCase());
+          if (aExact && !bExact) return -1;
+          if (!aExact && bExact) return 1;
+
+          // Shorter paths first
+          return a.displayPath.length - b.displayPath.length;
+        });
+
+        setFiles(results.slice(0, 25));
       } catch (error) {
         setFiles([]);
       } finally {
@@ -119,7 +337,7 @@ export function useFileSearch(query: string, cwd: string = process.cwd()) {
     return () => clearTimeout(timer);
   }, [query, cwd]);
 
-  return { files, loading };
+  return { files, loading, recentFiles };
 }
 
 export function FileReferenceMenu({
@@ -130,35 +348,68 @@ export function FileReferenceMenu({
   selectedIndex,
   onNavigate,
   cwd,
+  showAgents = true,
+  showFiles = true,
+  showSymbols = false,
 }: FileReferenceMenuProps) {
   const { theme } = useTheme();
   const { files, loading } = useFileSearch(filter, cwd);
+  const [mode, setMode] = useState<"all" | "agents" | "files">("all");
 
   // Filter agents based on query
   const filteredAgents = useMemo(() => {
+    if (!showAgents) return [];
     if (!filter) return AGENTS;
     const q = filter.toLowerCase();
-    return AGENTS.filter((a) => a.name.toLowerCase().includes(q));
-  }, [filter]);
+    return AGENTS.filter((a) => 
+      a.name.toLowerCase().includes(q) ||
+      a.description.toLowerCase().includes(q) ||
+      a.capabilities.some((c) => c.toLowerCase().includes(q))
+    );
+  }, [filter, showAgents]);
 
   // Combined options: agents first, then files
   const options = useMemo(() => {
-    const agentOptions = filteredAgents.map((a) => ({
-      type: "agent" as const,
-      display: `@${a.name}`,
-      description: a.description,
-      value: a,
-    }));
+    const result: Array<{
+      type: "agent" | "file" | "directory";
+      display: string;
+      description: string;
+      icon: string;
+      value: any;
+      size?: string;
+    }> = [];
 
-    const fileOptions = files.map((f) => ({
-      type: "file" as const,
-      display: `@${f.displayPath}`,
-      description: f.type === "directory" ? "Directory" : "File",
-      value: f,
-    }));
+    // Add agents
+    if (mode === "all" || mode === "agents") {
+      for (const a of filteredAgents) {
+        result.push({
+          type: "agent",
+          display: `@${a.name}`,
+          description: a.description,
+          icon: a.icon,
+          value: a,
+        });
+      }
+    }
 
-    return [...agentOptions, ...fileOptions];
-  }, [filteredAgents, files]);
+    // Add files
+    if ((mode === "all" || mode === "files") && showFiles) {
+      for (const f of files) {
+        result.push({
+          type: f.type === "directory" ? "directory" : "file",
+          display: `@${f.displayPath}`,
+          description: f.lineRange 
+            ? `Lines ${f.lineRange.start}${f.lineRange.end ? `-${f.lineRange.end}` : "+"}`
+            : f.type === "directory" ? "Directory" : (f.extension || "File"),
+          icon: getFileIcon(f.displayPath, f.type === "directory"),
+          value: f,
+          size: formatFileSize(f.size),
+        });
+      }
+    }
+
+    return result;
+  }, [filteredAgents, files, mode, showFiles]);
 
   useInput((input, key) => {
     if (!visible) return;
@@ -170,11 +421,15 @@ export function FileReferenceMenu({
 
     if (key.return || key.tab) {
       const opt = options[selectedIndex];
-      if (opt?.type === "file") {
+      if (opt?.type === "file" || opt?.type === "directory") {
         onSelect(opt.value);
       } else if (opt?.type === "agent") {
-        // Handle agent selection
-        onClose();
+        // Return agent reference
+        onSelect({
+          type: "file",
+          path: "",
+          displayPath: opt.value.name,
+        } as FileReference);
       }
       return;
     }
@@ -188,9 +443,22 @@ export function FileReferenceMenu({
       onNavigate(1);
       return;
     }
+
+    // Mode switching
+    if (input === "a") {
+      setMode(mode === "agents" ? "all" : "agents");
+      return;
+    }
+    if (input === "f") {
+      setMode(mode === "files" ? "all" : "files");
+      return;
+    }
   }, { isActive: visible });
 
   if (!visible) return null;
+
+  // Calculate max display length
+  const maxDisplayLen = Math.max(...options.slice(0, 15).map((o) => o.display.length), 20);
 
   return (
     <Box
@@ -199,39 +467,136 @@ export function FileReferenceMenu({
       borderColor={theme.border}
       marginBottom={1}
       paddingX={1}
+      maxHeight={18}
     >
-      <Box marginBottom={1}>
+      {/* Header */}
+      <Box marginBottom={1} justifyContent="space-between">
+        <Box gap={2}>
+          <Text color={theme.text} bold>
+            {loading ? "🔍 Searching..." : "📂 Files & Agents"}
+          </Text>
+          {/* Mode indicator */}
+          <Box gap={1}>
+            <Text 
+              color={mode === "all" || mode === "agents" ? theme.accent : theme.textMuted}
+              bold={mode === "agents"}
+            >
+              [a]gents
+            </Text>
+            <Text 
+              color={mode === "all" || mode === "files" ? theme.accent : theme.textMuted}
+              bold={mode === "files"}
+            >
+              [f]iles
+            </Text>
+          </Box>
+        </Box>
         <Text color={theme.textMuted}>
-          {loading ? "Searching..." : "Files & Agents"}
+          {options.length} results
         </Text>
       </Box>
+
+      {/* Results */}
       {options.length === 0 ? (
-        <Box paddingX={1}>
+        <Box paddingX={1} flexDirection="column">
           <Text color={theme.textMuted}>No matching items</Text>
+          {filter && (
+            <Text color={theme.textMuted} dimColor>
+              Try: *.ts, src/**/*.tsx, @agent
+            </Text>
+          )}
         </Box>
       ) : (
-        options.slice(0, 10).map((opt, i) => (
-          <Box
-            key={opt.display}
-            paddingX={1}
-            backgroundColor={i === selectedIndex ? theme.selection : undefined}
-          >
-            <Text
-              color={
-                opt.type === "agent"
-                  ? i === selectedIndex ? theme.secondary : theme.accent
-                  : i === selectedIndex ? theme.primary : theme.text
-              }
-            >
-              {opt.display.padEnd(30)}
-            </Text>
-            <Text color={theme.textMuted}>{opt.description}</Text>
-          </Box>
-        ))
+        <Box flexDirection="column">
+          {/* Agents section */}
+          {options.some((o) => o.type === "agent") && (mode === "all" || mode === "agents") && (
+            <Box flexDirection="column" marginBottom={0}>
+              <Text color={theme.textMuted} dimColor>AGENTS</Text>
+              {options
+                .filter((o) => o.type === "agent")
+                .slice(0, 4)
+                .map((opt, _i) => {
+                  const i = options.indexOf(opt);
+                  return (
+                    <Box
+                      key={opt.display}
+                      paddingX={1}
+                      backgroundColor={i === selectedIndex ? theme.selection : undefined}
+                    >
+                      <Text>{opt.icon} </Text>
+                      <Text
+                        color={i === selectedIndex ? theme.secondary : theme.accent}
+                        bold={i === selectedIndex}
+                      >
+                        {opt.display.padEnd(15)}
+                      </Text>
+                      <Text color={theme.textMuted}>
+                        {opt.description.slice(0, 35)}
+                      </Text>
+                    </Box>
+                  );
+                })}
+            </Box>
+          )}
+
+          {/* Files section */}
+          {options.some((o) => o.type === "file" || o.type === "directory") && (mode === "all" || mode === "files") && (
+            <Box flexDirection="column">
+              <Text color={theme.textMuted} dimColor>FILES</Text>
+              {options
+                .filter((o) => o.type === "file" || o.type === "directory")
+                .slice(0, 8)
+                .map((opt, _i) => {
+                  const i = options.indexOf(opt);
+                  return (
+                    <Box
+                      key={opt.display}
+                      paddingX={1}
+                      backgroundColor={i === selectedIndex ? theme.selection : undefined}
+                      justifyContent="space-between"
+                    >
+                      <Box>
+                        <Text>{opt.icon} </Text>
+                        <Text
+                          color={
+                            opt.type === "directory"
+                              ? i === selectedIndex ? theme.accent : theme.warning
+                              : i === selectedIndex ? theme.primary : theme.text
+                          }
+                          bold={i === selectedIndex}
+                        >
+                          {opt.display.slice(0, 35)}
+                          {opt.display.length > 35 ? "..." : ""}
+                        </Text>
+                      </Box>
+                      <Box gap={1}>
+                        {opt.size && (
+                          <Text color={theme.textMuted}>{opt.size}</Text>
+                        )}
+                        <Text color={theme.textMuted}>{opt.description}</Text>
+                      </Box>
+                    </Box>
+                  );
+                })}
+              {options.filter((o) => o.type === "file" || o.type === "directory").length > 8 && (
+                <Text color={theme.textMuted} paddingLeft={1}>
+                  +{options.filter((o) => o.type === "file" || o.type === "directory").length - 8} more
+                </Text>
+              )}
+            </Box>
+          )}
+        </Box>
       )}
-      <Box marginTop={1}>
+
+      {/* Footer hints */}
+      <Box marginTop={1} justifyContent="space-between">
         <Text color={theme.textMuted}>
-          ↑↓ Navigate • Enter/Tab Select • Esc Close
+          <Text color={theme.text}>↑↓</Text> navigate  
+          <Text color={theme.text}> Tab</Text> select  
+          <Text color={theme.text}> Esc</Text> close
+        </Text>
+        <Text color={theme.textMuted} dimColor>
+          #line, :line-end
         </Text>
       </Box>
     </Box>
