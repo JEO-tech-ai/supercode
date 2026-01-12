@@ -29,77 +29,83 @@ Unified AI CLI hub for Claude, Codex, Gemini, SuperCent, and localhost models.
 
 ## Installation
 
-### Install from npm (Recommended)
-
-> **Note**: This package must be published to npm before it can be installed via `npm install -g supercoin`.
-
-```bash
-# Publish first (if you are the maintainer)
-npm publish
-
-# Then install globally
-npm install -g supercoin
-
-# Or use with npx
-npx supercoin
-```
-
 ### Prerequisites
 
-- [Node.js](https://nodejs.org) v18+
-- [Ollama](https://ollama.com) (recommended for local models)
-- [Bun](https://bun.sh) (optional, for development only)
+- [Bun](https://bun.sh) v1.0+ (**required** - this project uses Bun workspaces)
+- [Node.js](https://nodejs.org) v18+ (for some dependencies)
+- [Ollama](https://ollama.com) (recommended for local AI models)
 
-### Install from GitHub (Source)
+### Quick Install (Recommended)
 
 ```bash
-# Clone repository
+# Install Bun (if not installed)
+curl -fsSL https://bun.sh/install | bash
+
+# Reload shell to add bun to PATH
+exec /bin/zsh  # or exec /bin/bash
+
+# Clone and install
 git clone https://github.com/JEO-tech-ai/supercoin.git
 cd supercoin
+bun install
 
-# Install dependencies
-npm install
+# Run directly
+bun src/cli/index.ts --help
 
-# Build project
-npm run build
+# Or use the script alias
+bun run cli -- --help
+```
 
-# Install globally (use sudo if needed)
-sudo npm install -g .
-# Or if you have npm global write permission:
-npm link
+### Global Installation
 
-# Verify installation
+```bash
+# After bun install, link globally
+bun link
+
+# Now supercoin is available globally
 supercoin --help
 ```
 
-> **Note**: This method is recommended as it avoids potential build issues that can occur with direct npm install from git URL.
+> **Note**: `bun link` creates a symlink in `~/.bun/bin/`. Make sure `~/.bun/bin` is in your PATH.
 
-### Install from GitHub (Development)
+### Development Setup
 
 ```bash
 # Clone repository
 git clone https://github.com/JEO-tech-ai/supercoin.git
 cd supercoin
 
-# Install dependencies
+# Install all dependencies (including workspace packages)
 bun install
 
-# Run directly with Bun
-bun src/cli/index.ts --help
-```
+# Run the CLI directly
+bun src/cli/index.ts
 
-### Build from Source
+# Or run with npm script
+bun run cli
 
-```bash
-# Type check
-bun run lint
+# Type check all packages
+bun run typecheck
 
 # Run tests
 bun test
-
-# Build (optional - not required with Bun)
-bun run build
 ```
+
+### Alternative: Run with npx (No Bun Required)
+
+If you prefer not to install Bun, you can run the CLI using `tsx`:
+
+```bash
+# Clone and install dependencies
+git clone https://github.com/JEO-tech-ai/supercoin.git
+cd supercoin
+npm install --legacy-peer-deps  # May have limited functionality
+
+# Run with tsx
+npx tsx src/cli/index.ts --help
+```
+
+> **Warning**: This method may not work for all features. Bun is the recommended runtime.
 
 ## Quick Start
 
@@ -118,7 +124,7 @@ supercoin
 #
 # 🪙 SuperCoin - Unified AI CLI Hub
 #
-# | Provider ollama/llama3:latest
+# | Provider ollama/llama3.2:latest
 # ◆ Type your message, or /help for commands, /menu for options
 #
 # > Ask me anything... (Ctrl+C to exit)
@@ -141,18 +147,18 @@ supercoin
 curl -fsSL https://ollama.com/install.sh | sh
 
 # Pull a model
-ollama pull llama3
+ollama pull llama3.2
 
 # Interactive mode (GUI)
 supercoin
 
 # Or direct command-line mode
 supercoin "Hello, what is 2+2?"
-# Output: Provider: ollama | Model: llama3:latest
+# Output: Provider: ollama | Model: llama3.2:latest
 #         The answer is 4.
 
 # With flags
-supercoin --provider ollama -m llama3 "Explain AI"
+supercoin --provider ollama -m llama3.2 "Explain AI"
 ```
 
 #### Using API-Based Providers
@@ -186,7 +192,7 @@ Create `supercoin.json` in your project root:
 ```json
 {
   "provider": "ollama",
-  "model": "llama3:latest",
+  "model": "llama3.2:latest",
   "temperature": 0.7,
   "maxTokens": 2048
 }
@@ -250,7 +256,7 @@ supercoin --no-tui
 | Flag | Description | Example |
 |------|-------------|---------|
 | `-p, --provider` | AI provider | `--provider ollama` |
-| `-m, --model` | Model ID | `-m llama3:latest` |
+| `-m, --model` | Model ID | `-m llama3.2:latest` |
 | `-t, --temperature` | Temperature (0-2) | `-t 0.7` |
 | `--max-tokens` | Max output tokens | `--max-tokens 2048` |
 | `--base-url` | Custom base URL | `--base-url http://localhost:11434/v1` |
@@ -583,7 +589,7 @@ SuperCoin uses a configuration file located at `~/.config/supercoin/config.json`
     "ollama": {
       "enabled": true,
       "baseUrl": "http://localhost:11434/v1",
-      "defaultModel": "llama3:latest"
+      "defaultModel": "llama3.2:latest"
     },
     "lmstudio": {
       "enabled": true,
@@ -604,7 +610,7 @@ Create `supercoin.json` or `.supercoin.json` in your project (legacy: `opencode.
 ```json
 {
   "provider": "ollama",
-  "model": "llama3:latest",
+  "model": "llama3.2:latest",
   "temperature": 0.7,
   "maxTokens": 4096,
   "streaming": true
@@ -639,7 +645,7 @@ Create `supercoin.json` or `.supercoin.json` in your project (legacy: `opencode.
 
 | Provider | Setup | Models |
 |----------|-------|--------|
-| **Ollama** | `curl -fsSL https://ollama.com/install.sh \| sh` | llama3, gemma2, qwen, phi, mistral, and 100+ more |
+| **Ollama** | `curl -fsSL https://ollama.com/install.sh \| sh` | llama3.2, gemma2, qwen, phi, mistral, and 100+ more |
 | **LM Studio** | Download from [lmstudio.ai](https://lmstudio.ai) | All GGUF models |
 | **llama.cpp** | Build from [source](https://github.com/ggerganov/llama.cpp) | All GGUF models |
 
@@ -650,7 +656,7 @@ Create `supercoin.json` or `.supercoin.json` in your project (legacy: `opencode.
 curl -fsSL https://ollama.com/install.sh | sh
 
 # Popular models
-ollama pull llama3           # Meta Llama 3 (8B)
+ollama pull llama3.2         # Meta Llama 3.2
 ollama pull gemma2:2b        # Google Gemma 2 (2B)
 ollama pull qwen3:4b         # Alibaba Qwen (4B)
 ollama pull phi3             # Microsoft Phi-3 (3.8B)
@@ -659,7 +665,7 @@ ollama pull phi3             # Microsoft Phi-3 (3.8B)
 ollama list
 
 # Use with SuperCoin
-supercoin --provider ollama -m llama3 "Your prompt"
+supercoin --provider ollama -m llama3.2 "Your prompt"
 ```
 
 #### LM Studio Setup
@@ -776,63 +782,46 @@ bunx sst dev --stage dev
 bunx sst deploy --stage staging
 ```
 
-## Publishing to npm
-
-### Prepare for Publishing
-
-```bash
-# Update version in package.json
-npm version patch  # or minor, major
-
-# Build the project
-bun run build
-
-# Test the build locally
-npm link
-supercoin --version
-
-# Verify package contents
-npm pack --dry-run
-```
-
-### Publish
-
-```bash
-# Login to npm (first time only)
-npm login
-
-# Publish to npm
-npm publish
-
-# Verify published package
-npm view supercoin
-```
-
-### Install Published Package
-
-```bash
-# Global installation
-npm install -g supercoin
-
-# Or use with npx
-npx supercoin
-```
-
 ## Development
 
+### Running Locally
+
 ```bash
-# Run tests
+# Run the CLI directly (recommended)
+bun src/cli/index.ts
+
+# Or use the npm script
+bun run cli
+
+# With arguments
+bun src/cli/index.ts "What is TypeScript?"
+bun src/cli/index.ts --provider ollama -m llama3.2 "Hello"
+```
+
+### Testing
+
+```bash
+# Run all tests
 bun test
 
 # Run tests with coverage
-bun test:coverage
+bun test --coverage
 
-# Type check
-bun lint
-
-# Build
-bun run build
+# Type check all packages
+bun run typecheck
 ```
+
+### Building
+
+```bash
+# Build all packages (uses Turbo)
+bun run build
+
+# Build only the CLI
+# (Not required - Bun runs TypeScript directly)
+```
+
+> **Note**: This project uses Bun workspaces. Standard `npm install` will fail due to `workspace:*` protocol. Always use `bun install`.
 
 ## Tech Stack
 
