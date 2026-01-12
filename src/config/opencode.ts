@@ -40,7 +40,7 @@ export function getDefaultModel(provider: AISDKProviderName): string {
     anthropic: "claude-sonnet-4-5",
     openai: "gpt-4o",
     google: "gemini-2.0-flash",
-    ollama: "llama3.2",
+    ollama: "rnj-1",
     lmstudio: "local-model",
     llamacpp: "local-model",
   };

@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import * as clack from "@clack/prompts";
 import { Command } from "commander";
 import { loadConfig } from "../config/loader.js";
@@ -10,7 +11,7 @@ import { createDashboardCommand } from "./commands/dashboard";
 import { createSessionCommand } from "./commands/session";
 import { sessionManager } from "../core/session/manager";
 import { resolveProviderFromConfig } from "../config/project";
-import { streamAIResponse, checkLocalhostAvailability } from "../services/models/ai-sdk";
+import { streamAIResponse, checkLocalhostAvailability, checkOllamaModel, getAvailableOllamaModels } from "../services/models/ai-sdk";
 import type { AISDKProviderName } from "../services/models/ai-sdk/types";
 import { UI, CancelledError } from "../shared/ui";
 import logger from "../shared/logger";
@@ -26,6 +27,44 @@ process.on("uncaughtException", (e) => {
   logger.error("exception", e);
 });
 
+function handleChatError(error: unknown, provider: string, model: string) {
+  const err = error instanceof Error ? error : new Error(String(error));
+  const message = err.message.toLowerCase();
+
+  // Check for model not found errors
+  if (
+    (message.includes("model") && message.includes("not found")) ||
+    ((err as any).statusCode === 404 && provider === "ollama")
+  ) {
+    UI.error(`Model '${model}' not found.`);
+
+    if (provider === "ollama") {
+      clack.log.info(`To install this model, run:`);
+      process.stdout.write(UI.Style.TEXT_INFO_BOLD + `  ollama pull ${model}` + UI.Style.RESET + EOL + EOL);
+      
+      clack.log.info(`Or check available models with:`);
+      process.stdout.write(UI.Style.TEXT_DIM + `  ollama list` + UI.Style.RESET + EOL);
+    }
+    return;
+  }
+
+  // Handle connection errors
+  if (message.includes("fetch failed") || message.includes("connection refused")) {
+    UI.error(`Could not connect to ${provider}.`);
+    if (provider === "ollama") {
+      clack.log.info("Make sure Ollama is running.");
+    }
+    return;
+  }
+
+  // Fallback for other errors
+  if (err.name === "AI_APICallError") {
+     UI.error(`API Error (${provider}): ${err.message}`);
+  } else {
+     UI.error(err.message);
+  }
+}
+
 async function runInteractiveMode() {
   UI.empty();
   process.stderr.write(UI.logo() + EOL + EOL);
@@ -39,7 +78,7 @@ async function runInteractiveMode() {
 async function runDirectChatMode() {
   const projectConfig = await resolveProviderFromConfig();
   const provider = projectConfig.provider as AISDKProviderName;
-  const model = projectConfig.model;
+  let model = projectConfig.model;
 
   const isLocalhost = ["ollama", "lmstudio", "llamacpp"].includes(provider);
   if (isLocalhost) {
@@ -57,7 +96,7 @@ async function runDirectChatMode() {
 
       if (provider === "ollama") {
         clack.log.info("Install: curl -fsSL https://ollama.com/install.sh | sh");
-        clack.log.info("Run: ollama pull llama3");
+        clack.log.info("Run: ollama pull rnj-1");
       }
 
       await runMenuMode();
@@ -65,6 +104,34 @@ async function runDirectChatMode() {
     }
 
     s.stop(`${provider} is ready`);
+
+    // Check if the model is available (Ollama only)
+    if (provider === "ollama") {
+      const modelExists = await checkOllamaModel(model, projectConfig.baseURL);
+      if (!modelExists) {
+        const availableModels = await getAvailableOllamaModels(projectConfig.baseURL);
+
+        if (availableModels.length === 0) {
+          clack.log.error(`No models installed. Run: ollama pull rnj-1`);
+          await runMenuMode();
+          return;
+        }
+
+        clack.log.warn(`Model '${model}' not found.`);
+
+        const selected = await clack.select({
+          message: "Select from available models:",
+          options: availableModels.map((m) => ({ value: m, label: m })),
+        });
+
+        if (clack.isCancel(selected)) {
+          await runMenuMode();
+          return;
+        }
+
+        model = selected as string;
+      }
+    }
   }
 
   UI.println(
@@ -148,7 +215,7 @@ async function runDirectChatMode() {
 
       process.stdout.write(EOL + EOL);
     } catch (error) {
-      UI.error((error as Error).message);
+      handleChatError(error, provider, model);
     }
   }
 }
@@ -297,7 +364,7 @@ async function runChatFlow() {
       
       if (provider === "ollama") {
         clack.log.info("Install: curl -fsSL https://ollama.com/install.sh | sh");
-        clack.log.info("Run: ollama pull llama3");
+        clack.log.info("Run: ollama pull rnj-1");
       }
       return;
     }
@@ -368,7 +435,7 @@ async function runChatFlow() {
     }
   } catch (error) {
     s.stop("Failed");
-    clack.log.error((error as Error).message);
+    handleChatError(error, provider, model);
   }
 }
 

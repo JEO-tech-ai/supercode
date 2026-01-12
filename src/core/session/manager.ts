@@ -77,7 +77,7 @@ export class SessionManager extends EventEmitter {
           Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined)
         ),
         permissions: [],
-        model: 'ollama/llama3.2',
+        model: 'ollama/rnj-1',
         provider: 'ollama',
         temperature: 0.7,
         maxTokens: 4096,

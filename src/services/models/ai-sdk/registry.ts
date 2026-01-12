@@ -34,7 +34,7 @@ const PROVIDER_REGISTRY: ProviderRegistry = {
     requiresAuth: false,
     supportsStreaming: true,
     defaultBaseURL: "http://localhost:11434/v1",
-    defaultModel: "llama3.2",
+    defaultModel: "rnj-1",
   },
   lmstudio: {
     name: "LM Studio (Localhost)",

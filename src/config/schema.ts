@@ -29,7 +29,7 @@ export const SuperCoinConfigSchema = z.object({
     }).optional(),
     ollama: LocalhostProviderSchema.extend({
       baseUrl: z.string().default("http://localhost:11434/v1"),
-      defaultModel: z.string().default("llama3.2"),
+      defaultModel: z.string().default("rnj-1"),
     }).optional(),
     lmstudio: LocalhostProviderSchema.extend({
       baseUrl: z.string().default("http://localhost:1234/v1"),

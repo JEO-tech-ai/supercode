@@ -115,7 +115,7 @@ describe("SuperCoin Project Config", () => {
       expect(getDefaultModel("anthropic")).toBe("claude-sonnet-4-5");
       expect(getDefaultModel("openai")).toBe("gpt-4o");
       expect(getDefaultModel("google")).toBe("gemini-2.0-flash");
-      expect(getDefaultModel("ollama")).toBe("llama3.2");
+      expect(getDefaultModel("ollama")).toBe("rnj-1");
       expect(getDefaultModel("lmstudio")).toBe("local-model");
       expect(getDefaultModel("llamacpp")).toBe("local-model");
       expect(getDefaultModel("supercent")).toBe("cent-1");
@@ -126,7 +126,7 @@ describe("SuperCoin Project Config", () => {
     test("should resolve with defaults when no config", async () => {
       const result = await resolveProviderFromConfig(tempDir);
       expect(result.provider).toBe("ollama");
-      expect(result.model).toBe("llama3.2");
+      expect(result.model).toBe("rnj-1");
       expect(result.temperature).toBe(0.7);
       expect(result.maxTokens).toBe(4096);
     });

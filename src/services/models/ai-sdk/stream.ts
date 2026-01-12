@@ -205,7 +205,7 @@ export async function listLocalhostModels(
     }
 
     const data = await response.json() as { data?: Array<{ id: string }> };
-    
+
     return (data.data || []).map((model) => ({
       id: model.id,
       name: model.id,
@@ -213,4 +213,43 @@ export async function listLocalhostModels(
   } catch {
     return [];
   }
+}
+
+/**
+ * Get available Ollama models using native API
+ */
+export async function getAvailableOllamaModels(baseURL?: string): Promise<string[]> {
+  const url = baseURL || "http://localhost:11434";
+
+  try {
+    const response = await fetch(`${url}/api/tags`, {
+      method: "GET",
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json() as { models?: Array<{ name: string }> };
+    return data.models?.map((m) => m.name) || [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Check if a specific Ollama model is available
+ */
+export async function checkOllamaModel(model: string, baseURL?: string): Promise<boolean> {
+  const models = await getAvailableOllamaModels(baseURL);
+  return models.some((m) => m === model || m.startsWith(`${model}:`) || m === `${model}:latest`);
+}
+
+/**
+ * Get the first available Ollama model as fallback
+ */
+export async function getDefaultOllamaModel(baseURL?: string): Promise<string | null> {
+  const models = await getAvailableOllamaModels(baseURL);
+  return models.length > 0 ? models[0] : null;
 }

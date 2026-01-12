@@ -37,7 +37,7 @@ describe("AI SDK Provider Registry", () => {
       expect(config.name).toBe("Ollama (Localhost)");
       expect(config.requiresAuth).toBe(false);
       expect(config.defaultBaseURL).toBe("http://localhost:11434/v1");
-      expect(config.defaultModel).toBe("llama3.2");
+      expect(config.defaultModel).toBe("rnj-1");
     });
 
     test("should return config for lmstudio", () => {
