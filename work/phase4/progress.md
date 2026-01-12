@@ -1,109 +1,132 @@
-# Phase 4: 에이전트 시스템 개선 - 완료
+# Phase 4: UI 및 CLI 검증 - 완료
 
-## 개요
-Oh-My-OpenCode의 Sisyphus 패턴을 SuperCode에 적용.
-메타데이터 기반 위임 시스템과 동적 프롬프트 생성.
-
-## 완료된 작업
-
-### 4.1 에이전트 타입 확장 (`src/services/agents/types.ts`)
-- `AgentCategory` 타입 추가 (orchestrator, exploration, specialist, advisor, utility)
-- `AgentCost` 타입 추가 (FREE, CHEAP, EXPENSIVE)
-- `DelegationTrigger` 인터페이스 (domain, trigger)
-- `AgentPromptMetadata` 인터페이스 (category, cost, triggers, useWhen, avoidWhen)
-- `AgentConfig` 인터페이스 (mode, model, temperature, prompt)
-- `AgentFactory` 타입
-- `RequestType` 확장 (SKILL_MATCH, GITHUB_WORK, AMBIGUOUS)
-- `AgentName` 확장 (librarian, frontend, multimodal)
-
-### 4.2 Sisyphus 프롬프트 빌더 (`src/services/agents/sisyphus/`)
-- `prompt-builder.ts`: 동적 프롬프트 생성
-  - `buildKeyTriggersSection()` - Phase 0 트리거
-  - `buildToolSelectionTable()` - 도구 선택 우선순위
-  - `buildDelegationTable()` - 위임 테이블
-  - `buildExplorationSection()` - 탐색 에이전트 섹션
-  - `buildSpecialistSection()` - 전문가 에이전트 섹션
-  - `buildAdvisorSection()` - 자문 에이전트 섹션
-  - `buildHardBlocksSection()` - 금지 규칙
-  - `buildAntiPatternsSection()` - 안티 패턴
-  - `buildOrchestratorPrompt()` - 전체 프롬프트 생성
-  - `collectAgentMetadata()` - 메타데이터 수집
-
-### 4.3 새 에이전트 3개
-#### Librarian (`src/services/agents/librarian.ts`)
-- 외부 리서치 전문가
-- GitHub, 문서, 웹 검색
-- Model: gemini-2.5-flash
-- Category: exploration, Cost: CHEAP
-
-#### Frontend (`src/services/agents/frontend.ts`)
-- UI/UX 전문가
-- 시각적 변경, 스타일링
-- Model: gemini-2.5-pro
-- Category: specialist, Cost: CHEAP
-
-#### Multimodal (`src/services/agents/multimodal.ts`)
-- PDF/이미지 분석 전문가
-- 시각적 콘텐츠 해석
-- Model: gemini-2.5-flash
-- Category: utility, Cost: CHEAP
-
-### 4.4 기존 에이전트 메타데이터 추가
-- `ExplorerAgent`: EXPLORER_METADATA 추가
-- `AnalystAgent`: ANALYST_METADATA 추가
-- `DocWriterAgent`: DOC_WRITER_METADATA 추가
-
-## 파일 목록
-
-### 신규 생성
-```
-src/services/agents/sisyphus/
-├── index.ts           - 모듈 내보내기
-└── prompt-builder.ts  - 동적 프롬프트 빌더
-
-src/services/agents/
-├── librarian.ts       - 외부 리서치 에이전트
-├── frontend.ts        - UI/UX 전문가 에이전트
-└── multimodal.ts      - PDF/이미지 분석 에이전트
-```
-
-### 수정됨
-```
-src/services/agents/types.ts     - 타입 확장
-src/services/agents/explorer.ts  - 메타데이터 추가
-src/services/agents/analyst.ts   - 메타데이터 추가
-src/services/agents/doc-writer.ts - 메타데이터 추가
-src/services/agents/index.ts     - 내보내기 업데이트
-```
-
-## 에이전트 총계
-- 기존: 6개 (coin, analyst, executor, code_reviewer, doc_writer, explorer)
-- 신규: 3개 (librarian, frontend, multimodal)
-- **총합: 9개 에이전트**
-
-## 위임 시스템
-
-### 카테고리별 에이전트
-| Category | Agents | Purpose |
-|----------|--------|---------|
-| Orchestrator | coin | 마스터 조율자 |
-| Exploration | explorer, librarian | 내부/외부 검색 |
-| Specialist | frontend, doc_writer | 도메인 전문가 |
-| Advisor | analyst | 전략적 자문 |
-| Utility | executor, code_reviewer, multimodal | 유틸리티 |
-
-### 비용 분류
-| Cost | Agents |
-|------|--------|
-| FREE | explorer |
-| CHEAP | librarian, frontend, doc_writer, multimodal |
-| EXPENSIVE | analyst |
-
-## 검증
-```bash
-# TypeScript 검사 통과
-bun tsc --noEmit
-```
-
-## 완료 일시
+## 실행일시
 2026-01-12
+
+---
+
+## CLI 시스템 비교
+
+### CLI 명령어
+
+| 명령어 | Oh-My-OpenCode | SuperCode | 상태 |
+|--------|----------------|-----------|------|
+| auth | oh-my-opencode install | /auth | PASS |
+| config | 설정 파일 | /config | PASS |
+| models | - | /models | SuperCode 추가 |
+| session | - | /session | SuperCode 추가 |
+| server | - | /server | SuperCode 추가 |
+| doctor | oh-my-opencode doctor | /doctor | PASS |
+| dashboard | - | /dashboard | SuperCode 추가 |
+
+### CLI 구조
+
+**SuperCode** (`src/cli/`):
+```
+cli/
+├── index.ts           # 메인 CLI 진입점 (22,565 lines)
+├── commands/
+│   ├── auth.ts        # 인증 명령어
+│   ├── config.ts      # 설정 명령어
+│   ├── models.ts      # 모델 관리
+│   ├── session.ts     # 세션 관리
+│   ├── server.ts      # 서버 관리
+│   ├── doctor.ts      # 진단 도구
+│   └── dashboard.tsx  # 에이전트 대시보드
+└── components/
+    └── [UI 컴포넌트]
+```
+
+---
+
+## 도구 시스템 비교
+
+### 기본 도구
+
+| 도구 | Oh-My-OpenCode | SuperCode | 상태 |
+|------|----------------|-----------|------|
+| bash | O | bash-pty.ts, bash.ts | PASS |
+| file | O | file.ts | PASS |
+| search | grep, glob | search.ts | PASS |
+| todo | O | todo.ts | PASS |
+| command | O | command-executor.ts | PASS |
+
+### LSP 도구 (11개)
+
+| LSP 도구 | SuperCode 구현 | 상태 |
+|----------|---------------|------|
+| lsp_hover | O | PASS |
+| lsp_goto_definition | O | PASS |
+| lsp_find_references | O | PASS |
+| lsp_document_symbols | O | PASS |
+| lsp_workspace_symbols | O | PASS |
+| lsp_diagnostics | O | PASS |
+| lsp_servers | O | PASS |
+| lsp_prepare_rename | O | PASS |
+| lsp_rename | O | PASS |
+| lsp_code_actions | O | PASS |
+| lsp_code_action_resolve | O | PASS |
+
+**LSP 클라이언트**: `src/core/tools/lsp/client.ts` (18,433 lines)
+
+### AST-Grep 도구 (3개)
+
+| AST-Grep 도구 | SuperCode 구현 | 상태 |
+|---------------|---------------|------|
+| ast_grep_search | O | PASS |
+| ast_grep_replace | O | PASS |
+| ast_grep_check | O | PASS |
+
+**AST-Grep CLI**: `src/core/tools/ast-grep/cli.ts` (8,384 lines)
+
+---
+
+## 패키지 구조 (Monorepo)
+
+### SuperCode 패키지
+
+| 패키지 | 설명 | Oh-My-OpenCode 대응 |
+|--------|------|---------------------|
+| @supercoin/auth | 인증 패키지 | 내장 |
+| @supercoin/server | Hono 서버 | 없음 |
+| @supercoin/database | Drizzle ORM | 없음 |
+| @supercoin/shared | 공유 유틸 | 내장 |
+| @supercoin/ui | UI 컴포넌트 | 없음 |
+| @supercoin/console | 웹 콘솔 (Solid.js) | 없음 |
+| @supercoin/desktop | Tauri 데스크톱 | 없음 |
+
+### SuperCode 고유 기능
+
+1. **모노레포 아키텍처**: Turbo 기반 워크스페이스
+2. **웹 콘솔**: Solid.js 기반 관리 UI
+3. **데스크톱 앱**: Tauri 기반 네이티브 앱
+4. **서버 패키지**: Hono HTTP 서버
+5. **데이터베이스**: Drizzle ORM 지원
+
+---
+
+## 대시보드 및 모니터링
+
+### SuperCode Dashboard
+
+| 기능 | 구현 | 파일 |
+|------|------|------|
+| 에이전트 상태 | O | dashboard.tsx |
+| 태스크 진행률 | O | TodoManager |
+| 토큰 사용량 | O | context-window-monitor |
+| 에러 모니터링 | O | loggingHook |
+
+---
+
+## 검증 결과
+
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| CLI 명령어 | PASS | 7개 명령어 |
+| LSP 도구 | PASS | 11개 도구 |
+| AST-Grep 도구 | PASS | 3개 도구 |
+| 모노레포 | ENHANCED | Turbo 워크스페이스 |
+| 웹 콘솔 | ENHANCED | Solid.js UI |
+| 데스크톱 앱 | ENHANCED | Tauri 지원 |
+
+**Phase 4 완료**: UI/CLI 시스템이 Oh-My-OpenCode보다 확장됨

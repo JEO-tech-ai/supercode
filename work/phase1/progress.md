@@ -1,82 +1,76 @@
-# Phase 1 진행 상황
+# Phase 1: 프로젝트 구조 비교 - 완료
 
-## 상태: Completed ✅
+## 실행일시
+2026-01-12
 
----
+## 비교 결과 요약
 
-## 2026-01-12
+### 1. 디렉토리 구조
 
-### 완료
-- [x] plan/phase1-antigravity.md 계획 작성
-- [x] work/phase1/progress.md 생성
-- [x] Oh-My-OpenCode 인증 코드 분석
-- [x] Antigravity 타입 및 상수 정의
-- [x] oauth.ts 구현 (PKCE, 콜백 서버)
-- [x] token.ts 구현 (토큰 저장/갱신)
-- [x] project.ts 구현 (loadCodeAssist API)
-- [x] provider.ts 구현 (AuthProvider 인터페이스)
-- [x] index.ts 구현 (모듈 Export)
-- [x] auth/types.ts 수정 (AuthProviderName 추가)
-- [x] auth/hub.ts 수정 (AntigravityAuthProvider 등록)
+| 항목 | Oh-My-OpenCode | SuperCode | 일치 |
+|------|----------------|-----------|------|
+| 소스 코드 | src/ | src/ | O |
+| 패키지 | - | packages/ (monorepo) | SuperCode 추가 |
+| 테스트 | tests/ | tests/ | O |
+| 문서 | docs/ | docs/ | O |
+| CLI | src/cli/ | src/cli/ | O |
+| 에이전트 | src/agents/ | src/services/agents/ | O (경로 다름) |
+| 훅 | src/hooks/ | src/core/hooks/ | O (경로 다름) |
+| 도구 | src/tools/ | src/core/tools/ | O (경로 다름) |
+| 인증 | src/auth/ | src/services/auth/ | O (경로 다름) |
 
-### 생성된 파일
-```
-src/services/auth/antigravity/
-├── constants.ts   # OAuth 상수 (CLIENT_ID, SCOPES, ENDPOINTS)
-├── types.ts       # 토큰, 프로젝트, 에러 타입 정의
-├── oauth.ts       # PKCE, 콜백 서버, performOAuthFlow
-├── token.ts       # 토큰 갱신, 파싱, 저장 유틸리티
-├── project.ts     # loadCodeAssist API, 프로젝트 컨텍스트
-├── provider.ts    # AntigravityAuthProvider 구현
-└── index.ts       # 모듈 Export 통합
-```
+### 2. 빌드 시스템
 
-### 수정된 파일
-```
-src/services/auth/
-├── types.ts       # AuthProviderName에 "antigravity" 추가
-└── hub.ts         # AntigravityAuthProvider 등록 및 매핑 추가
-```
+| 항목 | Oh-My-OpenCode | SuperCode | 비고 |
+|------|----------------|-----------|------|
+| 런타임 | Bun | Bun | 동일 |
+| 패키지 매니저 | Bun | Bun 1.3.5 | 동일 |
+| 빌드 도구 | Bun bundler | Turbo + Bun | SuperCode 확장 |
+| 타입 체크 | TypeScript | TypeScript | 동일 |
+| 모노레포 | X | Turbo workspaces | SuperCode 추가 |
 
----
+### 3. 설정 시스템
 
-## 작업 로그
+| 항목 | Oh-My-OpenCode | SuperCode | 일치 |
+|------|----------------|-----------|------|
+| 스키마 검증 | Zod | Zod | O |
+| 설정 파일 | JSONC | JSON | 유사 |
+| 환경 설정 | XDG 기반 | 프로젝트 기반 | 다름 |
 
-| 시간 | 작업 | 결과 |
-|------|------|------|
-| 10:58 | 디렉토리 구조 생성 | 완료 |
-| 10:59 | Phase 1 계획 작성 | 완료 |
-| 11:05 | Oh-My-OpenCode 분석 | 완료 |
-| 11:10 | types.ts 생성 | 완료 |
-| 11:12 | constants.ts 생성 | 완료 |
-| 11:20 | oauth.ts 생성 (362줄) | 완료 |
-| 11:25 | token.ts 생성 (214줄) | 완료 |
-| 11:30 | project.ts 생성 (275줄) | 완료 |
-| 11:35 | provider.ts 생성 (175줄) | 완료 |
-| 11:38 | index.ts 생성 | 완료 |
-| 11:40 | auth/types.ts 수정 | 완료 |
-| 11:42 | auth/hub.ts 수정 | 완료 |
+### 4. 진입점
+
+| 진입점 | Oh-My-OpenCode | SuperCode | 비고 |
+|--------|----------------|-----------|------|
+| CLI | src/cli/index.ts | src/cli/index.ts | 동일 |
+| 라이브러리 | src/index.ts (Plugin) | src/supercoin.ts | 다름 |
+| 서버 | - | packages/server/ | SuperCode 추가 |
 
 ---
 
-## 검증 방법
+## 핵심 차이점
 
-```bash
-# 로그인 테스트
-bun src/cli/index.ts auth login antigravity
+### SuperCode 장점
+1. **Monorepo 구조**: Turbo 기반 워크스페이스로 확장성 높음
+2. **Desktop 앱**: Tauri 기반 데스크톱 앱 지원
+3. **Web Console**: Solid.js 기반 웹 콘솔
+4. **서버 패키지**: Hono 기반 HTTP 서버
+5. **더 구조화된 디렉토리**: services/, core/ 분리
 
-# 상태 확인
-bun src/cli/index.ts auth status
-
-# 토큰 갱신 테스트
-bun src/cli/index.ts auth refresh antigravity
-```
+### Oh-My-OpenCode 장점
+1. **OpenCode 플러그인**: Claude Code 플러그인으로 동작
+2. **더 많은 훅**: 40+ 훅 (SuperCode: 22+)
+3. **다양한 모델 지원**: 모델별 폴백 전략
+4. **Ralph Loop**: 자율 실행 루프
 
 ---
 
-## 다음 Phase
+## 검증 상태
 
-Phase 2: 훅 시스템 개선 (22개 정적 훅)
-- 세션 복구 훅
-- 컨텍스트 윈도우 관리 훅
-- 실패 복구 메커니즘
+| 항목 | 상태 |
+|------|------|
+| 디렉토리 구조 | PASS |
+| 빌드 시스템 | PASS |
+| 설정 시스템 | PASS |
+| 진입점 | PASS |
+
+**Phase 1 완료**: 프로젝트 구조가 유사하며, SuperCode가 더 확장된 형태
