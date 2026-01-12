@@ -35,6 +35,8 @@ export {
   buildOracleAgentSection,
   getPhasePrompt,
   getTransitionHint,
+  matchSkillPattern,
+  buildSkillExecutionPrompt,
 } from "./prompt-builder";
 
 /**
@@ -125,6 +127,7 @@ export function createCentAgent(options?: CentAgentOptions): AgentDefinition {
           includeToolSelection: true,
           includeMultiAgent: true,
           includeRalphLoop: mergedOptions?.enableRalphLoop ?? true,
+          includeSkills: true,
         });
       } else {
         prompt = BASE_PROMPT;

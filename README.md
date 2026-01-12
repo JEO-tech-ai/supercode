@@ -10,7 +10,7 @@ Modern AI-powered coding assistant with an **OpenCode-level** advanced Text User
 
 ```
 +-----------------------------------------------------------------------------+
-|  SuperCode v0.4.0                                                 claude-4  |
+|  SuperCode v0.4.1                                                 claude-4  |
 +-----------------------------------------------------------------------------+
 |                                                                             |
 |  User: @explorer find all React components @src/                            |
@@ -99,6 +99,57 @@ ralph loop: refactor all components
 - Session recovery on restart
 - Auto-continuation with context preservation
 
+### NEW: Skills System - Multi-Agent Workflow (v0.4.1)
+
+Extensible skill system for specialized workflows and multi-agent coordination:
+
+```bash
+# List available skills
+/skills
+
+# Execute a skill
+/skill api-design
+/skill code-review "auth module"
+
+# Enable UltraWork multi-agent mode
+/ultrawork "build user authentication"
+/ulw "refactor all components"
+
+# Direct agent delegation
+/gemini "analyze large codebase"
+/codex "docker build -t app ."
+```
+
+**Skill Structure** (Markdown with YAML frontmatter):
+```markdown
+---
+description: "Design RESTful APIs"
+agent: "cent"
+tags: ["api", "backend"]
+---
+<skill-instruction>
+Your skill instructions here...
+</skill-instruction>
+```
+
+**Skill Locations:**
+- `.supercode/skills/` - Project-specific skills
+- `~/.config/supercode/skills/` - User skills
+- `~/.claude/skills/` - Global shared skills
+
+**Token Optimization Modes:**
+- `full` - Complete skill content
+- `compact` - 88% token reduction
+- `toon` - 95% token reduction
+
+**Multi-Agent Coordination:**
+
+| Agent | Role | MCP Tool | Best For |
+|-------|------|----------|----------|
+| Claude Code | Orchestrator | Built-in | Planning, code generation |
+| Gemini-CLI | Analyst | `ask-gemini` | Large codebase analysis (1M+ tokens) |
+| Codex-CLI | Executor | `shell` | Long commands, Docker, deployments |
+
 ### Advanced TUI (OpenCode-level)
 
 #### Slash Commands (`/`)
@@ -110,6 +161,7 @@ ralph loop: refactor all components
 | **Git** | `/diff`, `/commit`, `/status`, `/log`, `/branch`, `/pr` |
 | **Context** | `/compact`, `/context`, `/cost`, `/plan`, `/files` |
 | **Agent** | `/spawn`, `/monitor`, `/stop`, `/ralph` |
+| **Skills** | `/skills`, `/skill <id>`, `/ultrawork`, `/ulw`, `/gemini`, `/codex`, `/cent` |
 | **Debug** | `/bug`, `/doctor`, `/logs`, `/version` |
 | **System** | `/help`, `/commands`, `/config`, `/lsp`, `/sidebar`, `/fullscreen`, `/exit` |
 
@@ -377,13 +429,17 @@ supercode/
 │   │   └── pty/                # PTY/terminal management
 │   ├── core/                   # Core functionality
 │   │   ├── hooks/              # Session hooks
-│   │   │   └── ralph-loop/     # NEW: Ralph Loop hook
+│   │   │   └── ralph-loop/     # Ralph Loop hook
+│   │   ├── monitors/           # NEW: Stream monitoring
 │   │   ├── knowledge/          # Knowledge management
 │   │   ├── session/            # Session management
 │   │   └── tools/              # Tool implementations
+│   ├── tools/                  # Tool system
+│   │   ├── skill/              # NEW: Skill system
+│   │   └── slashcommand/       # NEW: Slash command system
 │   ├── agents/                 # Agent definitions
 │   │   ├── sisyphus/           # Sisyphus agent
-│   │   └── cent/               # NEW: Cent orchestrator agent
+│   │   └── cent/               # Cent orchestrator agent
 │   └── config/                 # Configuration management
 ├── packages/                   # Monorepo packages
 │   ├── ui/                     # Shared UI components
@@ -481,9 +537,11 @@ bun turbo run build --filter='!@supercoin/desktop'
 - [x] Local LLM provider (Ollama, LM Studio, llama.cpp)
 - [x] Cent Agent (6-phase orchestrator)
 - [x] Ralph Loop (autonomous mode)
-- [ ] Korean Unicode text input
-- [ ] Stream monitoring metrics
-- [ ] Extended keyboard shortcuts
+- [x] Korean Unicode text input (v0.4.0)
+- [x] Stream monitoring metrics (v0.4.0)
+- [x] Extended keyboard shortcuts (vim/emacs presets) (v0.4.0)
+- [x] Skills System (multi-agent workflow) (v0.4.1)
+- [x] UltraWork mode (multi-agent orchestration) (v0.4.1)
 - [ ] Image paste support
 - [ ] Session sharing
 - [ ] Git integration (diff view, commit helper)

@@ -4,7 +4,7 @@
  */
 
 import type { AvailableAgent, ToolSelectionEntry, ProjectContext } from "../types";
-import type { CentPhaseDefinition, CentPromptBuilderOptions, MultiAgentConfig } from "./types";
+import type { CentPhaseDefinition, CentPromptBuilderOptions, MultiAgentConfig, SkillMatchResult } from "./types";
 import {
   sortAgentsByCost,
   filterAgentsByCategory,
@@ -17,6 +17,8 @@ import {
   MULTI_AGENT_GUIDELINES,
   RALPH_LOOP_SECTION,
   VERIFICATION_CHECKLIST,
+  SKILL_INTEGRATION_SECTION,
+  SKILL_INTENT_PATTERNS,
   AGENT_NAME,
   AGENT_DISPLAY_NAME,
 } from "./constants";
@@ -271,6 +273,7 @@ export function buildCentPrompt(options: CentPromptBuilderOptions): string {
     includeToolSelection = true,
     includeMultiAgent = true,
     includeRalphLoop = true,
+    includeSkills = true,
     customSections = [],
   } = options;
 
@@ -332,6 +335,11 @@ export function buildCentPrompt(options: CentPromptBuilderOptions): string {
     sections.push(RALPH_LOOP_SECTION);
   }
 
+  // Skill integration
+  if (includeSkills) {
+    sections.push(SKILL_INTEGRATION_SECTION);
+  }
+
   // Verification checklist
   sections.push(VERIFICATION_CHECKLIST);
 
@@ -377,4 +385,41 @@ export function getTransitionHint(currentPhase: string): string | null {
   );
 
   return `Possible transitions:\n${hints.join("\n")}`;
+}
+
+/**
+ * Match user input against skill patterns
+ */
+export function matchSkillPattern(input: string): SkillMatchResult | null {
+  for (const entry of SKILL_INTENT_PATTERNS) {
+    const match = input.match(entry.pattern);
+    if (match) {
+      return {
+        skillId: entry.skill,
+        confidence: 0.8,
+        pattern: entry.pattern.toString(),
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Build skill execution prompt
+ */
+export function buildSkillExecutionPrompt(
+  skillId: string,
+  skillInstruction: string,
+  args?: string
+): string {
+  return `<skill-execution>
+<skill-id>${skillId}</skill-id>
+${args ? `<arguments>${args}</arguments>` : ""}
+
+<instruction>
+${skillInstruction}
+</instruction>
+
+Execute this skill following the instruction above. Use the Cent 6-phase workflow to complete the task.
+</skill-execution>`;
 }

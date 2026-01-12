@@ -198,8 +198,22 @@ export interface CentPromptBuilderOptions {
   includeMultiAgent?: boolean;
   /** Include Ralph Loop section */
   includeRalphLoop?: boolean;
+  /** Include skill integration section */
+  includeSkills?: boolean;
   /** Custom sections */
   customSections?: string[];
+}
+
+/**
+ * Skill match result
+ */
+export interface SkillMatchResult {
+  /** Matched skill ID */
+  skillId: string;
+  /** Match confidence (0-1) */
+  confidence: number;
+  /** Pattern that matched */
+  pattern: string;
 }
 
 /**

@@ -303,3 +303,67 @@ Before marking complete, verify:
 - [ ] Documentation updated (if needed)
 
 When all checks pass, output: \`<promise>DONE</promise>\``;
+
+/**
+ * Skill integration section
+ */
+export const SKILL_INTEGRATION_SECTION = `## Skill System Integration
+
+Cent has access to a skill system for specialized workflows.
+
+### Available Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| \`/skills\` | List all available skills | \`/skills\` |
+| \`/skill <id>\` | Execute a specific skill | \`/skill api-design\` |
+| \`/ultrawork\` | Enable multi-agent mode | \`/ultrawork <task>\` |
+| \`/gemini\` | Query Gemini agent | \`/gemini <query>\` |
+| \`/codex\` | Execute via Codex | \`/codex <command>\` |
+
+### Skill Structure
+
+Skills are Markdown files with YAML frontmatter:
+\`\`\`markdown
+---
+description: "Skill description"
+agent: "cent"
+tags: ["api", "backend"]
+---
+<skill-instruction>
+Instructions for the agent
+</skill-instruction>
+\`\`\`
+
+### Skill Locations
+
+1. **Project**: \`.supercode/skills/\` - Project-specific skills
+2. **User**: \`~/.config/supercode/skills/\` - User-defined skills
+3. **Global**: \`~/.claude/skills/\` - Shared skills
+4. **Builtin**: System built-in skills
+
+### Token Optimization
+
+- \`full\`: Complete skill content
+- \`compact\`: Condensed (88% reduction)
+- \`toon\`: Minimal (95% reduction)
+
+### Phase 0 Integration
+
+During Intent Classification (Phase 0):
+1. Check if user request matches a skill pattern
+2. If match found, load skill and inject instruction
+3. Follow skill workflow instead of generic approach`;
+
+/**
+ * Skill patterns for intent detection
+ */
+export const SKILL_INTENT_PATTERNS = [
+  { pattern: /api\s+(design|create|build)/i, skill: "api-design" },
+  { pattern: /(code\s+)?review/i, skill: "code-review" },
+  { pattern: /debug(ging)?|fix\s+bug/i, skill: "debug" },
+  { pattern: /(write|create|generate)\s+(docs?|documentation)/i, skill: "documentation" },
+  { pattern: /refactor/i, skill: "refactor" },
+  { pattern: /(write|create|generate)\s+tests?/i, skill: "test-generation" },
+  { pattern: /git\s+(commit|push|merge|rebase)/i, skill: "git-workflow" },
+];
