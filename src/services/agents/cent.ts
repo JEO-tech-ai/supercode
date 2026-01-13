@@ -75,7 +75,7 @@ export function classifyRequest(request: string): RequestType {
 export class Cent implements Agent {
   readonly name = "cent" as const;
   readonly displayName = "Cent";
-  readonly model?: string;
+  readonly model = "anthropic/claude-sonnet-4";
 
   readonly capabilities = [
     "planning",
