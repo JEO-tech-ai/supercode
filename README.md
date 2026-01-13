@@ -2,18 +2,19 @@
 
 <div align="center">
 
-![SuperCode](https://img.shields.io/badge/SUPERCODE-v0.5.0-blueviolet?style=for-the-badge&logo=supervision&logoColor=white)
+![SuperCode](https://img.shields.io/badge/SUPERCODE-v0.6.0-blueviolet?style=for-the-badge&logo=supervision&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Bun](https://img.shields.io/badge/Bun-1.0+-black?style=for-the-badge&logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Agents](https://img.shields.io/badge/AGENTS-10+-orange?style=for-the-badge)](https://github.com/JEO-tech-ai/supercode)
-[![Hooks](https://img.shields.io/badge/HOOKS-25+-ff69b4?style=for-the-badge)](https://github.com/JEO-tech-ai/supercode)
+[![Hooks](https://img.shields.io/badge/HOOKS-30+-ff69b4?style=for-the-badge)](https://github.com/JEO-tech-ai/supercode)
+[![Claude Code Compatible](https://img.shields.io/badge/Claude_Code-Compatible-green?style=for-the-badge)](https://github.com/JEO-tech-ai/supercode)
 
 **Modern AI-Powered Coding Assistant with OpenCode-Level TUI**
 
 *Privacy-first | Multi-provider | Multi-agent | Open Source*
 
-[Installation](#installation) • [Magic Words](#-the-magic-words) • [Agents](#multi-agent-system) • [Hooks](#-hook-system-25) • [Configuration](#configuration)
+[Installation](#installation) • [Magic Words](#-the-magic-words) • [Agents](#multi-agent-system) • [Hooks](#-hook-system-30) • [Configuration](#configuration)
 
 </div>
 
@@ -56,7 +57,7 @@ SuperCode is a **standalone AI-powered coding assistant CLI** designed for devel
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  SuperCode v0.4.1                                                 claude-4  │
+│  SuperCode v0.6.0                                                 claude-4  │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  User: @explorer find all React components @src/                            │
@@ -110,6 +111,9 @@ SuperCode is a **standalone AI-powered coding assistant CLI** designed for devel
 - **API-based Provider Configuration**: Configure providers via HTTP API without authentication
 - **Mouse Support**: Terminal mouse click handling for enhanced TUI interaction
 - **Cursor Position Management**: Wide character and Korean text support for accurate cursor positioning
+- **Claude Code Compatibility**: Full compatibility with Claude Code's settings.json, hooks, and skills
+- **Auto Update Checker**: Automatic version checking with startup notifications
+- **Skill-Embedded MCP**: Skills can bring their own MCP servers for extended capabilities
 
 ### Provider Configuration API
 
@@ -233,7 +237,74 @@ ralph loop: refactor all components
 
 ---
 
-## ⚓ Hook System (25+)
+## Claude Code Compatibility
+
+SuperCode includes a **full Claude Code compatibility layer**, allowing you to use existing Claude Code configurations seamlessly.
+
+### Hooks Integration
+
+Run custom scripts via Claude Code's `settings.json` hook system. SuperCode reads and executes hooks from:
+
+- `~/.claude/settings.json` (user)
+- `./.claude/settings.json` (project)
+- `./.claude/settings.local.json` (local, git-ignored)
+
+**Supported hook events:**
+- **PreToolUse**: Runs before tool execution. Can block or modify tool input.
+- **PostToolUse**: Runs after tool execution. Can add warnings or context.
+- **UserPromptSubmit**: Runs when user submits prompt. Can block or inject messages.
+- **Stop**: Runs when session goes idle. Can inject follow-up prompts.
+- **PreCompact**: Runs before context compaction. Can preserve important context.
+
+Example `settings.json`:
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{ "type": "command", "command": "eslint --fix $FILE" }]
+      }
+    ]
+  }
+}
+```
+
+### Skills System
+
+SuperCode supports **skill-based workflows** with embedded MCP servers:
+
+**Skill Discovery Paths:**
+- `~/.claude/skills/` (user)
+- `./.claude/skills/` (project)
+- `~/.config/opencode/skill/` (global)
+- `./.opencode/skill/` (project)
+
+**Built-in Skills:**
+- **playwright**: Browser automation via Playwright MCP - verification, browsing, web scraping, testing, screenshots
+
+Skills can embed their own MCP servers in frontmatter:
+```yaml
+---
+description: Browser automation skill
+mcp:
+  playwright:
+    command: npx
+    args: ["-y", "@anthropic-ai/mcp-playwright"]
+---
+```
+
+### Auto Update Checker
+
+SuperCode automatically checks for new versions and notifies you at startup. Features include:
+- Version comparison with npm registry
+- Cached update checks (respects rate limits)
+- Startup toast notifications
+- Configurable via `disabled_hooks`
+
+---
+
+## ⚓ Hook System (30+)
 
 Hooks are the "superpowers" of SuperCode. They run in the background during every interaction.
 
@@ -279,6 +350,13 @@ Hooks are the "superpowers" of SuperCode. They run in the background during ever
 | `auto-slash-command` | Automatic slash command handling |
 | `background-notification` | Notify on background task completion |
 | `agent-usage-reminder` | Encourage specialized agent usage |
+| `auto-update-checker` | Automatically check for new versions |
+
+### Claude Code Compatibility Hooks
+| Hook | Description |
+|------|-------------|
+| `claude-code-hooks` | Execute hooks from Claude Code's settings.json |
+| `hook-message-injector` | File-based synthetic message injection |
 
 ### Environment Hooks
 | Hook | Description |
@@ -570,7 +648,7 @@ Disable specific hooks via configuration:
 }
 ```
 
-Available hooks: `todo-continuation`, `context-window-monitor`, `session-recovery`, `session-notification`, `comment-checker`, `tool-output-truncator`, `directory-agents-injector`, `directory-readme-injector`, `empty-task-response-detector`, `think-mode`, `keyword-detector`, `auto-slash-command`, `background-notification`, `ralph-loop`, `interactive-bash-session`, `non-interactive-env`, `empty-message-sanitizer`, `agent-usage-reminder`, `compaction-context-injector`, `rules-injector`, `preemptive-compaction`, `edit-error-recovery`
+Available hooks: `todo-continuation`, `context-window-monitor`, `session-recovery`, `session-notification`, `comment-checker`, `tool-output-truncator`, `directory-agents-injector`, `directory-readme-injector`, `empty-task-response-detector`, `think-mode`, `keyword-detector`, `auto-slash-command`, `background-notification`, `ralph-loop`, `interactive-bash-session`, `non-interactive-env`, `empty-message-sanitizer`, `agent-usage-reminder`, `compaction-context-injector`, `rules-injector`, `preemptive-compaction`, `edit-error-recovery`, `claude-code-hooks`, `auto-update-checker`, `hook-message-injector`, `thinking-block-validator`, `tool-call-monitor`, `session-lifecycle`, `context-window-limit-recovery`
 
 ---
 
@@ -643,15 +721,27 @@ supercode/
 │   │   ├── context/            # React contexts
 │   │   └── routes/             # TUI screens
 │   ├── services/               # Business logic
-│   │   ├── agents/             # Multi-agent system (10 agents)
+│   │   ├── agents/             # Multi-agent system (10+ agents)
 │   │   ├── auth/               # Provider authentication
 │   │   ├── models/             # AI model management
 │   │   └── pty/                # PTY/terminal management
 │   ├── core/                   # Core functionality
-│   │   ├── hooks/              # Hook system (25+ hooks)
+│   │   ├── hooks/              # Hook system (30+ hooks)
+│   │   │   ├── auto-update-checker/    # Version update checking
+│   │   │   ├── claude-code-hooks/      # Claude Code compatibility layer
+│   │   │   ├── ralph-loop/             # Autonomous development loop
+│   │   │   ├── rules-injector/         # Conditional rules injection
+│   │   │   └── ...                     # 25+ more hooks
 │   │   ├── tools/              # Tool implementations
+│   │   │   ├── lsp/            # LSP tools (hover, goto, refs, rename)
+│   │   │   └── ast-grep/       # AST-aware code search/replace
 │   │   ├── session/            # Session management
 │   │   └── knowledge/          # Knowledge management
+│   ├── features/               # Feature modules
+│   │   ├── builtin-skills/     # Built-in skills (playwright)
+│   │   ├── skill-loader/       # Multi-source skill discovery
+│   │   ├── skill-mcp-manager/  # Skill-embedded MCP support
+│   │   └── hook-message-injector/  # File-based message injection
 │   └── config/                 # Configuration management
 ├── packages/                   # Monorepo packages
 └── supercode.json              # Project configuration
@@ -665,20 +755,25 @@ supercode/
 - [x] Multi-provider support (Claude, Codex, Gemini, Ollama)
 - [x] Advanced TUI with slash commands
 - [x] File reference with glob patterns
-- [x] Multi-agent system (10 agents)
+- [x] Multi-agent system (10+ agents)
 - [x] Real-time sidebar monitoring
 - [x] MCP server integration
-- [x] LSP integration panel
+- [x] LSP integration panel (hover, goto, refs, rename, actions)
 - [x] Session state management
 - [x] Local LLM provider (Ollama, LM Studio, llama.cpp)
 - [x] Cent Agent (6-phase orchestrator)
 - [x] Ralph Loop (autonomous mode)
-- [x] Hook system (25+ hooks)
+- [x] Hook system (30+ hooks)
 - [x] Korean Unicode text input
 - [x] Stream monitoring metrics
 - [x] Extended keyboard shortcuts (vim/emacs presets)
 - [x] Skills System (multi-agent workflow)
 - [x] UltraWork mode (multi-agent orchestration)
+- [x] Claude Code compatibility layer (hooks, skills, settings)
+- [x] Auto Update Checker with startup notifications
+- [x] Skill-embedded MCP support
+- [x] Built-in skills (Playwright browser automation)
+- [x] AST-grep integration (25 languages)
 
 ### In Progress
 - [ ] Image paste support

@@ -312,6 +312,74 @@ export {
 export type { CompactionContextInjectorOptions } from "./compaction-context-injector";
 
 // ============================================================================
+// Auto Update Checker Hooks
+// ============================================================================
+export {
+  createAutoUpdateCheckerHook,
+  checkForUpdate,
+  getCachedVersion,
+  getLatestVersion,
+  invalidatePackage,
+  invalidateCache,
+} from "./auto-update-checker";
+export type {
+  AutoUpdateCheckerOptions,
+  UpdateCheckResult,
+  PluginEntryInfo,
+} from "./auto-update-checker";
+
+// ============================================================================
+// Claude Code Hooks
+// ============================================================================
+export {
+  createClaudeCodeHooksHook,
+  loadClaudeHooksConfig,
+  getClaudeSettingsPaths,
+  executePreToolUseHooks,
+  executePostToolUseHooks,
+  executeUserPromptSubmitHooks,
+  executeStopHooks,
+  executePreCompactHooks,
+  setStopHookActive,
+  getStopHookActive,
+  clearStopHookState,
+  executeHookCommand,
+  findMatchingHooks,
+  transformToolName,
+  objectToSnakeCase,
+  isHookDisabled,
+} from "./claude-code-hooks";
+export type {
+  ClaudeCodeHooksOptions,
+  ClaudeHooksConfig,
+  ClaudeHookEvent,
+  HookMatcher,
+  HookCommand,
+  PreToolUseInput,
+  PostToolUseInput,
+  UserPromptSubmitInput,
+  StopInput,
+  PreCompactInput,
+  PreToolUseOutput,
+  PostToolUseOutput,
+  StopOutput,
+  PreCompactOutput,
+  PermissionDecision,
+  PermissionMode,
+  PreToolUseContext,
+  PreToolUseResult,
+  PostToolUseContext,
+  PostToolUseResult,
+  UserPromptSubmitContext,
+  UserPromptSubmitResult,
+  MessagePart,
+  StopContext,
+  StopResult,
+  PreCompactContext,
+  PreCompactResult,
+} from "./claude-code-hooks";
+
+// ============================================================================
 // Legacy Hook Registry Access
 // ============================================================================
 import { getHookRegistry as getLegacyHookRegistry } from "../hooks";
@@ -376,6 +444,10 @@ export interface HookInitOptions {
   agentUsageReminder?: boolean;
   /** Enable compaction context injector */
   compactionContextInjector?: boolean;
+  /** Enable auto update checker */
+  autoUpdateChecker?: boolean;
+  /** Enable Claude Code Hooks compatibility */
+  claudeCodeHooks?: boolean;
   /** Debug mode */
   debug?: boolean;
 }
@@ -410,6 +482,8 @@ const DEFAULT_HOOK_OPTIONS: HookInitOptions = {
   emptyMessageSanitizer: true,
   agentUsageReminder: true,
   compactionContextInjector: true,
+  autoUpdateChecker: true,
+  claudeCodeHooks: true,
   debug: false,
 };
 
@@ -444,6 +518,8 @@ import { createNonInteractiveEnvHook } from "./non-interactive-env";
 import { createEmptyMessageSanitizerHook } from "./empty-message-sanitizer";
 import { createAgentUsageReminderHook } from "./agent-usage-reminder";
 import { createCompactionContextInjectorHook } from "./compaction-context-injector";
+import { createAutoUpdateCheckerHook } from "./auto-update-checker";
+import { createClaudeCodeHooksHook } from "./claude-code-hooks";
 
 /**
  * Initialize all hooks with the given options
@@ -579,6 +655,16 @@ export function initializeHooks(options: HookInitOptions = {}): void {
   if (opts.compactionContextInjector) {
     registry.register(createCompactionContextInjectorHook({ debug: opts.debug }));
   }
+
+  // Auto Update Checker
+  if (opts.autoUpdateChecker) {
+    registry.register(createAutoUpdateCheckerHook({ debug: opts.debug }));
+  }
+
+  // Claude Code Hooks
+  if (opts.claudeCodeHooks) {
+    registry.register(createClaudeCodeHooksHook({ debug: opts.debug }));
+  }
 }
 
 /**
@@ -641,5 +727,9 @@ export function getAvailableHookFactories(): string[] {
     "createAgentUsageReminderHook",
     // Compaction Context Injector
     "createCompactionContextInjectorHook",
+    // Auto Update Checker
+    "createAutoUpdateCheckerHook",
+    // Claude Code Hooks
+    "createClaudeCodeHooksHook",
   ];
 }
