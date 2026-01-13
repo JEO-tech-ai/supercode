@@ -4,6 +4,29 @@ export { readTool, writeTool, editTool } from './file';
 export { grepTool, globTool } from './search';
 export { TodoWriteTool, TodoReadTool } from './todo';
 
+// Session tools (4 tools)
+export {
+  sessionListTool,
+  sessionReadTool,
+  sessionSearchTool,
+  sessionInfoTool,
+  sessionTools,
+  sessionList,
+  sessionRead,
+  sessionSearch,
+  sessionInfo,
+  SESSION_TOOL_NAMES,
+} from './session';
+export type {
+  SessionListParams,
+  SessionReadParams,
+  SessionSearchParams,
+  SessionInfoParams,
+  SearchMatch,
+  SessionSummary,
+  SessionToolName,
+} from './session';
+
 // LSP tools (11 tools)
 export {
   lspHoverTool,

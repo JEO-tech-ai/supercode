@@ -2,41 +2,54 @@
 
 <div align="center">
 
-![SuperCode](https://img.shields.io/badge/SUPERCODE-v0.6.0-blueviolet?style=for-the-badge&logo=supervision&logoColor=white)
+![SuperCode](https://img.shields.io/badge/SUPERCODE-v0.7.0-blueviolet?style=for-the-badge&logo=supervision&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Bun](https://img.shields.io/badge/Bun-1.0+-black?style=for-the-badge&logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Agents](https://img.shields.io/badge/AGENTS-10+-orange?style=for-the-badge)](https://github.com/JEO-tech-ai/supercode)
 [![Hooks](https://img.shields.io/badge/HOOKS-30+-ff69b4?style=for-the-badge)](https://github.com/JEO-tech-ai/supercode)
-[![Claude Code Compatible](https://img.shields.io/badge/Claude_Code-Compatible-green?style=for-the-badge)](https://github.com/JEO-tech-ai/supercode)
 
-**Modern AI-Powered Coding Assistant with OpenCode-Level TUI**
+**Standalone AI-Powered Coding Assistant with Advanced TUI**
 
-*Privacy-first | Multi-provider | Multi-agent | Open Source*
+*Privacy-first | Multi-provider | Multi-agent | Full Claude Code Compatibility*
 
-[Installation](#installation) • [Magic Words](#-the-magic-words) • [Agents](#multi-agent-system) • [Hooks](#-hook-system-30) • [Configuration](#configuration)
+[Installation](#installation) | [Magic Words](#-the-magic-words) | [Agents](#multi-agent-system) | [Hooks](#-hook-system-30) | [Configuration](#configuration)
 
 </div>
 
 ---
 
-## Reviews
+## What Makes SuperCode Different?
 
-> "The Ralph Loop is terrifying. I walked away to get lunch, and when I came back, it had refactored the entire auth service, updated the tests, and was waiting for my approval."
-> — *Lead Developer*
+SuperCode is a **standalone AI-powered coding assistant CLI** with a full React/Ink TUI. Unlike plugins that extend other tools, SuperCode is a complete, independent application featuring:
 
-> "SuperCode's context-monitor saved me hours of manual context management. It's like having a senior dev who actually understands token limits."
-> — *Senior Architect*
+- **30+ Built-in Hooks** - Same functionality as oh-my-opencode, built-in
+- **Full TUI Experience** - Slash commands, file references, real-time monitoring
+- **Multi-Provider Support** - Claude, Codex, Gemini, Ollama, OpenAI
+- **Claude Code Compatibility** - Full support for settings.json, hooks, skills, commands
+- **Privacy-First** - Default to local Ollama models for cost-free development
+
+```
++---------------------------------------------------------------------+
+|  SuperCode v0.7.0                                         claude-4  |
++---------------------------------------------------------------------+
+|                                                                     |
+|  User: @explorer find all React components @src/                    |
+|                                                                     |
+|  [Explorer] Found 23 React components in src/components/            |
+|     - Button.tsx (42 lines)                                         |
+|     - Modal.tsx (128 lines)                                         |
+|     - ...                                                           |
+|                                                                     |
++---------------------------------------------------------------------+
+|  > /help                                                            |
+|    / commands  @ files/agents  ! shell  [up][down] history          |
++---------------------------------------------------------------------+
+```
 
 ---
 
-## Just Skip Reading
-
-### It's the Age of Agents
-- **Just paste this repo into your Claude/ChatGPT and ask it to explain.**
-- Ask why it's good, what features make it different, and what actually gets better.
-
-### 🪄 The Magic Words
+## The Magic Words
 
 **Don't want to read all this? Just include these keywords in your prompt:**
 
@@ -45,58 +58,36 @@
 | `ultrawork` / `ulw` | **Full Power Mode.** Activates all agents, parallel execution, deep exploration, and relentless execution until 100% completion. |
 | `search` / `find` | **Maximized Search.** Triggers Explorer and Librarian agents to crawl your entire codebase. |
 | `analyze` / `investigate` | **Deep Analysis.** Multi-phase expert consultation with AST-grep and LSP tools. |
-| `ralph mode` / `/ralph-loop` | **Autonomous Loop.** Code → Test → Fail → Refactor → Repeat until Green. |
+| `ralph mode` / `/ralph-loop` | **Autonomous Loop.** Code - Test - Fail - Refactor - Repeat until Green. |
 
 That's it. The agent figures out the rest automatically.
 
 ---
 
-## What is SuperCode?
-
-SuperCode is a **standalone AI-powered coding assistant CLI** designed for developers who demand more than chat capabilities. It is a full multi-agent system built on a React/Ink TUI, featuring a sophisticated hook system that monitors your context, enforces project rules, and automates the tedious parts of engineering.
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  SuperCode v0.6.0                                                 claude-4  │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  User: @explorer find all React components @src/                            │
-│                                                                             │
-│  [Explorer] Found 23 React components in src/components/                    │
-│     - Button.tsx (42 lines)                                                 │
-│     - Modal.tsx (128 lines)                                                 │
-│     - ...                                                                   │
-│                                                                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  > /help                                                                    │
-│    / commands  @ files/agents  ! shell  [up][down] history                  │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Architecture
-
-```
-                        ┌───────────────────────────┐
-                        │       USER INTERFACE      │
-                        │   (React/Ink TUI + CLI)   │
-                        └─────────────┬─────────────┘
-                                      │
-             ┌────────────────────────┴────────────────────────┐
-             │                 ORCHESTRATION LAYER             │
-             │        (Cent Orchestrator / Sisyphus Agent)     │
-             └────────────────────────┬────────────────────────┘
-                                      │
-    ┌─────────────┬───────────────────┼───────────────────┬─────────────┐
-    │   AGENTS    │                   │                   │    TOOLS    │
-    │ (Explorer,  │                 HOOKS                 │ (AST-grep,  │
-    │  Librarian, │  (Ralph Loop, Context Monitor,        │  LSP, MCP,  │
-    │  Frontend)  │   Todo Continuation, Rules Injector)  │  PTY)       │
-    └─────────────┴───────────────────┼───────────────────┴─────────────┘
-                                      │
-             ┌────────────────────────┴────────────────────────┐
-             │                 PROVIDER ADAPTER                │
-             │    (Anthropic, OpenAI, Google, Ollama/Local)    │
-             └─────────────────────────────────────────────────┘
+                        +---------------------------+
+                        |       USER INTERFACE      |
+                        |   (React/Ink TUI + CLI)   |
+                        +-------------+-------------+
+                                      |
+             +------------------------+------------------------+
+             |                 ORCHESTRATION LAYER             |
+             |        (Cent Orchestrator / Sisyphus Agent)     |
+             +------------------------+------------------------+
+                                      |
+    +-------------+-------------------+-------------------+-------------+
+    |   AGENTS    |                   |                   |    TOOLS    |
+    | (Explorer,  |                 HOOKS                 | (AST-grep,  |
+    |  Librarian, |  (Ralph Loop, Context Monitor,        |  LSP, MCP,  |
+    |  Frontend)  |   Todo Continuation, Rules Injector)  |  PTY)       |
+    +-------------+-------------------+-------------------+-------------+
+                                      |
+             +------------------------+------------------------+
+             |                 PROVIDER ADAPTER                |
+             |    (Anthropic, OpenAI, Google, Ollama/Local)    |
+             +------------------------------------------------+
 ```
 
 ---
@@ -108,104 +99,67 @@ SuperCode is a **standalone AI-powered coding assistant CLI** designed for devel
 - **Local-First**: Default to Ollama/local LLMs for privacy and cost-free development
 - **AI SDK Integration**: Universal provider abstraction powered by Vercel AI SDK
 - **Project Configuration**: Per-project settings via `supercode.json`
-- **API-based Provider Configuration**: Configure providers via HTTP API without authentication
 - **Mouse Support**: Terminal mouse click handling for enhanced TUI interaction
-- **Cursor Position Management**: Wide character and Korean text support for accurate cursor positioning
+- **Wide Character Support**: Korean/CJK text input with accurate cursor positioning
 - **Claude Code Compatibility**: Full compatibility with Claude Code's settings.json, hooks, and skills
 - **Auto Update Checker**: Automatic version checking with startup notifications
 - **Skill-Embedded MCP**: Skills can bring their own MCP servers for extended capabilities
 
-### Provider Configuration API
+### TUI Features (Unique to SuperCode)
 
-Configure AI providers without authentication via HTTP API:
+#### Slash Commands (`/`)
+Real-time autocomplete menu with categorized commands:
 
-```bash
-# List all providers
-curl http://localhost:3000/provider
+| Category | Commands |
+|----------|----------|
+| **Session** | `/new`, `/session`, `/undo`, `/redo`, `/rename`, `/copy`, `/export`, `/timeline`, `/fork` |
+| **Navigation** | `/models`, `/agents`, `/theme`, `/provider` |
+| **MCP** | `/mcp`, `/mcp:connect`, `/mcp:disconnect`, `/mcp:tools`, `/mcp:resources` |
+| **Git** | `/diff`, `/commit`, `/status`, `/log`, `/branch`, `/pr` |
+| **Context** | `/compact`, `/context`, `/cost`, `/plan`, `/files` |
+| **Agent** | `/spawn`, `/monitor`, `/stop`, `/ralph-loop`, `/ultrawork` |
+| **Skills** | `/skills`, `/skill <id>` |
+| **Debug** | `/bug`, `/doctor`, `/logs`, `/version` |
+| **System** | `/help`, `/commands`, `/config`, `/lsp`, `/sidebar`, `/fullscreen`, `/exit` |
 
-# Configure a provider with API key
-curl -X POST http://localhost:3000/provider/anthropic \
-  -H "Content-Type: application/json" \
-  -d '{"apiKey": "sk-ant-..."}'
-
-# Set current model (no auth required for local models)
-curl -X POST http://localhost:3000/provider/model \
-  -H "Content-Type: application/json" \
-  -d '{"model": "local/llama3.3:latest"}'
-
-# List all available models
-curl http://localhost:3000/provider/models
-
-# Reset provider configuration
-curl -X DELETE http://localhost:3000/provider/anthropic
-```
-
-**Features:**
-- Runtime provider configuration without restarts
-- API key injection via environment variables
-- Model switching with automatic validation
-- Support for all providers (anthropic, openai, google, local)
-
-### Local Provider
-
-Native support for local LLM services with OpenAI-compatible API:
+#### File References (`@`)
+Autocomplete menu with fuzzy search, glob patterns, and line range support:
 
 ```bash
-# Use local models (Ollama, LM Studio, llama.cpp)
-supercode --provider local --model llama3.3:latest
-
-# Quick aliases
-supercode -m llama      # local/llama3.3:latest
-supercode -m qwen       # local/qwen2.5-coder:latest
-supercode -m deepseek   # local/deepseek-coder-v2:latest
+@src/index.ts           # Attach a file
+@src/index.ts#10-20     # Attach specific lines
+@src/components/        # Attach a directory
+@**/*.tsx               # Glob patterns
+@explorer               # Mention an agent
 ```
 
-**Features:**
-- Auto-discovery of models from `/api/tags` and `/models` endpoints
-- Context window inference from model names
-- Capability detection (coding, vision, long_context)
-- Zero authentication required for local services
-
-### Cent Agent - Default 6-Phase Multi-Agent Orchestrator
-
-The **Cent agent** is the default orchestrator (like Sisyphus in oh-my-opencode). It automatically handles all requests with a structured 6-phase workflow:
-
-| Phase | Name | Description |
-|-------|------|-------------|
-| 0 | **Intent** | Classify user intent and determine task type |
-| 1 | **Context** | Gather relevant codebase context |
-| 2 | **Decomposition** | Break complex tasks into subtasks |
-| 3 | **Delegation** | Assign subtasks to specialized agents |
-| 4 | **Execution** | Execute tasks with appropriate tools |
-| 5 | **Verification** | Verify results and ensure completion |
-
+#### Shell Mode (`!`)
 ```bash
-# Cent is the default orchestrator - no flag needed
-supercode
-
-# Explicitly specify (optional)
-supercode --orchestrator cent
+! npm install
+! git status
+! docker ps
 ```
 
-### Ralph Loop - Autonomous Development Mode
+#### Mouse Support
+- **Click to focus**: Click on input areas to focus
+- **Click to position**: Click within text to move cursor
+- **Double-click**: Select words or trigger actions
+- **Drag support**: Select text ranges (when enabled)
 
-Self-referential development loop for autonomous task completion:
+#### Keyboard Shortcuts
 
-```bash
-# Start Ralph Loop
-/ralph-loop "implement user authentication with JWT"
-
-# Or use trigger patterns
-ralph mode: build the entire feature
-ralph loop: refactor all components
-```
-
-**Features:**
-- Persistent state storage across sessions
-- Dual completion detection (`<promise>DONE</promise>` tag)
-- Configurable iteration limits (default: 100)
-- Session recovery on restart
-- Auto-continuation with context preservation
+| Key | Action |
+|-----|--------|
+| `Ctrl+X` | Open command palette |
+| `Ctrl+B` | Toggle sidebar |
+| `Ctrl+N` | New session |
+| `Ctrl+Z` | Undo |
+| `Ctrl+Y` | Redo |
+| `Ctrl+F` | Fullscreen |
+| `Ctrl+C` | Exit (when prompt empty) |
+| `Esc` | Go back / Close dialog |
+| `Up/Down` | Navigate history / autocomplete |
+| `Tab` | Select autocomplete item |
 
 ---
 
@@ -213,16 +167,16 @@ ralph loop: refactor all components
 
 | Agent | Icon | Description | Capabilities |
 |-------|------|-------------|--------------|
-| **cent** | 🧠 | 6-phase multi-agent orchestrator | coordinate, delegate, verify |
-| **explorer** | 🔍 | Fast codebase search & navigation | grep, find, semantic-search |
-| **analyst** | 📊 | Architecture & security review | analyze, review, security-scan |
-| **librarian** | 📚 | Documentation & package expert | deps, upgrade, audit, docs |
-| **frontend** | 🎨 | UI/UX specialist | component, style, accessibility |
-| **docwriter** | ✍️ | Technical documentation writer | readme, api-docs, comments |
-| **executor** | ⚡ | Command & script execution | shell, npm, docker |
-| **reviewer** | 🔬 | Code review & best practices | review, lint, suggest |
-| **multimodal** | 👁️ | Image & screenshot analysis | vision, ocr, diagram |
-| **sisyphus** | 🔄 | Persistent long-running tasks | long-task, retry, checkpoint |
+| **cent** | The 6-phase multi-agent orchestrator | coordinate, delegate, verify |
+| **explorer** | Fast codebase search & navigation | grep, find, semantic-search |
+| **analyst** | Architecture & security review | analyze, review, security-scan |
+| **librarian** | Documentation & package expert | deps, upgrade, audit, docs |
+| **frontend** | UI/UX specialist | component, style, accessibility |
+| **docwriter** | Technical documentation writer | readme, api-docs, comments |
+| **executor** | Command & script execution | shell, npm, docker |
+| **reviewer** | Code review & best practices | review, lint, suggest |
+| **multimodal** | Image & screenshot analysis | vision, ocr, diagram |
+| **sisyphus** | Persistent long-running tasks | long-task, retry, checkpoint |
 
 ### Agent Mentions (`@agent`)
 ```bash
@@ -234,6 +188,61 @@ ralph loop: refactor all components
 @multimodal analyze this screenshot
 @cent orchestrate complex refactoring
 ```
+
+---
+
+## Hook System (30+)
+
+Hooks are the "superpowers" of SuperCode. They run in the background during every interaction.
+
+### Session & Lifecycle Hooks
+| Hook | Description |
+|------|-------------|
+| `session-recovery` | Auto-recover from session errors |
+| `session-lifecycle` | Track session states and metadata |
+| `session-notification` | OS notifications when agents go idle |
+
+### Context Window Management
+| Hook | Description |
+|------|-------------|
+| `context-window-monitor` | Real-time token usage tracking |
+| `context-window-limit-recovery` | Auto-switch models on limit errors |
+| `preemptive-compaction` | Proactive context summarization at 85% |
+| `compaction-context-injector` | Preserve critical context during compaction |
+
+### Tool & Validation Hooks
+| Hook | Description |
+|------|-------------|
+| `tool-output-truncator` | Prevent large outputs from bloating context |
+| `tool-call-monitor` | Track tool usage statistics |
+| `thinking-block-validator` | Validate thinking blocks |
+| `edit-error-recovery` | Auto-retry failed file edits |
+| `comment-checker` | Prevent excessive AI comments |
+
+### Context Injection Hooks
+| Hook | Description |
+|------|-------------|
+| `rules-injector` | Auto-inject `.claude/rules/` project rules |
+| `directory-readme-injector` | Inject relevant README context |
+| `directory-agents-injector` | Inject `AGENTS.md` context |
+| `prompt-context-injector` | Dynamic context injection |
+
+### Automation Hooks
+| Hook | Description |
+|------|-------------|
+| `ralph-loop` | Autonomous development loop |
+| `todo-continuation` | Force completion of all TODO items |
+| `keyword-detector` | Detect magic words (ultrawork, search, analyze) |
+| `think-mode` | Auto-detect when extended thinking is needed |
+| `auto-slash-command` | Automatic slash command handling |
+| `background-notification` | Notify on background task completion |
+| `agent-usage-reminder` | Encourage specialized agent usage |
+| `auto-update-checker` | Automatically check for new versions |
+
+### Claude Code Compatibility Hooks
+| Hook | Description |
+|------|-------------|
+| `claude-code-hooks` | Execute hooks from Claude Code's settings.json |
 
 ---
 
@@ -294,176 +303,6 @@ mcp:
 ---
 ```
 
-### Auto Update Checker
-
-SuperCode automatically checks for new versions and notifies you at startup. Features include:
-- Version comparison with npm registry
-- Cached update checks (respects rate limits)
-- Startup toast notifications
-- Configurable via `disabled_hooks`
-
----
-
-## ⚓ Hook System (30+)
-
-Hooks are the "superpowers" of SuperCode. They run in the background during every interaction.
-
-### Session & Lifecycle Hooks
-| Hook | Description |
-|------|-------------|
-| `session-recovery` | Auto-recover from session errors |
-| `session-lifecycle` | Track session states and metadata |
-| `session-notification` | OS notifications when agents go idle |
-
-### Context Window Management
-| Hook | Description |
-|------|-------------|
-| `context-window-monitor` | Real-time token usage tracking |
-| `context-window-limit-recovery` | Auto-switch models on limit errors |
-| `preemptive-compaction` | Proactive context summarization at 85% |
-| `compaction-context-injector` | Preserve critical context during compaction |
-
-### Tool & Validation Hooks
-| Hook | Description |
-|------|-------------|
-| `tool-output-truncator` | Prevent large outputs from bloating context |
-| `tool-call-monitor` | Track tool usage statistics |
-| `thinking-block-validator` | Validate thinking blocks |
-| `edit-error-recovery` | Auto-retry failed file edits |
-| `comment-checker` | Prevent excessive AI comments |
-
-### Context Injection Hooks
-| Hook | Description |
-|------|-------------|
-| `rules-injector` | Auto-inject `.claude/rules/` project rules |
-| `directory-readme-injector` | Inject relevant README context |
-| `directory-agents-injector` | Inject `AGENTS.md` context |
-| `prompt-context-injector` | Dynamic context injection |
-
-### Automation Hooks
-| Hook | Description |
-|------|-------------|
-| `ralph-loop` | Autonomous development loop |
-| `todo-continuation` | Force completion of all TODO items with countdown and abort detection |
-| `keyword-detector` | Detect magic words (ultrawork, search, analyze) |
-| `think-mode` | Auto-detect when extended thinking is needed |
-| `auto-slash-command` | Automatic slash command handling |
-| `background-notification` | Notify on background task completion |
-| `agent-usage-reminder` | Encourage specialized agent usage |
-| `auto-update-checker` | Automatically check for new versions |
-
-### Claude Code Compatibility Hooks
-| Hook | Description |
-|------|-------------|
-| `claude-code-hooks` | Execute hooks from Claude Code's settings.json |
-| `hook-message-injector` | File-based synthetic message injection |
-
-### Environment Hooks
-| Hook | Description |
-|------|-------------|
-| `non-interactive-env` | Fix git/tools in non-interactive shells |
-| `interactive-bash-session` | Support for interactive terminal tools |
-| `empty-message-sanitizer` | Prevent API errors from empty messages |
-
----
-
-## Advanced TUI
-
-### Slash Commands (`/`)
-| Category | Commands |
-|----------|----------|
-| **Session** | `/new`, `/session`, `/undo`, `/redo`, `/rename`, `/copy`, `/export`, `/timeline`, `/fork` |
-| **Navigation** | `/models`, `/agents`, `/theme`, `/provider` |
-| **MCP** | `/mcp`, `/mcp:connect`, `/mcp:disconnect`, `/mcp:tools`, `/mcp:resources` |
-| **Git** | `/diff`, `/commit`, `/status`, `/log`, `/branch`, `/pr` |
-| **Context** | `/compact`, `/context`, `/cost`, `/plan`, `/files` |
-| **Agent** | `/spawn`, `/monitor`, `/stop`, `/ralph` |
-| **Skills** | `/skills`, `/skill <id>`, `/ultrawork`, `/ulw`, `/ralph-loop` |
-| **Debug** | `/bug`, `/doctor`, `/logs`, `/version` |
-| **System** | `/help`, `/commands`, `/config`, `/lsp`, `/sidebar`, `/fullscreen`, `/exit` |
-
-### File References (`@`)
-```bash
-@src/index.ts           # Attach a file
-@src/index.ts#10-20     # Attach specific lines
-@src/components/        # Attach a directory
-@**/*.tsx               # Glob patterns
-```
-
-### Shell Mode (`!`)
-```bash
-! npm install
-! git status
-! docker ps
-```
-
-### Mouse Support
-
-SuperCode now supports terminal mouse interactions:
-- **Click to focus**: Click on input areas to focus
-- **Click to position**: Click within text to move cursor
-- **Double-click**: Select words or trigger actions
-- **Drag support**: Select text ranges (when enabled)
-
-### Real-time Monitoring Sidebar
-
-```
-┌──────────────────────────────┐
-│ Session: Code Review         │
-│    abc123...                 │
-├──────────────────────────────┤
-│ Context                      │
-│ [============      ] 68%     │
-│ 87,234 / 128k                │
-│ Input: 45,123  Output: 42,111│
-│ Cost: $0.0234                │
-├──────────────────────────────┤
-│ Agents (2)                   │
-│ [*] explorer     running 45% │
-│ [v] analyst      completed   │
-├──────────────────────────────┤
-│ MCP (3/3)                    │
-│ [*] gemini-cli    tools: 12  │
-│ [*] codex-cli     tools: 8   │
-│ [*] filesystem    tools: 5   │
-├──────────────────────────────┤
-│ Todo (3/5)                   │
-│ [-] Implement auth           │
-│ [ ] Add tests                │
-│ [v] Setup CI                 │
-├──────────────────────────────┤
-│ Git                          │
-│ Branch: feature/auth         │
-│ +2 ~3 ?1                     │
-└──────────────────────────────┘
-```
-
-### Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| `Ctrl+X` | Open command palette |
-| `Ctrl+B` | Toggle sidebar |
-| `Ctrl+N` | New session |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Y` | Redo |
-| `Ctrl+F` | Fullscreen |
-| `Ctrl+C` | Exit (when prompt empty) |
-| `Esc` | Go back / Close dialog |
-| `Up/Down` | Navigate history / autocomplete |
-| `Tab` | Select autocomplete item |
-| `/` | Start slash command |
-| `@` | Start file/agent reference |
-| `!` | Enter shell mode |
-
-### Themes
-
-- **Catppuccin** (default) - Soothing pastel theme
-- **Dracula** - Dark theme with vibrant colors
-- **Nord** - Arctic, north-bluish color palette
-- **Tokyo Night** - Clean dark theme inspired by Tokyo
-- **Monokai** - Classic high-contrast theme
-
 ---
 
 ## Installation
@@ -495,52 +334,6 @@ bun link
 supercode --help
 ```
 
-### For LLM Agents
-
-<details>
-<summary>Instructions for LLM Agents (click to expand)</summary>
-
-If you're an LLM Agent helping set up SuperCode, follow these steps:
-
-#### Step 1: Verify Prerequisites
-```bash
-# Check Bun installation
-bun --version  # Should be 1.0+
-
-# Check if Ollama is running (optional, for local models)
-curl -s http://localhost:11434/api/tags | head -c 100
-```
-
-#### Step 2: Clone and Install
-```bash
-git clone https://github.com/JEO-tech-ai/supercode.git
-cd supercode
-bun install
-```
-
-#### Step 3: Verify Installation
-```bash
-# Run doctor to check setup
-bun src/cli/index.ts doctor
-
-# Start the TUI
-bun src/cli/index.ts
-```
-
-#### Step 4: Configure Providers
-```bash
-# For cloud providers (Anthropic, OpenAI, Google)
-supercode auth setup anthropic
-supercode auth setup openai
-supercode auth setup google
-
-# For local models (Ollama)
-ollama pull llama3.3:latest
-supercode --provider local --model llama3.3:latest
-```
-
-</details>
-
 ---
 
 ## Usage
@@ -561,7 +354,7 @@ supercode --classic
 ### Quick Examples
 
 ```bash
-# Start with local model (default, privacy-first)
+# Use local model (default, privacy-first)
 supercode
 
 # Use Claude
@@ -575,6 +368,20 @@ supercode --provider google --model gemini-2.0-flash
 
 # Use local Ollama models
 supercode --provider local --model llama3.3:latest
+```
+
+### Local Provider
+
+Native support for local LLM services with OpenAI-compatible API:
+
+```bash
+# Use local models (Ollama, LM Studio, llama.cpp)
+supercode --provider local --model llama3.3:latest
+
+# Quick aliases
+supercode -m llama      # local/llama3.3:latest
+supercode -m qwen       # local/qwen2.5-coder:latest
+supercode -m deepseek   # local/deepseek-coder-v2:latest
 ```
 
 ---
@@ -603,12 +410,6 @@ supercode --provider local --model llama3.3:latest
       "enabled": true
       // API key from environment: ANTHROPIC_API_KEY
     }
-  },
-  
-  // Orchestrator settings
-  "orchestrator": {
-    "enabled": true,
-    "defaultOrchestrator": "cent"
   },
   
   // Hook configuration
@@ -648,25 +449,50 @@ Disable specific hooks via configuration:
 }
 ```
 
-Available hooks: `todo-continuation`, `context-window-monitor`, `session-recovery`, `session-notification`, `comment-checker`, `tool-output-truncator`, `directory-agents-injector`, `directory-readme-injector`, `empty-task-response-detector`, `think-mode`, `keyword-detector`, `auto-slash-command`, `background-notification`, `ralph-loop`, `interactive-bash-session`, `non-interactive-env`, `empty-message-sanitizer`, `agent-usage-reminder`, `compaction-context-injector`, `rules-injector`, `preemptive-compaction`, `edit-error-recovery`, `claude-code-hooks`, `auto-update-checker`, `hook-message-injector`, `thinking-block-validator`, `tool-call-monitor`, `session-lifecycle`, `context-window-limit-recovery`
+---
+
+## Real-time Monitoring Sidebar
+
+```
++------------------------------+
+| Session: Code Review         |
+|    abc123...                 |
++------------------------------+
+| Context                      |
+| [============      ] 68%     |
+| 87,234 / 128k                |
+| Input: 45,123  Output: 42,111|
+| Cost: $0.0234                |
++------------------------------+
+| Agents (2)                   |
+| [*] explorer     running 45% |
+| [v] analyst      completed   |
++------------------------------+
+| MCP (3/3)                    |
+| [*] gemini-cli    tools: 12  |
+| [*] codex-cli     tools: 8   |
+| [*] filesystem    tools: 5   |
++------------------------------+
+| Todo (3/5)                   |
+| [-] Implement auth           |
+| [ ] Add tests                |
+| [v] Setup CI                 |
++------------------------------+
+| Git                          |
+| Branch: feature/auth         |
+| +2 ~3 ?1                     |
++------------------------------+
+```
 
 ---
 
-## Troubleshooting: Doctor Command
+## Themes
 
-If things go wrong, run `supercode doctor`:
-
-```bash
-supercode doctor
-```
-
-It checks for:
-- [x] Bun version compatibility
-- [x] API key validity for all configured providers
-- [x] Connectivity to local Ollama instances
-- [x] Missing optional dependencies (AST-grep, Playwright)
-- [x] Permission issues in the current directory
-- [x] Configuration file validity
+- **Catppuccin** (default) - Soothing pastel theme
+- **Dracula** - Dark theme with vibrant colors
+- **Nord** - Arctic, north-bluish color palette
+- **Tokyo Night** - Clean dark theme inspired by Tokyo
+- **Monokai** - Classic high-contrast theme
 
 ---
 
@@ -711,41 +537,60 @@ SuperCode supports MCP servers for extended capabilities:
 
 ```
 supercode/
-├── src/
-│   ├── cli/                    # CLI entry point and commands
-│   │   ├── commands/           # CLI command handlers
-│   │   ├── components/         # Dashboard components
-│   │   └── run/                # Runtime execution
-│   ├── tui/                    # Text User Interface
-│   │   ├── component/          # Reusable UI components
-│   │   ├── context/            # React contexts
-│   │   └── routes/             # TUI screens
-│   ├── services/               # Business logic
-│   │   ├── agents/             # Multi-agent system (10+ agents)
-│   │   ├── auth/               # Provider authentication
-│   │   ├── models/             # AI model management
-│   │   └── pty/                # PTY/terminal management
-│   ├── core/                   # Core functionality
-│   │   ├── hooks/              # Hook system (30+ hooks)
-│   │   │   ├── auto-update-checker/    # Version update checking
-│   │   │   ├── claude-code-hooks/      # Claude Code compatibility layer
-│   │   │   ├── ralph-loop/             # Autonomous development loop
-│   │   │   ├── rules-injector/         # Conditional rules injection
-│   │   │   └── ...                     # 25+ more hooks
-│   │   ├── tools/              # Tool implementations
-│   │   │   ├── lsp/            # LSP tools (hover, goto, refs, rename)
-│   │   │   └── ast-grep/       # AST-aware code search/replace
-│   │   ├── session/            # Session management
-│   │   └── knowledge/          # Knowledge management
-│   ├── features/               # Feature modules
-│   │   ├── builtin-skills/     # Built-in skills (playwright)
-│   │   ├── skill-loader/       # Multi-source skill discovery
-│   │   ├── skill-mcp-manager/  # Skill-embedded MCP support
-│   │   └── hook-message-injector/  # File-based message injection
-│   └── config/                 # Configuration management
-├── packages/                   # Monorepo packages
-└── supercode.json              # Project configuration
++-- src/
+|   +-- cli/                    # CLI entry point and commands
+|   |   +-- commands/           # CLI command handlers
+|   |   +-- components/         # Dashboard components
+|   |   +-- run/                # Runtime execution
+|   +-- tui/                    # Text User Interface
+|   |   +-- component/          # Reusable UI components
+|   |   |   +-- prompt/         # Slash commands, file references
+|   |   +-- context/            # React contexts
+|   |   +-- hooks/              # useMouse, useCursor, useComposition
+|   |   +-- routes/             # TUI screens
+|   +-- services/               # Business logic
+|   |   +-- agents/             # Multi-agent system (10+ agents)
+|   |   +-- auth/               # Provider authentication
+|   |   +-- models/             # AI model management
+|   |   +-- pty/                # PTY/terminal management
+|   +-- core/                   # Core functionality
+|   |   +-- hooks/              # Hook system (30+ hooks)
+|   |   +-- tools/              # Tool implementations
+|   |   |   +-- lsp/            # LSP tools (hover, goto, refs, rename)
+|   |   |   +-- ast-grep/       # AST-aware code search/replace
+|   |   |   +-- session/        # Session management tools
+|   |   +-- session/            # Session management
+|   |   +-- knowledge/          # Knowledge management
+|   +-- features/               # Feature modules
+|   |   +-- builtin-skills/     # Built-in skills (playwright)
+|   |   +-- skill-loader/       # Multi-source skill discovery
+|   |   +-- skill-mcp-manager/  # Skill-embedded MCP support
+|   +-- config/                 # Configuration management
++-- packages/                   # Monorepo packages
+|   +-- auth/                   # Authentication package
+|   +-- console-app/            # Web console
+|   +-- server/                 # Backend server
+|   +-- ui/                     # Shared UI components
++-- supercode.json              # Project configuration
 ```
+
+---
+
+## Troubleshooting: Doctor Command
+
+If things go wrong, run `supercode doctor`:
+
+```bash
+supercode doctor
+```
+
+It checks for:
+- [x] Bun version compatibility
+- [x] API key validity for all configured providers
+- [x] Connectivity to local Ollama instances
+- [x] Missing optional dependencies (AST-grep, Playwright)
+- [x] Permission issues in the current directory
+- [x] Configuration file validity
 
 ---
 
@@ -753,26 +598,22 @@ supercode/
 
 ### Completed
 - [x] Multi-provider support (Claude, Codex, Gemini, Ollama)
-- [x] Advanced TUI with slash commands
-- [x] File reference with glob patterns
+- [x] Advanced TUI with slash commands and file references
 - [x] Multi-agent system (10+ agents)
 - [x] Real-time sidebar monitoring
 - [x] MCP server integration
-- [x] LSP integration panel (hover, goto, refs, rename, actions)
+- [x] LSP integration (hover, goto, refs, rename, actions)
 - [x] Session state management
 - [x] Local LLM provider (Ollama, LM Studio, llama.cpp)
 - [x] Cent Agent (6-phase orchestrator)
 - [x] Ralph Loop (autonomous mode)
 - [x] Hook system (30+ hooks)
 - [x] Korean Unicode text input
-- [x] Stream monitoring metrics
-- [x] Extended keyboard shortcuts (vim/emacs presets)
-- [x] Skills System (multi-agent workflow)
+- [x] Mouse support (click, double-click, drag)
+- [x] Skills System with embedded MCP
 - [x] UltraWork mode (multi-agent orchestration)
-- [x] Claude Code compatibility layer (hooks, skills, settings)
-- [x] Auto Update Checker with startup notifications
-- [x] Skill-embedded MCP support
-- [x] Built-in skills (Playwright browser automation)
+- [x] Claude Code compatibility layer
+- [x] Auto Update Checker
 - [x] AST-grep integration (25 languages)
 
 ### In Progress
