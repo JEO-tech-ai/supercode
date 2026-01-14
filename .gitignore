@@ -16,9 +16,19 @@ opencode.json
 .opencode.json
 supercoin.json
 
-# Build
- dist/
- build/
+# Session data
+.supercoin/
+
+# Build outputs
+dist/
+build/
+packages/console/app/.output/
+packages/console/app/.vinxi/
+packages/console/app/app.config.timestamp_*.js
+
+# Logs
+*.log
+firebase-debug.log
 
 # Monorepo tooling
 .sst/
@@ -28,4 +38,7 @@ packages/database/.data/
 
 # TypeScript
 *.tsbuildinfo
+
+# Lock files (optional - keep bun.lock for reproducible builds)
+# bun.lock
 
