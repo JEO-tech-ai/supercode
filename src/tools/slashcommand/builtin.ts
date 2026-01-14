@@ -11,6 +11,161 @@ import type {
 import { getSlashCommandRegistry } from "./registry";
 import { getSkillLoader, formatSkillList } from "../skill";
 
+const argsRegex = /(?:\[Image\s+\d+\]|"[^"]*"|'[^']*'|[^\s"']+)/gi;
+const placeholderRegex = /\$(\d+)/g;
+const quoteTrimRegex = /^["']|["']$/g;
+
+function parseArgs(input: string): string[] {
+  const matches = input.match(argsRegex) ?? [];
+  return matches.map((arg) => arg.replace(quoteTrimRegex, ""));
+}
+
+function expandTemplate(template: string, rawArgs: string, args: string[]): string {
+  const placeholders = template.match(placeholderRegex) ?? [];
+  let last = 0;
+  for (const item of placeholders) {
+    const value = Number(item.slice(1));
+    if (value > last) last = value;
+  }
+
+  const withArgs = template.replace(placeholderRegex, (_, index) => {
+    const position = Number(index);
+    const argIndex = position - 1;
+    if (argIndex >= args.length) return "";
+    if (position === last) return args.slice(argIndex).join(" ");
+    return args[argIndex];
+  });
+
+  return withArgs
+    .replace(/\$ARGUMENTS/g, rawArgs || "(no additional context provided)")
+    .replace(/\{args\}/g, rawArgs || "(no additional context provided)")
+    .trim();
+}
+
+function createTemplateCommand(options: {
+  name: string;
+  description: string;
+  template: string;
+  argumentHint?: string;
+  aliases?: string[];
+  category?: SlashCommand["category"];
+  showInPalette?: boolean;
+  priority?: number;
+}): SlashCommand {
+  return {
+    name: options.name,
+    description: options.description,
+    argumentHint: options.argumentHint,
+    category: options.category ?? "workflow",
+    aliases: options.aliases,
+    showInPalette: options.showInPalette ?? true,
+    priority: options.priority,
+    handler: async (args, context): Promise<SlashCommandResult> => {
+      const parsedArgs = parseArgs(args);
+      const prompt = expandTemplate(options.template, args, parsedArgs);
+      return {
+        success: true,
+        prompt,
+        continue: true,
+      };
+    },
+  };
+}
+
+const planCommand = createTemplateCommand({
+  name: "plan",
+  description: "Create a detailed implementation plan",
+  argumentHint: "<task>",
+  aliases: ["planning"],
+  priority: 80,
+  template: `Create a detailed implementation plan for the following task. Include:
+1. Objectives and success criteria
+2. Step-by-step implementation tasks
+3. Files that will be created or modified
+4. Potential risks and mitigations
+5. Testing approach
+
+Task: {args}`,
+});
+
+const reviewCommand = createTemplateCommand({
+  name: "review",
+  description: "Review code changes",
+  argumentHint: "<diff/summary>",
+  aliases: ["code-review", "cr"],
+  priority: 80,
+  template: `Review the following code changes for:
+1. Code quality and best practices
+2. Potential bugs or issues
+3. Performance considerations
+4. Security implications
+5. Suggestions for improvement
+
+{args}`,
+});
+
+const testCommand = createTemplateCommand({
+  name: "test",
+  description: "Run tests and analyze results",
+  argumentHint: "[scope]",
+  aliases: ["tests"],
+  priority: 70,
+  template: `Run the test suite and analyze the results:
+1. Execute all relevant tests
+2. Report any failures with details
+3. Suggest fixes for failing tests
+4. Check test coverage if available
+
+{args}`,
+});
+
+const fixCommand = createTemplateCommand({
+  name: "fix",
+  description: "Fix an issue or bug",
+  argumentHint: "<issue>",
+  aliases: ["bugfix", "solve"],
+  priority: 70,
+  template: `Fix the following issue:
+1. Analyze the problem
+2. Identify the root cause
+3. Implement a solution
+4. Verify the fix works
+5. Ensure no regressions
+
+Issue: {args}`,
+});
+
+const explainCommand = createTemplateCommand({
+  name: "explain",
+  description: "Explain code or concept",
+  argumentHint: "<topic>",
+  aliases: ["describe", "what"],
+  priority: 60,
+  template: `Explain the following in detail:
+1. What it does
+2. How it works
+3. Key components and their interactions
+4. Any important considerations
+
+{args}`,
+});
+
+const refactorCommand = createTemplateCommand({
+  name: "refactor",
+  description: "Refactor code",
+  argumentHint: "<code>",
+  aliases: ["improve", "cleanup"],
+  priority: 60,
+  template: `Refactor the following code:
+1. Identify improvement opportunities
+2. Apply clean code principles
+3. Improve readability and maintainability
+4. Preserve existing functionality
+5. Add comments where helpful
+
+{args}`,
+});
+
 /**
  * /help command - Show help information
  */
@@ -328,6 +483,12 @@ Format the summary for minimum token usage while retaining all essential informa
 export function registerBuiltinCommands(): void {
   const registry = getSlashCommandRegistry();
 
+  registry.register(planCommand);
+  registry.register(reviewCommand);
+  registry.register(testCommand);
+  registry.register(fixCommand);
+  registry.register(explainCommand);
+  registry.register(refactorCommand);
   registry.register(helpCommand);
   registry.register(skillsCommand);
   registry.register(ultraworkCommand);
@@ -342,6 +503,12 @@ export function registerBuiltinCommands(): void {
  * Get all built-in commands
  */
 export const BUILTIN_COMMANDS: SlashCommand[] = [
+  planCommand,
+  reviewCommand,
+  testCommand,
+  fixCommand,
+  explainCommand,
+  refactorCommand,
   helpCommand,
   skillsCommand,
   ultraworkCommand,

@@ -12,6 +12,12 @@ import {
   streamAIResponse,
   checkLocalhostAvailability,
 } from "../../services/models/ai-sdk";
+import {
+  getSlashCommandRegistry,
+  registerBuiltinCommands,
+  type SlashCommandResult,
+} from "../../tools/slashcommand";
+import { getSkillLoader } from "../../tools/skill";
 import type { AISDKProviderName } from "../../services/models/ai-sdk/types";
 import type { RunContext, EventState, RunEvent } from "./types";
 import { createEventState, processEvent, formatSessionTag } from "./events";
@@ -81,6 +87,45 @@ function printSessionHeader(
       Style.TEXT_NORMAL + "verbose"
     );
   }
+}
+
+function normalizeEnv(env: NodeJS.ProcessEnv): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(env).filter((entry): entry is [string, string] => entry[1] !== undefined)
+  );
+}
+
+async function initializeSlashCommands(workdir: string) {
+  const registry = getSlashCommandRegistry();
+  registerBuiltinCommands();
+  getSkillLoader(workdir);
+  await registry.loadSkillCommands();
+  return registry;
+}
+
+async function tryExecuteSlashCommand(
+  input: string,
+  ctx: RunContext
+): Promise<{ handled: boolean; result?: SlashCommandResult }> {
+  if (!input.trim().startsWith("/")) {
+    return { handled: false };
+  }
+
+  const registry = await initializeSlashCommands(ctx.workdir);
+  const parsed = registry.parse(input);
+
+  if (!parsed || !registry.has(parsed.command)) {
+    return { handled: false };
+  }
+
+  const result = await registry.execute(input, {
+    sessionId: ctx.sessionId,
+    cwd: ctx.workdir,
+    input,
+    env: normalizeEnv(process.env),
+  });
+
+  return { handled: true, result };
 }
 
 /**
@@ -207,6 +252,89 @@ export async function runPrompt(options: RunOptions): Promise<{
     sessionId: session.sessionId,
     status: "active",
   });
+
+  const originalMessage = options.message;
+  const commandExecution = await tryExecuteSlashCommand(options.message, ctx);
+
+  if (commandExecution.handled) {
+    const result = commandExecution.result;
+
+    if (!result) {
+      return {
+        success: false,
+        sessionId: session.sessionId,
+        error: "Command execution failed",
+      };
+    }
+
+    if (!result.success) {
+      return {
+        success: false,
+        sessionId: session.sessionId,
+        error: result.error?.message ?? "Command execution failed",
+      };
+    }
+
+    if (result.data && typeof result.data === "object" && "action" in result.data) {
+      if (result.data.action === "clear") {
+        await sessionManager.clearMessages(session.sessionId);
+      }
+    }
+
+    if (result.prompt) {
+      options.message = result.prompt;
+    } else {
+      const output = result.output ?? "Command executed.";
+      await sessionManager.addMessage(session.sessionId, {
+        role: "user",
+        content: originalMessage,
+      });
+      await sessionManager.addMessage(session.sessionId, {
+        role: "assistant",
+        content: output,
+      });
+      await sessionManager.updateSession(session.sessionId, {
+        status: "idle",
+      });
+
+      emitEvent(ctx, state, {
+        type: "message.start",
+        role: "assistant",
+      });
+      emitEvent(ctx, state, {
+        type: "message.end",
+        role: "assistant",
+        content: output,
+      });
+      emitEvent(ctx, state, {
+        type: "session.end",
+        sessionId: session.sessionId,
+        status: "idle",
+      });
+
+      printCompletionSummary(ctx, state);
+
+      if (ctx.format === "json") {
+        console.log(
+          JSON.stringify(
+            {
+              type: "result",
+              sessionID: session.sessionId,
+              content: output,
+            },
+            null,
+            2
+          )
+        );
+      }
+
+      return {
+        success: true,
+        sessionId: session.sessionId,
+        output,
+      };
+    }
+  }
 
   // Add user message
   await sessionManager.addMessage(session.sessionId, {
@@ -433,6 +561,51 @@ export async function runInteractive(options: Omit<RunOptions, "message">): Prom
 
     // Handle commands
     if (trimmedInput.startsWith("/")) {
+      const commandExecution = await tryExecuteSlashCommand(trimmedInput, ctx);
+
+      if (commandExecution.handled) {
+        const result = commandExecution.result;
+
+        if (!result) {
+          clack.log.warn("Command execution failed");
+          continue;
+        }
+
+        if (!result.success) {
+          clack.log.warn(result.error?.message ?? "Command execution failed");
+          continue;
+        }
+
+        if (result.data && typeof result.data === "object" && "action" in result.data) {
+          if (result.data.action === "clear") {
+            await sessionManager.clearMessages(session.sessionId);
+          }
+        }
+
+        if (result.output) {
+          clack.log.info(result.output);
+          continue;
+        }
+
+        if (result.prompt) {
+          const commandResult = await runPrompt({
+            message: result.prompt,
+            model: options.model,
+            sessionId: session.sessionId,
+            verbose: ctx.verbose,
+          });
+
+          if (!commandResult.success) {
+            clack.log.warn(commandResult.error ?? "Command execution failed");
+          }
+
+          session = (await sessionManager.getSession(session.sessionId))!;
+          continue;
+        }
+
+        continue;
+      }
+
       const command = trimmedInput.slice(1).toLowerCase();
 
       if (command === "help" || command === "h") {

@@ -182,6 +182,23 @@ export class SessionManager extends EventEmitter {
     return newMessage;
   }
 
+  async clearMessages(sessionId: string): Promise<boolean> {
+    const session = this.sessions.get(sessionId);
+
+    if (!session) {
+      return false;
+    }
+
+    session.messages = [];
+    session.updatedAt = new Date();
+    session.lastActivityAt = new Date();
+
+    await this.saveSession(sessionId);
+    this.emit('session.updated', { sessionId, updates: { messagesCleared: true } });
+
+    return true;
+  }
+
   async addTodo(sessionId: string, todo: Omit<SessionTodo, 'id' | 'createdAt' | 'updatedAt'>): Promise<SessionTodo> {
     const session = this.sessions.get(sessionId);
 

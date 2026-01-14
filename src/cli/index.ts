@@ -18,6 +18,12 @@ import { UI, CancelledError } from "../shared/ui";
 import logger from "../shared/logger";
 import { EOL } from "os";
 import { runPrompt, runInteractive } from "./run";
+import {
+  getSlashCommandRegistry,
+  registerBuiltinCommands,
+  type SlashCommandResult,
+} from "../tools/slashcommand";
+import { getSkillLoader } from "../tools/skill";
 
 const VERSION = "0.2.0";
 
@@ -70,6 +76,46 @@ function handleChatError(error: unknown, provider: string, model: string) {
   } else {
      UI.error(err.message);
   }
+}
+
+function normalizeEnv(env: NodeJS.ProcessEnv): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(env).filter((entry): entry is [string, string] => entry[1] !== undefined)
+  );
+}
+
+async function initializeSlashCommands(workdir: string) {
+  const registry = getSlashCommandRegistry();
+  registerBuiltinCommands();
+  getSkillLoader(workdir);
+  await registry.loadSkillCommands();
+  return registry;
+}
+
+async function tryExecuteSlashCommand(
+  input: string,
+  workdir: string,
+  sessionId?: string
+): Promise<{ handled: boolean; result?: SlashCommandResult }> {
+  if (!input.trim().startsWith("/")) {
+    return { handled: false };
+  }
+
+  const registry = await initializeSlashCommands(workdir);
+  const parsed = registry.parse(input);
+
+  if (!parsed || !registry.has(parsed.command)) {
+    return { handled: false };
+  }
+
+  const result = await registry.execute(input, {
+    sessionId: sessionId ?? "direct-chat",
+    cwd: workdir,
+    input,
+    env: normalizeEnv(process.env),
+  });
+
+  return { handled: true, result };
 }
 
 async function runInteractiveMode() {
@@ -200,10 +246,60 @@ async function runDirectChatMode() {
     const trimmedInput = (input as string).trim();
 
     if (trimmedInput.startsWith("/")) {
+      const commandExecution = await tryExecuteSlashCommand(trimmedInput, process.cwd());
+
+      if (commandExecution.handled) {
+        const result = commandExecution.result;
+
+        if (!result) {
+          clack.log.warn("Command execution failed");
+          continue;
+        }
+
+        if (!result.success) {
+          clack.log.warn(result.error?.message ?? "Command execution failed");
+          continue;
+        }
+
+        if (result.data && typeof result.data === "object" && "action" in result.data) {
+          if (result.data.action === "clear") {
+            clack.log.info("Context cleared (direct chat mode - no persistent session)");
+            continue;
+          }
+        }
+
+        if (result.output) {
+          clack.log.info(result.output);
+          continue;
+        }
+
+        if (result.prompt) {
+          UI.println();
+          try {
+            await streamAIResponse({
+              provider,
+              model,
+              baseURL: projectConfig.baseURL,
+              temperature: projectConfig.temperature,
+              maxTokens: projectConfig.maxTokens,
+              messages: [{ role: "user", content: result.prompt }],
+              onChunk: (text) => process.stdout.write(text),
+            });
+            process.stdout.write(EOL + EOL);
+          } catch (error) {
+            handleChatError(error, provider, model);
+          }
+          continue;
+        }
+
+        continue;
+      }
+
       const command = trimmedInput.slice(1).toLowerCase();
 
       if (command === "help" || command === "h") {
-        clack.log.info("Commands: /menu, /session, /auth, /models, /config, /exit");
+        clack.log.info("CLI Commands: /menu, /session, /auth, /models, /config, /exit");
+        clack.log.info("Slash Commands: /plan, /review, /test, /fix, /explain, /refactor, /skills, /ultrawork");
         continue;
       }
 
