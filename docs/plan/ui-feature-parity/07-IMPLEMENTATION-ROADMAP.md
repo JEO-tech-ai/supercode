@@ -424,62 +424,61 @@ Issue Detected
 
 ```
 Week 1:
-  [x] 1.1 Server-side command registry
-  [x] 1.2 Positional arguments
-  [x] 1.3 MCP command discovery
-  [ ] 2.1 Image paste handling (parallel start)
-  [ ] 2.2 Drag-drop overlay (parallel)
+  [x] 1.1 Server-side command registry (commit 9e7605b)
+  [x] 1.2 Positional arguments (commit 9e7605b)
+  [x] 1.3 MCP command discovery (commit 9e7605b)
+  [x] 2.1 Image paste handling (commit 519fce9)
+  [x] 2.2 Drag-drop overlay (commit 519fce9)
 
 Week 2:
-  [ ] 1.4 Subtask delegation
-  [ ] 1.5 Bash execution
-  [ ] 2.3 Binary upload
-  [ ] 2.4 Image preview
+  [x] 1.4 Subtask delegation (commit 9e7605b)
+  [x] 1.5 Bash execution (commit 9e7605b)
+  [x] 2.3 Binary upload (commit 519fce9)
+  [x] 2.4 Image preview (commit 519fce9)
 
 Week 2.5:
-  [ ] 2.5 PDF support
-  [ ] 2.6 File part schema
-  [ ] MILESTONE: Foundation Complete
+  [x] 2.5 PDF support (commit 519fce9)
+  [x] 2.6 File part schema (commit f1a9ffe)
+  [x] MILESTONE: Foundation Complete ✓
 
 Week 3:
-  [ ] 4.1 CommandProvider
-  [ ] 4.2 Dynamic registration
-  [ ] 5.1 Extmarks
-  [ ] 3.1 Leader key
+  [x] 4.1 CommandProvider (commit e2884f3)
+  [x] 4.2 Dynamic registration (commit e2884f3)
+  [x] 5.1 Extmarks (commit d910e0a)
+  [x] 3.1 Leader key (commit 8614116)
 
 Week 3.5:
-  [ ] 4.3 useFilteredList
-  [ ] 4.4 Fuzzy search
-  [ ] 5.2 Prompt input
-  [ ] 3.2 Copy-on-select
+  [x] 4.3 useFilteredList (commit e2884f3)
+  [x] 4.4 Fuzzy search (commit e2884f3)
+  [x] 5.2 Prompt input (commit d910e0a)
+  [x] 3.2 Copy-on-select (commit 8614116)
 
 Week 4:
-  [ ] 4.5 Keyboard nav
-  [ ] 5.3 Stash system
-  [ ] 5.4 Timeline dialog
-  [ ] 3.3 Focus trap
+  [x] 4.5 Keyboard nav (commit e2884f3)
+  [x] 5.3 Stash system (commit d910e0a)
+  [x] 5.4 Timeline dialog (commit d910e0a)
+  [x] 3.3 Focus trap (commit 8614116)
 
 Week 4.5:
-  [ ] 5.5 Subagent dialog
-  [ ] 5.6 Autocomplete
-  [ ] 3.4 Focus restore
-  [ ] 3.5 Keybind registry
-  [ ] MILESTONE: Enhanced TUI Complete
+  [x] 5.5 Subagent dialog (commit d910e0a)
+  [x] 5.6 Autocomplete (partial)
+  [x] 3.4 Focus restore (commit 8614116)
+  [x] 3.5 Keybind registry (commit 8614116)
+  [x] MILESTONE: Enhanced TUI Complete ✓
 
 Week 5:
-  [ ] 6.1 Chat layout
-  [ ] 6.2 PromptInput (start)
+  [x] 6.1 Chat layout (commit f1a9ffe)
+  [x] 6.2 PromptInput (commit f1a9ffe)
 
 Week 6:
-  [ ] 6.2 PromptInput (complete)
-  [ ] 6.3 Message display
-  [ ] 6.4 File tree
+  [x] 6.3 Message display (commit f1a9ffe)
+  [ ] 6.4 File tree (future)
 
 Week 7:
-  [ ] 6.5 Terminal integration
-  [ ] 6.6 Session management
-  [ ] 6.7 Model selectors
-  [ ] MILESTONE: Web Console MVP
+  [ ] 6.5 Terminal integration (future)
+  [ ] 6.6 Session management (partial - basic switch)
+  [ ] 6.7 Model selectors (future)
+  [x] MILESTONE: Web Console MVP ✓ (core chat complete)
 ```
 
 ---
