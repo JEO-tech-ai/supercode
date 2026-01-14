@@ -72,7 +72,9 @@ export function createSessionCommand(): Command {
     .addCommand(createSessionShowCommand())
     .addCommand(createSessionDeleteCommand())
     .addCommand(createSessionStatsCommand())
-    .addCommand(createSessionCompactCommand());
+    .addCommand(createSessionCompactCommand())
+    .addCommand(createSessionForkCommand())
+    .addCommand(createSessionChildrenCommand());
 
   return session;
 }
@@ -327,6 +329,120 @@ function createSessionCompactCommand(): Command {
       } else {
         UI.println(UI.Style.TEXT_DIM + "No changes made" + UI.Style.RESET);
       }
+      UI.println();
+    });
+}
+
+function createSessionForkCommand(): Command {
+  return new Command("fork")
+    .description("Fork a session to create a branch at a specific point")
+    .argument("<session-id>", "Session ID to fork")
+    .option("-m, --message <message-id>", "Fork at specific message ID (default: end)")
+    .option("-t, --title <title>", "Title for the forked session")
+    .option("--format <format>", "Output format (table or json)", "table")
+    .action(async (sessionId, options) => {
+      const session = await sessionManager.getSession(sessionId);
+
+      if (!session) {
+        UI.error(`Session not found: ${sessionId}`);
+        process.exit(1);
+      }
+
+      if (options.message) {
+        const messageExists = session.messages.some((m) => m.id === options.message);
+        if (!messageExists) {
+          UI.error(`Message not found: ${options.message}`);
+          process.exit(1);
+        }
+      }
+
+      const forkedSession = await sessionManager.forkSession(sessionId, {
+        messageId: options.message,
+        title: options.title,
+      });
+
+      if (!forkedSession) {
+        UI.error("Failed to fork session");
+        process.exit(1);
+      }
+
+      if (options.format === "json") {
+        console.log(JSON.stringify({
+          forked: true,
+          sessionId: forkedSession.sessionId,
+          parentId: sessionId,
+          messageId: options.message,
+          messagesCount: forkedSession.messages.length,
+        }, null, 2));
+        return;
+      }
+
+      UI.println();
+      UI.println(UI.Style.TEXT_SUCCESS_BOLD + "✓ Session forked successfully" + UI.Style.RESET);
+      UI.println(UI.Style.TEXT_DIM + "─".repeat(40) + UI.Style.RESET);
+      UI.println();
+
+      UI.println(UI.Style.TEXT_INFO_BOLD + "| " + UI.Style.TEXT_DIM + "New Session " + UI.Style.RESET + forkedSession.sessionId);
+      UI.println(UI.Style.TEXT_INFO_BOLD + "| " + UI.Style.TEXT_DIM + "Parent      " + UI.Style.RESET + sessionId);
+      UI.println(UI.Style.TEXT_INFO_BOLD + "| " + UI.Style.TEXT_DIM + "Messages    " + UI.Style.RESET + forkedSession.messages.length);
+      if (options.message) {
+        UI.println(UI.Style.TEXT_INFO_BOLD + "| " + UI.Style.TEXT_DIM + "Fork Point  " + UI.Style.RESET + options.message);
+      }
+      UI.println();
+
+      UI.println(UI.Style.TEXT_DIM + "Continue with: supercode run --session " + forkedSession.sessionId + UI.Style.RESET);
+      UI.println();
+    });
+}
+
+function createSessionChildrenCommand(): Command {
+  return new Command("children")
+    .description("List child sessions (forks) of a session")
+    .argument("<session-id>", "Parent session ID")
+    .option("--format <format>", "Output format (table or json)", "table")
+    .action(async (sessionId, options) => {
+      const session = await sessionManager.getSession(sessionId);
+
+      if (!session) {
+        UI.error(`Session not found: ${sessionId}`);
+        process.exit(1);
+      }
+
+      const children = sessionManager.getChildren(sessionId);
+
+      if (options.format === "json") {
+        console.log(JSON.stringify(children.map((c) => ({
+          id: c.sessionId,
+          title: c.metadata.title,
+          messagesCount: c.messages.length,
+          forkedAt: c.metadata.forkedFrom?.forkedAt,
+          forkPoint: c.metadata.forkedFrom?.messageId,
+        })), null, 2));
+        return;
+      }
+
+      if (children.length === 0) {
+        UI.println(UI.Style.TEXT_DIM + "No child sessions (forks) found" + UI.Style.RESET);
+        return;
+      }
+
+      UI.println();
+      UI.println(UI.Style.TEXT_HIGHLIGHT_BOLD + "Child Sessions (Forks)" + UI.Style.RESET);
+      UI.println(UI.Style.TEXT_DIM + "─".repeat(40) + UI.Style.RESET);
+      UI.println();
+
+      for (const child of children) {
+        const forkInfo = child.metadata.forkedFrom;
+        UI.println(UI.Style.TEXT_INFO_BOLD + "| " + UI.Style.RESET + child.sessionId);
+        UI.println(UI.Style.TEXT_DIM + "  " + (child.metadata.title || "Untitled") + UI.Style.RESET);
+        UI.println(UI.Style.TEXT_DIM + "  Messages: " + child.messages.length + UI.Style.RESET);
+        if (forkInfo) {
+          UI.println(UI.Style.TEXT_DIM + "  Forked: " + formatDate(forkInfo.forkedAt) + UI.Style.RESET);
+        }
+        UI.println();
+      }
+
+      UI.println(UI.Style.TEXT_DIM + children.length + " child session(s)" + UI.Style.RESET);
       UI.println();
     });
 }

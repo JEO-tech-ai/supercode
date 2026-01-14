@@ -169,6 +169,99 @@ export class SessionManager extends EventEmitter {
     return true;
   }
 
+  async forkSession(
+    sessionId: string,
+    options: {
+      messageId?: string;
+      title?: string;
+    } = {}
+  ): Promise<SessionState | null> {
+    const sourceSession = this.sessions.get(sessionId);
+
+    if (!sourceSession) {
+      return null;
+    }
+
+    let messagesToCopy = sourceSession.messages;
+    
+    if (options.messageId) {
+      const messageIndex = messagesToCopy.findIndex((m) => m.id === options.messageId);
+      if (messageIndex >= 0) {
+        messagesToCopy = messagesToCopy.slice(0, messageIndex + 1);
+      }
+    }
+
+    const now = new Date();
+    const newSessionId = crypto.randomUUID();
+    const idMap = new Map<string, string>();
+
+    const copiedMessages: SessionMessage[] = messagesToCopy.map((msg) => {
+      const newId = crypto.randomUUID();
+      idMap.set(msg.id, newId);
+      
+      return {
+        ...msg,
+        id: newId,
+        timestamp: new Date(msg.timestamp),
+        attachments: msg.attachments ? [...msg.attachments] : undefined,
+        metadata: msg.metadata ? { ...msg.metadata } : undefined,
+      };
+    });
+
+    const forkedTitle = options.title || 
+      `Fork of ${sourceSession.metadata.title || 'Untitled'} (${now.toLocaleDateString()})`;
+
+    const forkedSession: SessionState = {
+      sessionId: newSessionId,
+      parentId: sessionId,
+      status: 'active',
+      mode: sourceSession.mode,
+      context: {
+        ...sourceSession.context,
+        sessionId: newSessionId,
+      },
+      messages: copiedMessages,
+      todos: [],
+      createdAt: now,
+      updatedAt: now,
+      lastActivityAt: now,
+      metadata: {
+        title: forkedTitle,
+        tags: sourceSession.metadata.tags ? [...sourceSession.metadata.tags] : undefined,
+        forkedFrom: {
+          sessionId,
+          messageId: options.messageId,
+          forkedAt: now,
+        },
+      },
+      cache: {
+        enabled: true,
+        size: 0,
+        maxSize: 50,
+        keys: [],
+      },
+    };
+
+    this.sessions.set(newSessionId, forkedSession);
+    await this.saveSession(newSessionId);
+
+    this.emit('session.created', { sessionId: newSessionId });
+    this.emit('session.forked', { 
+      sessionId: newSessionId, 
+      parentId: sessionId,
+      messageId: options.messageId,
+    });
+
+    Log.info(`🔀 Forked session: ${sessionId} -> ${newSessionId}`);
+    return forkedSession;
+  }
+
+  getChildren(sessionId: string): SessionState[] {
+    return Array.from(this.sessions.values()).filter(
+      (s) => s.parentId === sessionId
+    );
+  }
+
   async addMessage(sessionId: string, message: Omit<SessionMessage, 'id' | 'timestamp'>): Promise<SessionMessage> {
     const session = this.sessions.get(sessionId);
 

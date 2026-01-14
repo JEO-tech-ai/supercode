@@ -69,6 +69,7 @@ export interface SessionContext {
 
 export interface SessionState {
   sessionId: string;
+  parentId?: string;
   status: SessionStatus;
   mode: SessionMode;
   context: SessionContext;
@@ -83,6 +84,11 @@ export interface SessionState {
     description?: string;
     tags?: string[];
     custom?: Record<string, unknown>;
+    forkedFrom?: {
+      sessionId: string;
+      messageId?: string;
+      forkedAt: Date;
+    };
   };
   cache?: {
     enabled: boolean;
@@ -138,6 +144,8 @@ export type SessionEvent =
   | 'session.resumed'
   | 'session.completed'
   | 'session.deleted'
+  | 'session.forked'
+  | 'session.compacted'
   | 'message.added'
   | 'todo.added'
   | 'todo.updated'
