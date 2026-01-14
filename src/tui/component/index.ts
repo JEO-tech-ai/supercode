@@ -30,3 +30,6 @@ export {
   type HistoryEntry,
 } from "./prompt";
 export { CommandPalette, useCommandPaletteKeybind } from "./CommandPalette";
+export { DialogStash } from "./DialogStash";
+export { DialogTimeline } from "./DialogTimeline";
+export { DialogSubagent } from "./DialogSubagent";

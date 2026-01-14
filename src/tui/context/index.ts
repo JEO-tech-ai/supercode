@@ -31,3 +31,10 @@ export {
   useOptionalFileAttachments,
   type FileAttachment,
 } from "./file";
+export {
+  StashProvider,
+  useStash,
+  formatStashTimestamp,
+  truncateStashInput,
+  type StashEntry,
+} from "./stash";
