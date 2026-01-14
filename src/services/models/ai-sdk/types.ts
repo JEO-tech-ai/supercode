@@ -68,31 +68,37 @@ export interface AISDKModelResult {
 /**
  * Options for streaming responses
  */
+export type ImagePart = {
+  type: "image";
+  image: string;
+  mimeType?: string;
+};
+
+export type TextPart = {
+  type: "text";
+  text: string;
+};
+
+export type ContentPart = TextPart | ImagePart;
+
+export type MessageContent = string | ContentPart[];
+
+export interface StreamMessage {
+  role: "user" | "assistant" | "system";
+  content: MessageContent;
+}
+
 export interface StreamOptions {
-  /** Provider to use */
   provider: AISDKProviderName;
-  /** Model ID (defaults to provider's default) */
   model?: string;
-  /** Messages to send */
-  messages: Array<{
-    role: "user" | "assistant" | "system";
-    content: string;
-  }>;
-  /** System prompt */
+  messages: StreamMessage[];
   systemPrompt?: string;
-  /** Account ID for multi-account support */
   accountId?: string;
-  /** Base URL for localhost providers */
   baseURL?: string;
-  /** Temperature */
   temperature?: number;
-  /** Max tokens */
   maxTokens?: number;
-  /** Callback for each text chunk */
   onChunk?: (text: string) => void;
-  /** Callback when streaming completes */
   onComplete?: (fullText: string) => void;
-  /** Callback for errors */
   onError?: (error: Error) => void;
 }
 

@@ -16,3 +16,9 @@ export {
   type ToolCall,
   type Attachment
 } from "./session";
+export {
+  FileProvider,
+  useFileAttachments,
+  useOptionalFileAttachments,
+  type FileAttachment,
+} from "./file";

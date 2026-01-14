@@ -15,7 +15,9 @@ import type {
   SessionEvent,
   SessionEncryptionConfig,
   SessionStatus,
+  FileAttachmentPart,
 } from './types';
+import { processAttachmentsForStorage, resolveAttachments } from './attachments';
 
 export class SessionManager extends EventEmitter {
   private sessions = new Map<string, SessionState>();
@@ -166,10 +168,16 @@ export class SessionManager extends EventEmitter {
       throw new Error(`Session not found: ${sessionId}`);
     }
 
+    let processedAttachments: FileAttachmentPart[] | undefined;
+    if (message.attachments && message.attachments.length > 0) {
+      processedAttachments = await processAttachmentsForStorage(message.attachments);
+    }
+
     const newMessage: SessionMessage = {
       id: crypto.randomUUID(),
       timestamp: new Date(),
       ...message,
+      attachments: processedAttachments,
     };
 
     session.messages.push(newMessage);
@@ -180,6 +188,21 @@ export class SessionManager extends EventEmitter {
     this.emit('message.added', { sessionId, message: newMessage });
 
     return newMessage;
+  }
+
+  async getMessageWithAttachments(sessionId: string, messageId: string): Promise<SessionMessage | undefined> {
+    const session = this.sessions.get(sessionId);
+    if (!session) return undefined;
+
+    const message = session.messages.find(m => m.id === messageId);
+    if (!message) return undefined;
+
+    if (message.attachments && message.attachments.length > 0) {
+      const resolved = await resolveAttachments(message.attachments);
+      return { ...message, attachments: resolved };
+    }
+
+    return message;
   }
 
   async clearMessages(sessionId: string): Promise<boolean> {

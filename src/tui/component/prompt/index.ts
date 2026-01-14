@@ -12,3 +12,6 @@ export {
   type URLReference,
 } from "./FileReference";
 export { HistoryProvider, useHistory, type HistoryEntry } from "./History";
+export { ImageIndicator, ImageAttachmentBar, ImagePasteHint } from "./ImageIndicator";
+export { DragDropHint, FileDropZone } from "./DragDropHint";
+export { ImagePreviewDialog, AttachmentDetails, AttachmentList } from "./ImagePreview";

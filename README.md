@@ -318,6 +318,7 @@ gh repo star JEO-tech-ai/supercode
 - **Mouse Support**: Terminal mouse click handling for enhanced TUI interaction
 - **Wide Character Support**: Korean/CJK text input with accurate cursor positioning
 - **Claude Code Compatibility**: Full compatibility with Claude Code's settings.json, hooks, and skills
+- **File Attachments**: Attach images and PDFs via CLI (`-f` flag) or TUI (`Ctrl+V` paste)
 - **Auto Update Checker**: Automatic version checking with startup notifications
 - **Skill-Embedded MCP**: Skills can bring their own MCP servers for extended capabilities
 
@@ -612,6 +613,30 @@ supercode run --session abc123 "Continue from here"
 supercode session list
 ```
 
+### File Attachments
+
+Attach images and PDFs to your prompts for multimodal analysis:
+
+```bash
+# Attach a single file
+supercode run "What's in this image?" -f screenshot.png
+
+# Attach multiple files
+supercode run "Compare these designs" -f design1.png -f design2.png
+
+# Attach all images in a folder (max 10)
+supercode run "Analyze these screenshots" -f ./screenshots/
+
+# With a vision-capable model
+supercode run "Describe this UI" -f ui.png -m ollama/qwen3-vl:4b
+```
+
+**Supported formats:** `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg`, `.bmp`, `.pdf`
+
+**Note:** For image analysis, use a vision-capable model (e.g., `qwen3-vl`, `llava`, `gpt-4-vision`, `gemini-pro-vision`)
+
+**TUI Support:** In the TUI, use `Ctrl+V` to paste images from clipboard, or type a file path to auto-attach.
+
 ---
 
 ## Configuration
@@ -857,10 +882,10 @@ supercode/
 - [x] Claude Code compatibility layer
 - [x] Auto Update Checker
 - [x] AST-grep integration (25 languages)
+- [x] File attachment & image paste support (CLI `-f` flag, TUI `Ctrl+V`)
 
 ### In Progress
 
-- [ ] Image paste support
 - [ ] Session sharing
 - [ ] Git integration (diff view, commit helper)
 

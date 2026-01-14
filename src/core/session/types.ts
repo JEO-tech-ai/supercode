@@ -2,11 +2,23 @@ export type SessionStatus = 'active' | 'idle' | 'paused' | 'completed' | 'error'
 
 export type SessionMode = 'normal' | 'ultrawork' | 'interactive';
 
+export interface FileAttachmentPart {
+  id: string;
+  type: 'image' | 'pdf' | 'file';
+  filename: string;
+  mime: string;
+  dataUrl: string;
+  size?: number;
+  source?: 'clipboard' | 'path' | 'drop';
+  originalPath?: string;
+}
+
 export interface SessionMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
+  attachments?: FileAttachmentPart[];
   metadata?: {
     model?: string;
     tokens?: {

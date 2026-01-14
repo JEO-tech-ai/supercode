@@ -4,9 +4,12 @@
  */
 
 import { EOL } from "os";
+import * as fs from "fs";
+import * as path from "path";
 import * as clack from "@clack/prompts";
 import { UI, Style } from "../../shared/ui";
 import { sessionManager } from "../../core/session/manager";
+import type { FileAttachmentPart } from "../../core/session/types";
 import { resolveProviderFromConfig } from "../../config/project";
 import {
   streamAIResponse,
@@ -37,6 +40,7 @@ export interface RunOptions {
   format?: "default" | "json";
   timeout?: number;
   agent?: string;
+  files?: string[];
 }
 
 /**
@@ -129,6 +133,119 @@ async function tryExecuteSlashCommand(
 }
 
 /**
+ * Process file paths into attachments
+ */
+async function processFilePaths(filePaths: string[]): Promise<FileAttachmentPart[]> {
+  const attachments: FileAttachmentPart[] = [];
+  const supportedExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".pdf"];
+
+  for (const filePath of filePaths) {
+    try {
+      const resolved = path.resolve(filePath);
+
+      if (!fs.existsSync(resolved)) {
+        UI.println(Style.TEXT_WARNING + `File not found: ${filePath}` + Style.RESET);
+        continue;
+      }
+
+      const stats = fs.statSync(resolved);
+      if (stats.isDirectory()) {
+        const files = fs.readdirSync(resolved);
+        const supportedFiles = files.filter((f) =>
+          supportedExtensions.some((ext) => f.toLowerCase().endsWith(ext))
+        );
+
+        for (const file of supportedFiles.slice(0, 10)) {
+          const fullPath = path.join(resolved, file);
+          const attachment = await readFileAsAttachment(fullPath);
+          if (attachment) attachments.push(attachment);
+        }
+      } else {
+        const attachment = await readFileAsAttachment(resolved);
+        if (attachment) attachments.push(attachment);
+      }
+    } catch (error) {
+      UI.println(Style.TEXT_WARNING + `Failed to read file: ${filePath}` + Style.RESET);
+    }
+  }
+
+  return attachments;
+}
+
+async function readFileAsAttachment(filePath: string): Promise<FileAttachmentPart | null> {
+  try {
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeMap: Record<string, string> = {
+      ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".gif": "image/gif",
+      ".webp": "image/webp",
+      ".svg": "image/svg+xml",
+      ".bmp": "image/bmp",
+      ".pdf": "application/pdf",
+    };
+
+    const mime = mimeMap[ext];
+    if (!mime) return null;
+
+    const stats = fs.statSync(filePath);
+    const maxSize = mime === "application/pdf" ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+
+    if (stats.size > maxSize) {
+      UI.println(Style.TEXT_WARNING + `File too large: ${filePath}` + Style.RESET);
+      return null;
+    }
+
+    const buffer = fs.readFileSync(filePath);
+    const base64 = buffer.toString("base64");
+    const dataUrl = `data:${mime};base64,${base64}`;
+
+    return {
+      id: crypto.randomUUID(),
+      type: mime.startsWith("image/") ? "image" : mime === "application/pdf" ? "pdf" : "file",
+      filename: path.basename(filePath),
+      mime,
+      dataUrl,
+      size: stats.size,
+      source: "path",
+      originalPath: filePath,
+    };
+  } catch {
+    return null;
+  }
+}
+
+type ContentPart = { type: "text"; text: string } | { type: "image"; image: string; mimeType?: string };
+
+function buildMessageContent(
+  text: string,
+  attachments: FileAttachmentPart[]
+): string | ContentPart[] {
+  if (attachments.length === 0) {
+    return text;
+  }
+
+  const parts: ContentPart[] = [];
+
+  for (const attachment of attachments) {
+    if (attachment.mime.startsWith("image/")) {
+      parts.push({
+        type: "image",
+        image: attachment.dataUrl,
+        mimeType: attachment.mime,
+      });
+    }
+  }
+
+  if (text) {
+    parts.push({ type: "text", text });
+  }
+
+  return parts;
+}
+
+/**
  * Print completion summary
  */
 function printCompletionSummary(ctx: RunContext, state: EventState): void {
@@ -168,7 +285,6 @@ export async function runPrompt(options: RunOptions): Promise<{
   let provider = projectConfig.provider as AISDKProviderName;
   let model = projectConfig.model;
 
-  // Parse model option
   if (options.model) {
     const parts = options.model.split("/");
     if (parts.length === 2) {
@@ -229,7 +345,18 @@ export async function runPrompt(options: RunOptions): Promise<{
     });
   }
 
-  // Create run context
+  let attachments: FileAttachmentPart[] = [];
+  if (options.files && options.files.length > 0) {
+    attachments = await processFilePaths(options.files);
+    if (attachments.length > 0) {
+      UI.println(
+        Style.TEXT_INFO +
+          `Attached ${attachments.length} file(s): ${attachments.map((a) => a.filename).join(", ")}` +
+          Style.RESET
+      );
+    }
+  }
+
   const ctx: RunContext = {
     sessionId: session.sessionId,
     mainSessionId: session.sessionId,
@@ -240,13 +367,10 @@ export async function runPrompt(options: RunOptions): Promise<{
     format: options.format || "default",
   };
 
-  // Create event state
   const state = createEventState();
 
-  // Print header
   printSessionHeader(ctx, session, provider, model);
 
-  // Emit session start
   emitEvent(ctx, state, {
     type: "session.start",
     sessionId: session.sessionId,
@@ -336,10 +460,10 @@ export async function runPrompt(options: RunOptions): Promise<{
     }
   }
 
-  // Add user message
   await sessionManager.addMessage(session.sessionId, {
     role: "user",
     content: options.message,
+    attachments: attachments.length > 0 ? attachments : undefined,
   });
 
   UI.empty();
@@ -347,25 +471,30 @@ export async function runPrompt(options: RunOptions): Promise<{
   try {
     let responseText = "";
 
-    // Emit message start
     emitEvent(ctx, state, {
       type: "message.start",
       role: "assistant",
     });
 
-    // Stream response
+    const userMessageContent = buildMessageContent(options.message, attachments);
+
+    const historyMessages = session.messages.map((m) => ({
+      role: m.role as "user" | "assistant" | "system",
+      content: m.content as string | ContentPart[],
+    }));
+
+    const allMessages = [
+      ...historyMessages,
+      { role: "user" as const, content: userMessageContent },
+    ];
+
     const result = await streamAIResponse({
       provider,
       model,
       baseURL: projectConfig.baseURL,
       temperature: projectConfig.temperature,
       maxTokens: projectConfig.maxTokens,
-      messages: session.messages
-        .map((m) => ({
-          role: m.role as "user" | "assistant" | "system",
-          content: m.content,
-        }))
-        .concat([{ role: "user", content: options.message }]),
+      messages: allMessages,
       onChunk: (text) => {
         responseText += text;
         emitEvent(ctx, state, {

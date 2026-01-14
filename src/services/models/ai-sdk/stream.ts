@@ -44,26 +44,42 @@ async function getApiKey(
 
 type MessageRole = "user" | "assistant" | "system";
 
-interface SimpleMessage {
+type AISDKTextPart = { type: "text"; text: string };
+type AISDKImagePart = { type: "image"; image: string; mimeType?: string };
+type AISDKContentPart = AISDKTextPart | AISDKImagePart;
+
+interface AISDKMessage {
   role: MessageRole;
-  content: string;
+  content: string | AISDKContentPart[];
 }
 
 function convertMessages(
   messages: StreamOptions["messages"],
   systemPrompt?: string
-): SimpleMessage[] {
-  const result: SimpleMessage[] = [];
+): AISDKMessage[] {
+  const result: AISDKMessage[] = [];
 
   if (systemPrompt) {
     result.push({ role: "system", content: systemPrompt });
   }
 
   for (const msg of messages) {
-    result.push({
-      role: msg.role,
-      content: msg.content,
-    });
+    if (typeof msg.content === "string") {
+      result.push({ role: msg.role, content: msg.content });
+    } else {
+      const parts: AISDKContentPart[] = msg.content.map((part) => {
+        if (part.type === "text") {
+          return { type: "text", text: part.text };
+        } else {
+          return {
+            type: "image",
+            image: part.image,
+            mimeType: part.mimeType,
+          };
+        }
+      });
+      result.push({ role: msg.role, content: parts });
+    }
   }
 
   return result;
@@ -114,7 +130,7 @@ export async function streamAIResponse(options: StreamOptions): Promise<StreamRe
 
     const result = await streamText({
       model: languageModel,
-      messages: convertedMessages,
+      messages: convertedMessages as any,
       temperature,
       maxOutputTokens: maxTokens,
     });

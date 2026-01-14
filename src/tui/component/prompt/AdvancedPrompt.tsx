@@ -6,19 +6,22 @@ import { useRoute } from "../../context/route";
 import { useToast } from "../../context/toast";
 import { Border } from "../Border";
 import { SlashCommandsMenu, useSlashCommands, parseSlashCommand } from "./SlashCommands";
-import { FileReferenceMenu, parseReferences, type PromptPart } from "./FileReference";
+import { FileReferenceMenu, parseReferences, type PromptPart, type FileReference, type AgentReference } from "./FileReference";
 import { useHistory } from "./History";
+import { ImageAttachmentBar, ImagePasteHint } from "./ImageIndicator";
+import { useClipboard, isSupportedFilePath, createImageAttachment, readFileFromPath, type ImageAttachment } from "../../hooks/useClipboard";
 
 interface AdvancedPromptProps {
   sessionId?: string;
   placeholder?: string;
-  onSubmit?: (input: string, parts: PromptPart[]) => void;
+  onSubmit?: (input: string, parts: PromptPart[], attachments?: ImageAttachment[]) => void;
   hint?: React.ReactNode;
   autoFocus?: boolean;
   disabled?: boolean;
   agent?: string;
   model?: string;
   provider?: string;
+  enableImagePaste?: boolean;
 }
 
 type AutocompleteMode = false | "/" | "@";
@@ -33,12 +36,14 @@ export function AdvancedPrompt({
   agent = "default",
   model = "unknown",
   provider,
+  enableImagePaste = true,
 }: AdvancedPromptProps) {
   const { theme, themeName } = useTheme();
   const { navigate } = useRoute();
   const toast = useToast();
   const history = useHistory();
   const slashCommands = useSlashCommands(sessionId);
+  const clipboard = useClipboard();
   const { isFocused } = useFocus({ autoFocus, isActive: !disabled });
 
   const [value, setValue] = useState("");
@@ -46,137 +51,217 @@ export function AdvancedPrompt({
   const [autocompleteFilter, setAutocompleteFilter] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [shellMode, setShellMode] = useState(false);
+  const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
+  const [attachmentSelectedIndex, setAttachmentSelectedIndex] = useState(-1);
+  const [isProcessingPaste, setIsProcessingPaste] = useState(false);
 
-  // Handle input changes
-  const handleChange = useCallback((newValue: string) => {
-    setValue(newValue);
+  const handleImagePaste = useCallback(async () => {
+    if (!enableImagePaste || isProcessingPaste) return;
 
-    // Detect slash command mode
-    if (newValue.startsWith("/") && !newValue.includes(" ")) {
-      setAutocompleteMode("/");
-      setAutocompleteFilter(newValue.slice(1));
-      setSelectedIndex(0);
+    setIsProcessingPaste(true);
+    try {
+      const content = await clipboard.read();
+      if (content?.type === "image") {
+        const attachment = createImageAttachment(content);
+        if (attachment) {
+          setAttachments((prev) => [...prev, attachment]);
+          toast.success(`Image attached: ${attachment.filename}`);
+        }
+      }
+    } catch {
+      toast.error("Failed to read clipboard");
+    } finally {
+      setIsProcessingPaste(false);
     }
-    // Detect file/agent reference mode
-    else if (newValue.includes("@")) {
-      const lastAt = newValue.lastIndexOf("@");
-      const afterAt = newValue.slice(lastAt + 1);
-      // Only show if we're right after @ or typing the reference
-      if (!afterAt.includes(" ")) {
-        setAutocompleteMode("@");
-        setAutocompleteFilter(afterAt);
+  }, [enableImagePaste, isProcessingPaste, clipboard, toast]);
+
+  const handleFilePathPaste = useCallback(
+    async (path: string) => {
+      if (!enableImagePaste) return false;
+
+      const content = await readFileFromPath(path);
+      if (content) {
+        const attachment = createImageAttachment(content);
+        if (attachment) {
+          setAttachments((prev) => [...prev, attachment]);
+          const fileType = content.mime === "application/pdf" ? "PDF" : "Image";
+          toast.success(`${fileType} attached: ${attachment.filename}`);
+          return true;
+        }
+      }
+      return false;
+    },
+    [enableImagePaste, toast]
+  );
+
+  const removeAttachment = useCallback((id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+    setAttachmentSelectedIndex(-1);
+  }, []);
+
+  const clearAttachments = useCallback(() => {
+    setAttachments([]);
+    setAttachmentSelectedIndex(-1);
+  }, []);
+
+  const handleChange = useCallback(
+    async (newValue: string) => {
+      if (enableImagePaste && isSupportedFilePath(newValue.trim())) {
+        const handled = await handleFilePathPaste(newValue.trim());
+        if (handled) {
+          setValue("");
+          return;
+        }
+      }
+
+      setValue(newValue);
+
+      if (newValue.startsWith("/") && !newValue.includes(" ")) {
+        setAutocompleteMode("/");
+        setAutocompleteFilter(newValue.slice(1));
         setSelectedIndex(0);
+      } else if (newValue.includes("@")) {
+        const lastAt = newValue.lastIndexOf("@");
+        const afterAt = newValue.slice(lastAt + 1);
+        if (!afterAt.includes(" ")) {
+          setAutocompleteMode("@");
+          setAutocompleteFilter(afterAt);
+          setSelectedIndex(0);
+        } else {
+          setAutocompleteMode(false);
+        }
+      } else if (newValue === "!" && value === "") {
+        setShellMode(true);
+        setValue("");
       } else {
         setAutocompleteMode(false);
       }
-    }
-    // Shell mode
-    else if (newValue === "!" && value === "") {
-      setShellMode(true);
-      setValue("");
-    }
-    else {
-      setAutocompleteMode(false);
-    }
-  }, [value]);
+    },
+    [value, enableImagePaste, handleFilePathPaste]
+  );
 
-  // Handle submit
-  const handleSubmit = useCallback((input: string) => {
-    if (disabled) return;
-    
-    const trimmed = input.trim();
-    if (!trimmed) return;
+  const handleSubmit = useCallback(
+    (input: string) => {
+      if (disabled) return;
 
-    // Exit commands
-    if (["exit", "quit", ":q"].includes(trimmed)) {
-      process.exit(0);
-    }
+      const trimmed = input.trim();
+      if (!trimmed && attachments.length === 0) return;
 
-    // Check for slash command
-    const parsed = parseSlashCommand(trimmed);
-    if (parsed) {
-      const cmd = slashCommands.find(
-        (c) => c.name === parsed.command || c.aliases?.includes(parsed.command)
-      );
-      if (cmd) {
-        cmd.onSelect();
-        setValue("");
-        setAutocompleteMode(false);
-        return;
+      if (["exit", "quit", ":q"].includes(trimmed)) {
+        process.exit(0);
       }
-    }
 
-    // Shell mode
-    if (shellMode) {
-      toast.info(`Shell: ${trimmed}`);
-      setValue("");
-      setShellMode(false);
-      history.add({ input: `!${trimmed}`, sessionId });
-      // TODO: Execute shell command
-      return;
-    }
-
-    // Parse references
-    const { parts } = parseReferences(trimmed);
-
-    // Add to history
-    history.add({ input: trimmed, sessionId });
-
-    // Call onSubmit
-    if (onSubmit) {
-      onSubmit(trimmed, parts);
-    } else {
-      // Default: navigate to session
-      navigate({
-        type: "session",
-        sessionID: sessionId ?? `session-${Date.now()}`,
-      });
-    }
-
-    setValue("");
-    setAutocompleteMode(false);
-    history.reset();
-  }, [disabled, shellMode, slashCommands, onSubmit, navigate, sessionId, history, toast]);
-
-  // Handle keyboard navigation
-  useInput((input, key) => {
-    if (disabled) return;
-
-    // Escape: close autocomplete or exit shell mode
-    if (key.escape) {
-      if (autocompleteMode) {
-        setAutocompleteMode(false);
-        return;
+      const parsed = parseSlashCommand(trimmed);
+      if (parsed) {
+        const cmd = slashCommands.find(
+          (c) => c.name === parsed.command || c.aliases?.includes(parsed.command)
+        );
+        if (cmd) {
+          cmd.onSelect();
+          setValue("");
+          setAutocompleteMode(false);
+          clearAttachments();
+          return;
+        }
       }
+
       if (shellMode) {
+        toast.info(`Shell: ${trimmed}`);
+        setValue("");
         setShellMode(false);
+        history.add({ input: `!${trimmed}`, sessionId });
+        clearAttachments();
         return;
       }
-      // Navigate home
-      if (sessionId) {
-        navigate({ type: "home" });
-      }
-      return;
-    }
 
-    // Arrow keys for history (when not in autocomplete)
-    if (!autocompleteMode) {
-      if (key.upArrow && value === "") {
-        const entry = history.move(-1, value);
-        if (entry) {
-          setValue(entry.input);
+      const { parts } = parseReferences(trimmed);
+
+      history.add({ input: trimmed, sessionId });
+
+      if (onSubmit) {
+        onSubmit(trimmed, parts, attachments.length > 0 ? attachments : undefined);
+      } else {
+        navigate({
+          type: "session",
+          sessionID: sessionId ?? `session-${Date.now()}`,
+        });
+      }
+
+      setValue("");
+      setAutocompleteMode(false);
+      clearAttachments();
+      history.reset();
+    },
+    [disabled, shellMode, slashCommands, onSubmit, navigate, sessionId, history, toast, attachments, clearAttachments]
+  );
+
+  useInput(
+    (input, key) => {
+      if (disabled) return;
+
+      if (key.ctrl && input === "v" && enableImagePaste) {
+        handleImagePaste();
+        return;
+      }
+
+      if (key.escape) {
+        if (attachmentSelectedIndex >= 0) {
+          setAttachmentSelectedIndex(-1);
+          return;
+        }
+        if (autocompleteMode) {
+          setAutocompleteMode(false);
+          return;
+        }
+        if (shellMode) {
+          setShellMode(false);
+          return;
+        }
+        if (sessionId) {
+          navigate({ type: "home" });
         }
         return;
       }
-      if (key.downArrow) {
-        const entry = history.move(1, value);
-        if (entry) {
-          setValue(entry.input);
-        }
+
+      if (attachments.length > 0 && key.ctrl && input === "a") {
+        setAttachmentSelectedIndex((prev) => (prev === -1 ? 0 : -1));
         return;
       }
-    }
-  }, { isActive: isFocused });
+
+      if (attachmentSelectedIndex >= 0) {
+        if (key.leftArrow) {
+          setAttachmentSelectedIndex((prev) => Math.max(0, prev - 1));
+          return;
+        }
+        if (key.rightArrow) {
+          setAttachmentSelectedIndex((prev) => Math.min(attachments.length - 1, prev + 1));
+          return;
+        }
+        if (key.delete || key.backspace || input === "x") {
+          removeAttachment(attachments[attachmentSelectedIndex].id);
+          return;
+        }
+      }
+
+      if (!autocompleteMode) {
+        if (key.upArrow && value === "") {
+          const entry = history.move(-1, value);
+          if (entry) {
+            setValue(entry.input);
+          }
+          return;
+        }
+        if (key.downArrow) {
+          const entry = history.move(1, value);
+          if (entry) {
+            setValue(entry.input);
+          }
+          return;
+        }
+      }
+    },
+    { isActive: isFocused }
+  );
 
   // Navigate autocomplete
   const handleNavigate = useCallback((direction: -1 | 1) => {
@@ -201,13 +286,16 @@ export function AdvancedPrompt({
     setAutocompleteMode(false);
   }, []);
 
-  // Handle file reference selection
-  const handleFileSelect = useCallback((ref: { displayPath: string }) => {
-    const lastAt = value.lastIndexOf("@");
-    const newValue = value.slice(0, lastAt) + `@${ref.displayPath} `;
-    setValue(newValue);
-    setAutocompleteMode(false);
-  }, [value]);
+  const handleFileSelect = useCallback(
+    (ref: FileReference | AgentReference) => {
+      const lastAt = value.lastIndexOf("@");
+      const displayPath = ref.type === "agent" ? ref.name : ref.displayPath;
+      const newValue = value.slice(0, lastAt) + `@${displayPath} `;
+      setValue(newValue);
+      setAutocompleteMode(false);
+    },
+    [value]
+  );
 
   // Determine highlight color
   const highlightColor = shellMode ? theme.primary : theme.accent;
@@ -215,7 +303,6 @@ export function AdvancedPrompt({
 
   return (
     <Box flexDirection="column">
-      {/* Autocomplete menus */}
       {autocompleteMode === "/" && (
         <SlashCommandsMenu
           visible={true}
@@ -237,14 +324,20 @@ export function AdvancedPrompt({
         />
       )}
 
-      {/* Main prompt */}
+      {enableImagePaste && attachments.length > 0 && (
+        <Box marginBottom={1}>
+          <ImageAttachmentBar
+            attachments={attachments}
+            selectedIndex={attachmentSelectedIndex}
+            onRemove={removeAttachment}
+          />
+        </Box>
+      )}
+
       <Border focused={isFocused} color={highlightColor}>
         <Box flexDirection="column" gap={1}>
-          {/* Input area */}
           <Box>
-            <Text color={highlightColor}>
-              {shellMode ? "$ " : "❯ "}
-            </Text>
+            <Text color={highlightColor}>{shellMode ? "$ " : "❯ "}</Text>
             {disabled ? (
               <Text color={theme.textMuted}>{placeholder}</Text>
             ) : (
@@ -256,29 +349,25 @@ export function AdvancedPrompt({
                 focus={isFocused}
               />
             )}
+            {isProcessingPaste && (
+              <Text color={theme.textMuted}> (pasting...)</Text>
+            )}
           </Box>
 
-          {/* Status bar */}
           <Box flexDirection="row" gap={2}>
-            <Text color={highlightColor}>
-              {shellMode ? "Shell" : agent}
-            </Text>
+            <Text color={highlightColor}>{shellMode ? "Shell" : agent}</Text>
             {!shellMode && (
               <Box flexDirection="row" gap={1}>
                 <Text color={theme.text}>{model}</Text>
-                {provider && (
-                  <Text color={theme.textMuted}>{provider}</Text>
-                )}
+                {provider && <Text color={theme.textMuted}>{provider}</Text>}
               </Box>
             )}
           </Box>
 
-          {/* Hint */}
           {hint && <Box marginTop={1}>{hint}</Box>}
         </Box>
       </Border>
 
-      {/* Footer hints */}
       <Box flexDirection="row" gap={2} marginTop={1}>
         {shellMode ? (
           <Text color={theme.textMuted}>
@@ -295,14 +384,30 @@ export function AdvancedPrompt({
             <Text color={theme.textMuted}>
               <Text color={theme.text}>!</Text> shell
             </Text>
+            {enableImagePaste && (
+              <Text color={theme.textMuted}>
+                <Text color={theme.text}>Ctrl+V</Text> paste image
+              </Text>
+            )}
             {history.entries.length > 0 && (
               <Text color={theme.textMuted}>
                 <Text color={theme.text}>↑↓</Text> history
               </Text>
             )}
+            {attachments.length > 0 && (
+              <Text color={theme.textMuted}>
+                <Text color={theme.text}>Ctrl+A</Text> select attachments
+              </Text>
+            )}
           </>
         )}
       </Box>
+
+      {enableImagePaste && !shellMode && attachments.length === 0 && clipboard.hasImage && (
+        <Box marginTop={1}>
+          <ImagePasteHint hasClipboardImage={true} />
+        </Box>
+      )}
     </Box>
   );
 }

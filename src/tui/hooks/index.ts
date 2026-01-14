@@ -25,3 +25,22 @@ export {
   type UseCursorOptions,
   type UseCursorReturn,
 } from "./useCursor";
+
+export {
+  useClipboard,
+  isImagePath,
+  isPdfPath,
+  isSupportedFilePath,
+  isValidFilePath,
+  readImageFromPath,
+  readPdfFromPath,
+  readFileFromPath,
+  createImageAttachment,
+  getBase64Size,
+  formatBytes,
+  ACCEPTED_FILE_TYPES,
+  type ClipboardContent,
+  type ImageAttachment,
+  type UseClipboardOptions,
+  type UseClipboardReturn,
+} from "./useClipboard";

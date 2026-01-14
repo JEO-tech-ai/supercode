@@ -707,34 +707,36 @@ function createRunCommand(): Command {
     .option("-c, --continue", "Continue the last session")
     .option("-s, --session <id>", "Session ID to continue")
     .option("-m, --model <model>", "Model to use (provider/model format)")
+    .option("-f, --file <paths...>", "Attach files (images, PDFs)")
     .option("--title <title>", "Title for the session")
     .option("--format <format>", "Output format (default or json)", "default")
     .option("-v, --verbose", "Verbose output with session tagging")
     .option("-i, --interactive", "Interactive mode with continuous prompts")
     .option("--timeout <ms>", "Timeout for completion (default: 300000)", parseInt)
-    .action(async (messageParts: string[], options) => {
+    .action(async (messageParts: string[], options, cmd: Command) => {
+      // Merge with global options for -m, -v which exist on both parent and this command
+      const opts = cmd.optsWithGlobals();
       const message = messageParts.join(" ");
 
-      // Interactive mode
-      if (options.interactive || (!message && !options.continue && !options.session)) {
+      if (opts.interactive || (!message && !opts.continue && !opts.session)) {
         await runInteractive({
-          model: options.model,
-          sessionId: options.session,
-          verbose: options.verbose,
+          model: opts.model,
+          sessionId: opts.session,
+          verbose: opts.verbose,
         });
         return;
       }
 
-      // Single prompt mode
       const result = await runPrompt({
         message,
-        model: options.model,
-        sessionId: options.session,
-        continueSession: options.continue,
-        title: options.title,
-        verbose: options.verbose,
-        format: options.format,
-        timeout: options.timeout,
+        model: opts.model,
+        sessionId: opts.session,
+        continueSession: opts.continue,
+        title: opts.title,
+        verbose: opts.verbose,
+        format: opts.format,
+        timeout: opts.timeout,
+        files: opts.file,
       });
 
       if (!result.success) {
