@@ -6,7 +6,7 @@ import { promises as fs } from "fs";
 import { existsSync, mkdirSync } from "fs";
 import * as crypto from "crypto";
 import path from "path";
-import type { TokenData, AuthProviderName } from "../../services/auth/types";
+import { type TokenData, type AuthProviderName, parseTokenData } from "../../services/auth/types";
 import logger from "../../shared/logger";
 
 interface EncryptedData {
@@ -142,9 +142,6 @@ export class TokenStore {
     logger.debug(`Token stored for ${provider}${tokens.accountId ? ` (${tokens.accountId})` : ""}`);
   }
 
-  /**
-   * Retrieve token
-   */
   async retrieve(provider: AuthProviderName, accountId?: string): Promise<TokenData | null> {
     const filePath = this.getTokenFilePath(provider, accountId);
 
@@ -156,17 +153,21 @@ export class TokenStore {
       const content = await fs.readFile(filePath, "utf-8");
       const encrypted: EncryptedData = JSON.parse(content);
       const decrypted = await this.decrypt(encrypted);
+      const parsed = parseTokenData(JSON.parse(decrypted));
 
-      return JSON.parse(decrypted) as TokenData;
+      if (!parsed) {
+        logger.warn(`Invalid token data format for ${provider}, removing corrupted file`);
+        await this.delete(provider, accountId);
+        return null;
+      }
+
+      return parsed;
     } catch (error) {
       logger.error(`Failed to retrieve token for ${provider}${accountId ? ` (${accountId})` : ""}`, error as Error);
       return null;
     }
   }
 
-  /**
-   * Retrieve all tokens for a provider
-   */
   async retrieveAll(provider: AuthProviderName): Promise<TokenData[]> {
     const files = await this.getAllTokenFiles(provider);
     const tokens: TokenData[] = [];
@@ -176,7 +177,13 @@ export class TokenStore {
         const content = await fs.readFile(filePath, "utf-8");
         const encrypted: EncryptedData = JSON.parse(content);
         const decrypted = await this.decrypt(encrypted);
-        tokens.push(JSON.parse(decrypted) as TokenData);
+        const parsed = parseTokenData(JSON.parse(decrypted));
+
+        if (parsed) {
+          tokens.push(parsed);
+        } else {
+          logger.warn(`Skipping invalid token data in ${filePath}`);
+        }
       } catch (error) {
         logger.error(`Failed to retrieve token from ${filePath}`, error as Error);
       }

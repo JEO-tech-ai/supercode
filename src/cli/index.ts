@@ -15,7 +15,8 @@ import { resolveProviderFromConfig } from "../config/project";
 import { streamAIResponse, checkLocalhostAvailability, checkOllamaModel, getAvailableOllamaModels } from "../services/models/ai-sdk";
 import type { AISDKProviderName } from "../services/models/ai-sdk/types";
 import { UI, CancelledError } from "../shared/ui";
-import logger from "../shared/logger";
+import logger, { type LogLevel } from "../shared/logger";
+import { formatError, formatUnknownError } from "./error";
 import { EOL } from "os";
 import { runPrompt, runInteractive } from "./run";
 import {
@@ -25,12 +26,43 @@ import {
 } from "../tools/slashcommand";
 import { getSkillLoader } from "../tools/skill";
 
-const VERSION = "0.2.0";
-
-// Import for new TUI
 import React from "react";
 import { render } from "ink";
 import { TuiApp } from "../tui";
+import { ptyManager } from "../services/pty/manager";
+
+const VERSION = "0.2.0";
+
+let isShuttingDown = false;
+let exitCode = 0;
+
+async function gracefulShutdown(code: number = 0): Promise<void> {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  exitCode = code;
+
+  logger.info("Initiating graceful shutdown...");
+
+  try {
+    await ptyManager.shutdownAll();
+    logger.info("PTY processes cleaned up");
+  } catch (error) {
+    logger.error("Error during PTY cleanup", error as Error);
+  }
+
+  // Allow pending I/O to flush before exit
+  setTimeout(() => process.exit(exitCode), 100);
+}
+
+process.on("SIGINT", () => {
+  logger.info("Received SIGINT");
+  gracefulShutdown(0);
+});
+
+process.on("SIGTERM", () => {
+  logger.info("Received SIGTERM");
+  gracefulShutdown(0);
+});
 
 process.on("unhandledRejection", (e) => {
   logger.error("rejection", e instanceof Error ? e : new Error(String(e)));
@@ -38,6 +70,9 @@ process.on("unhandledRejection", (e) => {
 
 process.on("uncaughtException", (e) => {
   logger.error("exception", e);
+  if (!isShuttingDown) {
+    gracefulShutdown(1);
+  }
 });
 
 function handleChatError(error: unknown, provider: string, model: string) {
@@ -746,6 +781,9 @@ function createRunCommand(): Command {
 }
 
 async function main() {
+  process.env.SUPERCODE = "1";
+  process.env.AGENT = "1";
+
   const program = new Command();
   const config = await loadConfig();
 
@@ -761,7 +799,19 @@ async function main() {
     .option("--no-tui", "Disable interactive UI")
     .option("--json", "Output as JSON")
     .option("-v, --verbose", "Verbose output")
-    .option("-q, --quiet", "Minimal output");
+    .option("-q, --quiet", "Minimal output")
+    .option("--log-level <level>", "Log level (DEBUG|INFO|WARN|ERROR)")
+    .option("--print-logs", "Print logs to stderr")
+    .hook("preAction", (thisCommand) => {
+      const opts = thisCommand.opts();
+      const logLevel = (opts.logLevel as LogLevel) || (opts.verbose ? "DEBUG" : "INFO");
+      logger.init({
+        level: logLevel,
+        print: opts.printLogs || opts.verbose,
+        file: true,
+      });
+      logger.info("supercode", { version: VERSION, args: process.argv.slice(2) });
+    });
 
   program.addCommand(createAuthCommand(config));
   program.addCommand(createModelsCommand(config));
@@ -849,10 +899,18 @@ async function main() {
 main().catch((error) => {
   if (error instanceof CancelledError) {
     clack.cancel("Operation cancelled");
-    process.exit(0);
+    exitCode = 0;
+  } else {
+    const formatted = formatError(error);
+    if (formatted) {
+      UI.error(formatted);
+    } else if (formatted === undefined) {
+      UI.error(`Unexpected error. Check log file at ${logger.file()} for details`);
+      UI.error(formatUnknownError(error));
+    }
+    logger.error("Fatal error", error);
+    exitCode = 1;
   }
-  logger.error("Fatal error", error);
-  process.exit(1);
 }).finally(() => {
-  process.exit();
+  gracefulShutdown(exitCode);
 });

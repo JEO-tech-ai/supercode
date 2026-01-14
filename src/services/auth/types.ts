@@ -1,23 +1,27 @@
-/**
- * Authentication Types
- * Enhanced for multi-provider OAuth support (oh-my-opencode level)
- */
+import { z } from "zod";
 
 export type AuthProviderName = "claude" | "codex" | "gemini" | "antigravity" | "github";
 export type AuthGrantType = "authorization_code" | "device_flow" | "api_key";
 
-export interface TokenData {
-  accessToken: string;
-  refreshToken?: string;
-  provider: AuthProviderName;
-  type: "api_key" | "oauth";
-  expiresAt: number; // Unix timestamp in milliseconds
-  timestamp?: number; // When token was obtained
-  scopes?: string[];
-  accountId?: string; // For multi-account support
-  email?: string; // User email from OAuth
-  projectId?: string; // For Antigravity project context
-  managedProjectId?: string; // For Antigravity managed project
+export const TokenDataSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string().optional(),
+  provider: z.enum(["claude", "codex", "gemini", "antigravity", "github"]),
+  type: z.enum(["api_key", "oauth"]),
+  expiresAt: z.number(),
+  timestamp: z.number().optional(),
+  scopes: z.array(z.string()).optional(),
+  accountId: z.string().optional(),
+  email: z.string().optional(),
+  projectId: z.string().optional(),
+  managedProjectId: z.string().optional(),
+});
+
+export type TokenData = z.infer<typeof TokenDataSchema>;
+
+export function parseTokenData(data: unknown): TokenData | null {
+  const result = TokenDataSchema.safeParse(data);
+  return result.success ? result.data : null;
 }
 
 /**

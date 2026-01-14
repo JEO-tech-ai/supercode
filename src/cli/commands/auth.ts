@@ -1,9 +1,12 @@
 import { Command } from "commander";
 import * as clack from "@clack/prompts";
+import path from "path";
+import os from "os";
 import type { SuperCoinConfig } from "../../config/schema";
 import { getAuthHub, type AuthProviderName, type AuthStatus } from "../../services/auth";
 import { UI, CancelledError, Dialog, Toast } from "../../shared/ui";
 import logger from "../../shared/logger";
+import { AuthError } from "../../shared/errors";
 
 export function createAuthCommand(config: SuperCoinConfig): Command {
   const auth = new Command("auth")
@@ -44,6 +47,9 @@ export function createAuthCommand(config: SuperCoinConfig): Command {
         providers.push(...selected);
       }
 
+      let successCount = 0;
+      let failCount = 0;
+
       for (const provider of providers) {
         try {
           const results = await Dialog.withSpinner(
@@ -58,20 +64,71 @@ export function createAuthCommand(config: SuperCoinConfig): Command {
           const result = results[0];
           if (!result.success) {
             Toast.warning(`${provider}: ${result.error}`);
+            failCount++;
+          } else {
+            successCount++;
           }
         } catch (error) {
-          Toast.error(`Failed to authenticate with ${provider}`);
-          logger.error(`Auth error for ${provider}`, error as Error);
+          failCount++;
+          const err = error instanceof Error ? error : new Error(String(error));
+          
+          if (err.message.includes("invalid") || err.message.includes("expired")) {
+            Toast.error(`${provider}: Invalid or expired credentials`);
+          } else if (err.message.includes("network") || err.message.includes("fetch")) {
+            Toast.error(`${provider}: Network error - check your connection`);
+          } else {
+            Toast.error(`${provider}: ${err.message}`);
+          }
+          
+          logger.error(`Auth error for ${provider}`, err);
         }
       }
 
       console.log("");
       await showAuthStatus(authHub);
 
-      Dialog.outro("Authentication complete!");
+      if (failCount === 0) {
+        Dialog.outro("Authentication complete!");
+      } else if (successCount > 0) {
+        Dialog.outro(`Partially complete: ${successCount} succeeded, ${failCount} failed`);
+      } else {
+        Dialog.outro("Authentication failed for all providers");
+      }
     });
 
-  // Status command
+  auth
+    .command("list")
+    .alias("ls")
+    .description("List all configured credentials")
+    .action(async () => {
+      UI.empty();
+      const configDir = path.join(os.homedir(), ".config", "supercoin");
+      const displayPath = configDir.replace(os.homedir(), "~");
+      Dialog.intro(`Credentials ${UI.dim(displayPath)}`);
+
+      const statuses = await authHub.status();
+      
+      for (const status of statuses) {
+        if (status.authenticated) {
+          const typeLabel = status.type ? ` ${UI.dim(`(${status.type})`)}` : "";
+          clack.log.info(`${status.displayName || status.provider}${typeLabel}`);
+        }
+      }
+
+      const authCount = statuses.filter(s => s.authenticated).length;
+      Dialog.outro(`${authCount} credential${authCount === 1 ? "" : "s"}`);
+
+      const envVars = checkEnvironmentVariables();
+      if (envVars.length > 0) {
+        UI.empty();
+        Dialog.intro("Environment");
+        for (const { provider, envVar } of envVars) {
+          clack.log.info(`${provider} ${UI.dim(envVar)}`);
+        }
+        Dialog.outro(`${envVars.length} environment variable${envVars.length === 1 ? "" : "s"}`);
+      }
+    });
+
   auth
     .command("status")
     .description("Show authentication status")
@@ -151,6 +208,28 @@ export function createAuthCommand(config: SuperCoinConfig): Command {
     });
 
   return auth;
+}
+
+function checkEnvironmentVariables(): Array<{ provider: string; envVar: string }> {
+  const envMapping: Record<string, string[]> = {
+    "Claude (Anthropic)": ["ANTHROPIC_API_KEY"],
+    "Codex (OpenAI)": ["OPENAI_API_KEY"],
+    "Gemini (Google)": ["GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY"],
+    "Ollama": ["OLLAMA_HOST"],
+    "LM Studio": ["LMSTUDIO_BASE_URL"],
+  };
+
+  const activeEnvVars: Array<{ provider: string; envVar: string }> = [];
+
+  for (const [provider, envVars] of Object.entries(envMapping)) {
+    for (const envVar of envVars) {
+      if (process.env[envVar]) {
+        activeEnvVars.push({ provider, envVar });
+      }
+    }
+  }
+
+  return activeEnvVars;
 }
 
 async function showAuthStatus(authHub: ReturnType<typeof getAuthHub>): Promise<void> {
