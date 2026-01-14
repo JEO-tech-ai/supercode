@@ -4,6 +4,8 @@ import { bashTool } from './bash';
 import { readTool, writeTool, editTool } from './file';
 import { grepTool, globTool } from './search';
 import { TodoWriteTool, TodoReadTool } from './todo';
+import { webfetchTool } from './webfetch';
+import { batchTool } from './batch';
 import { lspTools } from './lsp';
 import { astGrepTools } from './ast-grep';
 import { Log } from '../../shared/logger';
@@ -53,12 +55,18 @@ function inferCategory(toolName: string): ToolCategory {
     return 'system';
   }
 
-  // LSP tools - code intelligence
+  if (nameLower.includes('webfetch') || nameLower.includes('fetch')) {
+    return 'network';
+  }
+
+  if (nameLower.includes('batch')) {
+    return 'system';
+  }
+
   if (nameLower.startsWith('lsp_')) {
     return 'code';
   }
 
-  // AST-Grep tools - code transformation
   if (nameLower.startsWith('ast_grep')) {
     return 'code';
   }
@@ -70,7 +78,6 @@ export function initializeTools(): void {
   const registry = getToolRegistry();
   const coreRegistry = getCoreToolRegistry();
 
-  // Core tools
   const coreTools: ToolDefinition[] = [
     bashTool,
     readTool,
@@ -80,6 +87,8 @@ export function initializeTools(): void {
     globTool,
     TodoWriteTool,
     TodoReadTool,
+    webfetchTool,
+    batchTool,
   ];
 
   // Combine all tools: core + LSP (11) + AST-Grep (3)

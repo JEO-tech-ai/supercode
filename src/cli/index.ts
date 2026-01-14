@@ -10,6 +10,7 @@ import { createDoctorCommand } from "./commands/doctor";
 import { createDashboardCommand } from "./commands/dashboard";
 import { createSessionCommand } from "./commands/session";
 import { createTuiCommand } from "./commands/tui";
+import { createMcpCommand } from "./commands/mcp";
 import { sessionManager } from "../core/session/manager";
 import { resolveProviderFromConfig } from "../config/project";
 import { streamAIResponse, checkLocalhostAvailability, checkOllamaModel, getAvailableOllamaModels } from "../services/models/ai-sdk";
@@ -822,6 +823,7 @@ async function main() {
   program.addCommand(createSessionCommand());
   program.addCommand(createRunCommand());
   program.addCommand(createTuiCommand(config));
+  program.addCommand(createMcpCommand());
 
   program
     .argument("[prompt...]", "Prompt for AI")

@@ -3,6 +3,8 @@ export { bashTool } from './bash-pty';
 export { readTool, writeTool, editTool } from './file';
 export { grepTool, globTool } from './search';
 export { TodoWriteTool, TodoReadTool } from './todo';
+export { webfetchTool } from './webfetch';
+export { batchTool } from './batch';
 
 // Session tools (4 tools)
 export {
