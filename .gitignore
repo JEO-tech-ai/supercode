@@ -42,3 +42,4 @@ packages/database/.data/
 # Lock files (optional - keep bun.lock for reproducible builds)
 # bun.lock
 
+supercode.json
