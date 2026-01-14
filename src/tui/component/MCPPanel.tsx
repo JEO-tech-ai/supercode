@@ -148,9 +148,11 @@ function ServerItem({
                 </Box>
               ))}
               {server.tools.length > 5 && (
-                <Text color={theme.textMuted} paddingLeft={1}>
-                  +{server.tools.length - 5} more tools
-                </Text>
+                <Box paddingLeft={1}>
+                  <Text color={theme.textMuted}>
+                    +{server.tools.length - 5} more tools
+                  </Text>
+                </Box>
               )}
             </Box>
           )}
@@ -165,9 +167,11 @@ function ServerItem({
                 </Box>
               ))}
               {server.resources.length > 3 && (
-                <Text color={theme.textMuted} paddingLeft={1}>
-                  +{server.resources.length - 3} more
-                </Text>
+                <Box paddingLeft={1}>
+                  <Text color={theme.textMuted}>
+                    +{server.resources.length - 3} more
+                  </Text>
+                </Box>
               )}
             </Box>
           )}

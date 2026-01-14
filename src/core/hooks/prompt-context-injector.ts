@@ -220,4 +220,3 @@ export function clearContext(sessionId: string): void {
   getGlobalCollector().clear(sessionId);
 }
 
-export type { PromptContextInjectorOptions, ContextCollector, ConsumedContext };

@@ -99,13 +99,17 @@ export function createSessionNotificationHook(
           state.lastNotificationTime = now;
           break;
 
-        case "session.error":
+        case "session.error": {
+          const errorMessage = typeof context.error === "string"
+            ? context.error
+            : context.error?.message || "An error occurred";
           await sendNotification(
             "SuperCode Error",
-            context.error?.message || "An error occurred"
+            errorMessage
           );
           state.lastNotificationTime = now;
           break;
+        }
       }
 
       if (debug) {

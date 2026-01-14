@@ -145,6 +145,7 @@ export function createLibrarian(): Agent {
 
       try {
         const response = await streamAIResponse({
+          provider: "google",
           model: "gemini-2.5-flash",
           messages: [
             { role: "system", content: LIBRARIAN_PROMPT },
@@ -154,13 +155,7 @@ export function createLibrarian(): Agent {
           maxTokens: 8192,
         });
 
-        // Collect full response
-        let content = "";
-        for await (const chunk of response) {
-          if (chunk.type === "text") {
-            content += chunk.content;
-          }
-        }
+        const content = response.text;
 
         logger.info(`[Librarian] Research complete`);
 

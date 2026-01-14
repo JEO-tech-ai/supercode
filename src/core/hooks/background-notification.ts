@@ -125,15 +125,19 @@ export function createBackgroundNotificationHook(
             if (task) {
               task.status = "error";
 
+              const errorMessage = typeof error === "string"
+                ? error
+                : error?.message || "Unknown error";
+
               if (notifyOnError) {
                 await sendBackgroundNotification(
                   "Background Task Error",
-                  `Agent ${task.agent} encountered an error: ${error?.message || "Unknown error"}`
+                  `Agent ${task.agent} encountered an error: ${errorMessage}`
                 );
               }
 
               if (debug) {
-                console.log(`[background-notification] Task ${taskId} error: ${error?.message}`);
+                console.log(`[background-notification] Task ${taskId} error: ${errorMessage}`);
               }
             }
           }

@@ -301,4 +301,3 @@ export function clearReadmeCache(sessionId?: string): void {
   }
 }
 
-export type { DirectoryReadmeInjectorOptions };

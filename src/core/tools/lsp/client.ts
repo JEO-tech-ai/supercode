@@ -89,9 +89,10 @@ export class LSPClient {
    * Read stdout in a loop
    */
   private async readStdout(): Promise<void> {
-    if (!this.process?.stdout) return;
+    const stdout = this.process?.stdout;
+    if (!stdout || typeof stdout === "number") return;
 
-    const reader = this.process.stdout.getReader();
+    const reader = stdout.getReader();
     const decoder = new TextDecoder();
 
     try {
@@ -111,9 +112,10 @@ export class LSPClient {
    * Read stderr in a loop
    */
   private async readStderr(): Promise<void> {
-    if (!this.process?.stderr) return;
+    const stderr = this.process?.stderr;
+    if (!stderr || typeof stderr === "number") return;
 
-    const reader = this.process.stderr.getReader();
+    const reader = stderr.getReader();
     const decoder = new TextDecoder();
 
     try {
@@ -237,7 +239,8 @@ export class LSPClient {
    * Send a request
    */
   private async sendRequest<T>(method: string, params: unknown): Promise<T> {
-    if (!this.process?.stdin) {
+    const stdin = this.process?.stdin;
+    if (!stdin || typeof stdin === "number") {
       throw new Error("LSP server not started");
     }
 
@@ -251,10 +254,15 @@ export class LSPClient {
 
     const content = JSON.stringify(message);
     const header = `Content-Length: ${Buffer.byteLength(content)}\r\n\r\n`;
+    const payload = new TextEncoder().encode(header + content);
 
-    const writer = this.process.stdin.getWriter();
-    await writer.write(new TextEncoder().encode(header + content));
-    writer.releaseLock();
+    if ("getWriter" in stdin) {
+      const writer = (stdin as unknown as WritableStream<Uint8Array>).getWriter();
+      await writer.write(payload);
+      writer.releaseLock();
+    } else {
+      await stdin.write(payload);
+    }
 
     return new Promise<T>((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -274,7 +282,8 @@ export class LSPClient {
    * Send a notification
    */
   private async sendNotification(method: string, params: unknown): Promise<void> {
-    if (!this.process?.stdin) {
+    const stdin = this.process?.stdin;
+    if (!stdin || typeof stdin === "number") {
       throw new Error("LSP server not started");
     }
 
@@ -286,10 +295,15 @@ export class LSPClient {
 
     const content = JSON.stringify(message);
     const header = `Content-Length: ${Buffer.byteLength(content)}\r\n\r\n`;
+    const payload = new TextEncoder().encode(header + content);
 
-    const writer = this.process.stdin.getWriter();
-    await writer.write(new TextEncoder().encode(header + content));
-    writer.releaseLock();
+    if ("getWriter" in stdin) {
+      const writer = (stdin as unknown as WritableStream<Uint8Array>).getWriter();
+      await writer.write(payload);
+      writer.releaseLock();
+    } else {
+      await stdin.write(payload);
+    }
   }
 
   /**

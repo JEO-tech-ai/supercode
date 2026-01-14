@@ -372,4 +372,3 @@ export function truncateOutput(
   return result.result;
 }
 
-export type { ToolOutputTruncatorOptions, TruncationResult };

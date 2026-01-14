@@ -313,4 +313,3 @@ export function cleanup(): void {
   sessions.clear();
 }
 
-export type { SessionLifecycleOptions, SessionState };

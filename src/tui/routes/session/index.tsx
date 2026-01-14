@@ -27,6 +27,7 @@ interface TodoItem {
 
 interface SubAgent {
   name: string;
+  type: string;
   status: "idle" | "running" | "completed";
 }
 
@@ -164,6 +165,7 @@ export function Session({
       // Add subagents
       setSubAgents(agentMentions.map((a) => ({
         name: (a as any).name,
+        type: "agent",
         status: "running" as const,
       })));
     }

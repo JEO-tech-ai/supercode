@@ -80,8 +80,9 @@ export function pruneOldToolOutputs(ctx: CompactionContext): CompactionResult {
     const msgTokens = estimateTokens(msg.content);
     totalTokens += msgTokens;
     
-    if (msg.role === "assistant" && msg.toolCalls && msg.toolCalls.length > 0) {
-      for (const toolCall of msg.toolCalls) {
+    const toolCalls = msg.metadata?.toolCalls;
+    if (msg.role === "assistant" && toolCalls && toolCalls.length > 0) {
+      for (const toolCall of toolCalls) {
         if (toolCall.result && typeof toolCall.result === "string") {
           const toolTokens = estimateTokens(toolCall.result);
           totalTokens += toolTokens;
@@ -100,8 +101,9 @@ export function pruneOldToolOutputs(ctx: CompactionContext): CompactionResult {
     
     for (const idx of toPrune) {
       const msg = messages[idx];
-      if (msg.toolCalls) {
-        for (const toolCall of msg.toolCalls) {
+      const toolCalls = msg.metadata?.toolCalls;
+      if (toolCalls) {
+        for (const toolCall of toolCalls) {
           if (toolCall.result && typeof toolCall.result === "string") {
             toolCall.result = "[Output pruned to save context space]";
           }

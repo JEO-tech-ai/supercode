@@ -17,6 +17,7 @@ export interface AgentUsageReminderOptions {
 interface UsageStats {
   toolCalls: Map<string, number>;
   agentCalls: Map<string, number>;
+  reminders: Set<string>;
   remindersSent: number;
 }
 
@@ -40,6 +41,7 @@ function getStats(sessionId: string): UsageStats {
     stats = {
       toolCalls: new Map(),
       agentCalls: new Map(),
+      reminders: new Set(),
       remindersSent: 0,
     };
     usageStats.set(sessionId, stats);
@@ -90,10 +92,10 @@ export function createAgentUsageReminderHook(
 
       // Only send one reminder per session per tool
       const reminderKey = `${toolName}_reminded`;
-      if ((stats as Record<string, unknown>)[reminderKey]) {
+      if (stats.reminders.has(reminderKey)) {
         return { action: "continue" };
       }
-      (stats as Record<string, unknown>)[reminderKey] = true;
+      stats.reminders.add(reminderKey);
       stats.remindersSent++;
 
       if (debug) {

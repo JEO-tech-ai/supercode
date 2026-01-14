@@ -249,7 +249,7 @@ export class CodexAuthProvider implements AuthProvider {
       }),
     });
 
-    const data = await response.json();
+    const data = await response.json() as Partial<DeviceTokenResponse> & { error?: string };
 
     if (!response.ok && data.error) {
       return { error: data.error } as DeviceTokenResponse & { error: string };
@@ -280,7 +280,7 @@ export class CodexAuthProvider implements AuthProvider {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = (await response.json().catch(() => ({}))) as { error?: string };
       throw new Error(`Token refresh failed: ${errorData.error || response.status}`);
     }
 

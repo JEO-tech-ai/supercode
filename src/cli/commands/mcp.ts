@@ -3,8 +3,6 @@ import * as clack from "@clack/prompts";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { UI, CancelledError } from "../../shared/ui";
-import { loadConfig, saveConfig } from "../../config/loader";
-import type { Config } from "../../config/types";
 
 interface McpServerConfig {
   type: "local" | "remote";
@@ -193,7 +191,13 @@ export function createMcpCommand(): Command {
         });
 
         if (clack.isCancel(selected)) throw new CancelledError();
-        serverName = selected;
+        serverName = selected as string;
+      }
+
+      if (!serverName) {
+        clack.log.error("Server name is required");
+        clack.outro("Done");
+        return;
       }
 
       if (!mcpConfig[serverName]) {

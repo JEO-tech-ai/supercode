@@ -27,6 +27,8 @@ export interface SessionMessage {
       total: number;
     };
     toolCalls?: ToolCall[];
+    compacted?: boolean;
+    compactedAt?: number;
   };
 }
 

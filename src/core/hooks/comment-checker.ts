@@ -79,8 +79,15 @@ export function createCommentCheckerHook(
       }
 
       // Get the written/edited content
-      const content = toolResult?.content || toolResult?.newContent || "";
-      if (!content || typeof content !== "string") {
+      const result = toolResult && typeof toolResult === "object"
+        ? (toolResult as Record<string, unknown>)
+        : {};
+      const content = typeof result.content === "string"
+        ? result.content
+        : typeof result.newContent === "string"
+          ? result.newContent
+          : "";
+      if (!content) {
         return { action: "continue" };
       }
 

@@ -437,4 +437,3 @@ export function fixParts(parts: MessagePart[]): MessagePart[] {
   return fixThinkingBlockOrder(parts);
 }
 
-export type { ThinkingBlockValidatorOptions, ValidationResult, MessagePart, MessageWithParts };

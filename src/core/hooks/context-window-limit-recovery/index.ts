@@ -15,9 +15,8 @@ import type {
   CompactionResult,
   RetryConfig,
   TruncateConfig,
-  DEFAULT_RETRY_CONFIG,
-  DEFAULT_TRUNCATE_CONFIG,
 } from "./types";
+import { DEFAULT_RETRY_CONFIG, DEFAULT_TRUNCATE_CONFIG } from "./types";
 import type { DynamicContextPruningConfig, PruningResult } from "./pruning-types";
 import {
   executeDynamicContextPruning,

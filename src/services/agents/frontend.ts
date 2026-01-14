@@ -168,22 +168,17 @@ export function createFrontend(): Agent {
 
       try {
         const response = await streamAIResponse({
+          provider: "google",
           model: "gemini-2.5-pro",
           messages: [
             { role: "system", content: FRONTEND_PROMPT },
             { role: "user", content: prompt },
           ],
-          temperature: 0.5, // Slightly more creative
+          temperature: 0.5,
           maxTokens: 8192,
         });
 
-        // Collect full response
-        let content = "";
-        for await (const chunk of response) {
-          if (chunk.type === "text") {
-            content += chunk.content;
-          }
-        }
+        const content = response.text;
 
         logger.info(`[Frontend] Work complete`);
 

@@ -325,4 +325,3 @@ export function clearRetryState(): void {
   retryState.clear();
 }
 
-export type { EditErrorType, EditErrorRecoveryOptions };

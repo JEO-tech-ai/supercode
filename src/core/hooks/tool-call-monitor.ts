@@ -100,7 +100,7 @@ function getSessionStats(sessionId: string): SessionToolStats {
 /**
  * Get or create tool stats
  */
-function getToolStats(sessionStats: SessionToolStats, toolName: string): ToolCallStats {
+function getToolStatsForSession(sessionStats: SessionToolStats, toolName: string): ToolCallStats {
   let stats = sessionStats.byTool.get(toolName);
   if (!stats) {
     stats = {
@@ -181,7 +181,7 @@ export function createToolCallMonitorHook(
         if (mergedOptions.trackStats) {
           const stats = getSessionStats(sessionId);
           stats.totalCalls++;
-          const toolStats = getToolStats(stats, toolName);
+          const toolStats = getToolStatsForSession(stats, toolName);
           toolStats.callCount++;
           toolStats.lastCallTime = Date.now();
         }
@@ -218,7 +218,7 @@ export function createToolCallMonitorHook(
         // Update stats
         if (mergedOptions.trackStats) {
           const stats = getSessionStats(sessionId);
-          const toolStats = getToolStats(stats, toolName);
+          const toolStats = getToolStatsForSession(stats, toolName);
           toolStats.successCount++;
           toolStats.totalDurationMs += durationMs;
           toolStats.avgDurationMs =
@@ -252,7 +252,7 @@ export function createToolCallMonitorHook(
         if (mergedOptions.trackStats) {
           const stats = getSessionStats(sessionId);
           stats.totalErrors++;
-          const toolStats = getToolStats(stats, toolName);
+          const toolStats = getToolStatsForSession(stats, toolName);
           toolStats.errorCount++;
         }
 
@@ -328,4 +328,3 @@ export function getToolStatsSummary(sessionId: string): {
   };
 }
 
-export type { ToolCallMonitorOptions, ToolCallStats, SessionToolStats };

@@ -181,4 +181,3 @@ export function clearAllUsageStatus(): void {
   remindedSessions.clear();
 }
 
-export type { ContextWindowMonitorOptions };

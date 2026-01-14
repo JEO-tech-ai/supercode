@@ -11,6 +11,7 @@ const AUTH_PROVIDER_MAP: Record<AISDKProviderName, AuthProviderName | null> = {
   ollama: null,
   lmstudio: null,
   llamacpp: null,
+  supercent: null,
 };
 
 function mapToAuthProvider(provider: AISDKProviderName): AuthProviderName | null {

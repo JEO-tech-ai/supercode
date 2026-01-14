@@ -20,6 +20,12 @@ export type HookEventType =
   | "session.compacting"
   | "session.deleted"
 
+  | "request.before"
+  | "request.after"
+
+  | "response.before"
+  | "response.after"
+
   // Message lifecycle
   | "message.before"
   | "message.after"
@@ -42,7 +48,8 @@ export type HookEventType =
 
   // User interaction
   | "user.prompt"
-  | "user.cancel";
+  | "user.cancel"
+  | "error";
 
 /**
  * Event-specific data types
@@ -78,6 +85,25 @@ export interface HookEventData {
   };
   "session.deleted": {
     sessionId: string;
+  };
+
+  "request.before": {
+    sessionId: string;
+    requestId?: string;
+  };
+  "request.after": {
+    sessionId: string;
+    requestId?: string;
+    duration?: number;
+  };
+  "response.before": {
+    sessionId: string;
+    requestId?: string;
+  };
+  "response.after": {
+    sessionId: string;
+    requestId?: string;
+    duration?: number;
   };
 
   "message.before": {
@@ -164,6 +190,11 @@ export interface HookEventData {
     sessionId: string;
     reason?: string;
   };
+  "error": {
+    sessionId: string;
+    error: Error | unknown;
+    message?: string;
+  };
 }
 
 // =============================================================================
@@ -193,14 +224,16 @@ export interface HookContext {
   timestamp?: number;
   metadata?: Record<string, unknown>;
   toolName?: string;
+  toolArgs?: Record<string, unknown>;
   toolResult?: unknown;
   message?: string;
   messages?: unknown[];
   taskId?: string;
   agent?: string;
+  model?: string;
   error?: Error | string;
   description?: string;
-  todos?: unknown[];
+  todos?: Array<{ content: string; status: string }>;
   toolStats?: Record<string, number>;
 }
 
@@ -217,6 +250,7 @@ export interface HookResult {
   continue?: boolean;
   prompt?: string;
   modified?: unknown;
+  modifiedArgs?: Record<string, unknown>;
   context?: string[];
   prependContext?: string;
   appendMessage?: string;
@@ -226,6 +260,9 @@ export interface HookResult {
   data?: unknown;
   replaceMessage?: string;
   modifiedMessages?: unknown[];
+  flags?: string[];
+  modelOverride?: string;
+  thinkingBudget?: number;
 }
 
 /**

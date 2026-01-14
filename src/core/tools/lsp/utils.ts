@@ -43,9 +43,7 @@ export function formatHoverResult(result: HoverResult | null): string {
     return contents
       .map((c) => {
         if (typeof c === "string") return c;
-        if ("language" in c) return `\`\`\`${c.language}\n${c.value}\n\`\`\``;
-        if ("value" in c) return c.value;
-        return String(c);
+        return `\`\`\`${c.language}\n${c.value}\n\`\`\``;
       })
       .join("\n\n");
   }
