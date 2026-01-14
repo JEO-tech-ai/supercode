@@ -31,8 +31,12 @@ export {
 export {
   CommandProvider,
   useCommand,
-  useCommands,
-  type Command,
+  useCommandRegistration,
+  useCommandTrigger,
+  DEFAULT_COMMANDS,
+  groupCommandsByCategory,
+  filterCommands,
+  type CommandOption,
 } from "./context/command";
 
 // Component exports
@@ -42,7 +46,7 @@ export { Prompt, SimplePrompt } from "./component/prompt/Prompt";
 
 // UI exports
 export { ToastContainer } from "./ui/Toast";
-export { CommandPalette } from "./ui/CommandPalette";
+export { CommandPalette, useCommandPaletteKeybind } from "./component/CommandPalette";
 
 // Route exports
 export { Home } from "./routes/Home";

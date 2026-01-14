@@ -29,7 +29,7 @@ interface SlashCommandsProps {
 export function useSlashCommands(sessionId?: string) {
   const { navigate } = useRoute();
   const toast = useToast();
-  const { openPalette, trigger } = useCommand();
+  const { show: openPalette, trigger } = useCommand();
 
   const commands: SlashCommand[] = useMemo(() => {
     const baseCommands: SlashCommand[] = [

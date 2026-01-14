@@ -58,7 +58,7 @@ export {
   useCopyOnSelect,
   writeOSC52,
   escapeForClipboard,
-  type TextSelection,
+  type TextSelection as CopyTextSelection,
   type UseCopyOnSelectOptions,
   type UseCopyOnSelectReturn,
 } from "./useCopyOnSelect";
@@ -73,3 +73,10 @@ export {
   type UseFocusRestoreOptions,
   type UseFocusRestoreReturn,
 } from "./useFocusTrap";
+
+export {
+  useFilteredList,
+  highlightMatches,
+  type UseFilteredListOptions,
+  type UseFilteredListReturn,
+} from "./useFilteredList";

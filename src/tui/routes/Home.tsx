@@ -1,7 +1,7 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Box, Text, useStdout } from "ink";
 import { useTheme } from "../context/theme";
-import { useCommand, useCommands } from "../context/command";
+import { useCommand, useCommandRegistration } from "../context/command";
 import { useToast } from "../context/toast";
 import { Logo } from "../component/Logo";
 import { AdvancedPrompt } from "../component/prompt/AdvancedPrompt";
@@ -16,46 +16,49 @@ interface HomeProps {
 
 export function Home({ mcpCount = 0, directory }: HomeProps) {
   const { theme, themeName, setTheme, themes, toggleMode, mode } = useTheme();
-  const { openPalette } = useCommand();
+  const { show: openPalette } = useCommand();
   const toast = useToast();
   const { stdout } = useStdout();
 
   const cwd = directory ?? process.cwd();
   const shortCwd = cwd.replace(process.env.HOME ?? "", "~");
 
-  // Register home-specific commands
-  useCommands([
-    {
-      id: "theme.list",
-      title: "Switch Theme",
-      category: "System",
-      keybind: "ctrl+t",
-      onSelect: () => {
-        const currentIndex = themes.indexOf(themeName);
-        const nextIndex = (currentIndex + 1) % themes.length;
-        setTheme(themes[nextIndex]);
-        toast.info(`Theme: ${themes[nextIndex]}`);
+  useCommandRegistration(
+    "home",
+    () => [
+      {
+        id: "theme.list",
+        title: "Switch Theme",
+        category: "System",
+        keybind: "Ctrl+T",
+        onSelect: () => {
+          const currentIndex = themes.indexOf(themeName);
+          const nextIndex = (currentIndex + 1) % themes.length;
+          setTheme(themes[nextIndex]);
+          toast.info(`Theme: ${themes[nextIndex]}`);
+        },
       },
-    },
-    {
-      id: "theme.toggle_mode",
-      title: `Toggle Mode (${mode})`,
-      category: "System",
-      onSelect: () => {
-        toggleMode();
-        toast.info(`Mode: ${mode === "dark" ? "light" : "dark"}`);
+      {
+        id: "theme.toggle_mode",
+        title: `Toggle Mode (${mode})`,
+        category: "System",
+        onSelect: () => {
+          toggleMode();
+          toast.info(`Mode: ${mode === "dark" ? "light" : "dark"}`);
+        },
       },
-    },
-    {
-      id: "help",
-      title: "Show Help",
-      category: "System",
-      keybind: "?",
-      onSelect: () => {
-        toast.info("Press Ctrl+X for commands, Ctrl+C to exit");
+      {
+        id: "help",
+        title: "Show Help",
+        category: "System",
+        keybind: "?",
+        onSelect: () => {
+          toast.info("Press Ctrl+X for commands, Ctrl+C to exit");
+        },
       },
-    },
-  ], [themeName, mode]);
+    ],
+    [themeName, mode, themes, setTheme, toggleMode, toast]
+  );
 
   const hint = (
     <Box flexDirection="row" gap={2}>

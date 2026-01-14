@@ -3,7 +3,7 @@ import { Box, Text, useStdout, useInput } from "ink";
 import { useTheme } from "../../context/theme";
 import { useRouteData } from "../../context/route";
 import { useToast } from "../../context/toast";
-import { useCommands } from "../../context/command";
+import { useCommandRegistration } from "../../context/command";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { MessageList, type Message } from "./MessageList";
@@ -62,7 +62,7 @@ export function Session({
   });
 
   // Register session-specific commands
-  useCommands([
+  useCommandRegistration("session", () => [
     {
       id: "session.clear",
       title: "Clear Messages",
@@ -143,7 +143,7 @@ export function Session({
       keybind: "ctrl+b",
       onSelect: () => setSidebarVisible((prev) => !prev),
     },
-  ], [messages, sidebarVisible]);
+  ], [messages, sidebarVisible, toast]);
 
   const handleSubmit = useCallback(async (input: string, parts?: PromptPart[]) => {
     const userMessage: Message = {

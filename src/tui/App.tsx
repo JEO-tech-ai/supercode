@@ -8,12 +8,13 @@ import {
   CommandProvider,
   useRoute,
   useCommand,
+  useCommandRegistration,
   useToast,
   useTheme,
 } from "./context";
 import { Home } from "./routes/Home";
 import { Session } from "./routes/session";
-import { CommandPalette } from "./ui/CommandPalette";
+import { CommandPalette } from "./component/CommandPalette";
 import { HistoryProvider } from "./component/prompt/History";
 import type { PromptPart } from "./component/prompt/FileReference";
 
@@ -26,7 +27,7 @@ interface AppContentProps {
 function AppContent({ provider, model, onSendMessage }: AppContentProps) {
   const { route, navigate } = useRoute();
   const { theme } = useTheme();
-  const { openPalette, closePalette, isPaletteOpen, register } = useCommand();
+  const command = useCommand();
   const toast = useToast();
   const { exit } = useApp();
 
@@ -34,11 +35,7 @@ function AppContent({ provider, model, onSendMessage }: AppContentProps) {
   useInput((input, key) => {
     // Ctrl+X: Command palette
     if (key.ctrl && input === "x") {
-      if (isPaletteOpen) {
-        closePalette();
-      } else {
-        openPalette();
-      }
+      command.toggle();
       return;
     }
 
@@ -50,8 +47,8 @@ function AppContent({ provider, model, onSendMessage }: AppContentProps) {
 
     // Escape: Close palette or go back
     if (key.escape) {
-      if (isPaletteOpen) {
-        closePalette();
+      if (command.visible) {
+        command.hide();
       } else if (route.type !== "home") {
         navigate({ type: "home" });
       }
@@ -60,34 +57,30 @@ function AppContent({ provider, model, onSendMessage }: AppContentProps) {
   });
 
   // Register global commands
-  useEffect(() => {
-    const unregister = register([
-      {
-        id: "app.exit",
-        title: "Exit",
-        category: "System",
-        keybind: "ctrl+c",
-        onSelect: () => exit(),
-      },
-      {
-        id: "session.new",
-        title: "New Session",
-        category: "Session",
-        keybind: "ctrl+n",
-        suggested: route.type === "session",
-        onSelect: () => navigate({ type: "home" }),
-      },
-      {
-        id: "home",
-        title: "Go Home",
-        category: "Navigation",
-        keybind: "esc",
-        onSelect: () => navigate({ type: "home" }),
-      },
-    ]);
-
-    return unregister;
-  }, [register, exit, navigate, route.type]);
+  useCommandRegistration("app", () => [
+    {
+      id: "app.exit",
+      title: "Exit",
+      category: "System",
+      keybind: "ctrl+c",
+      onSelect: () => exit(),
+    },
+    {
+      id: "session.new",
+      title: "New Session",
+      category: "Session",
+      keybind: "ctrl+n",
+      suggested: route.type === "session",
+      onSelect: () => navigate({ type: "home" }),
+    },
+    {
+      id: "home",
+      title: "Go Home",
+      category: "Navigation",
+      keybind: "esc",
+      onSelect: () => navigate({ type: "home" }),
+    },
+  ], [exit, navigate, route.type]);
 
   return (
     <Box flexDirection="column" minHeight="100%">
@@ -102,7 +95,7 @@ function AppContent({ provider, model, onSendMessage }: AppContentProps) {
       )}
 
       {/* Command palette overlay */}
-      {isPaletteOpen && (
+      {command.visible && (
         <Box
           position="absolute"
           width="100%"
@@ -110,7 +103,7 @@ function AppContent({ provider, model, onSendMessage }: AppContentProps) {
           justifyContent="center"
           alignItems="center"
         >
-          <CommandPalette onClose={closePalette} />
+          <CommandPalette onClose={command.hide} />
         </Box>
       )}
     </Box>

@@ -29,3 +29,4 @@ export {
   type URLReference,
   type HistoryEntry,
 } from "./prompt";
+export { CommandPalette, useCommandPaletteKeybind } from "./CommandPalette";
