@@ -13,3 +13,15 @@ export {
   extractBase64Data,
   calculateBase64Size,
 } from './attachments';
+export {
+  compactSession,
+  checkNeedsCompaction,
+  pruneOldToolOutputs,
+  getCompactionStats,
+  generateCompactionSummaryPrompt,
+  DEFAULT_COMPACTION_CONFIG,
+  type CompactionConfig,
+  type CompactionResult,
+  type CompactionStats,
+  type CompactionContext,
+} from './compaction';

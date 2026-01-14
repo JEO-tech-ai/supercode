@@ -71,7 +71,8 @@ export function createSessionCommand(): Command {
     .addCommand(createSessionListCommand())
     .addCommand(createSessionShowCommand())
     .addCommand(createSessionDeleteCommand())
-    .addCommand(createSessionStatsCommand());
+    .addCommand(createSessionStatsCommand())
+    .addCommand(createSessionCompactCommand());
 
   return session;
 }
@@ -244,5 +245,88 @@ function createSessionStatsCommand(): Command {
         }
         UI.println();
       }
+    });
+}
+
+function createSessionCompactCommand(): Command {
+  return new Command("compact")
+    .description("Compact a session to reduce token usage")
+    .argument("<session-id>", "Session ID to compact")
+    .option("--dry-run", "Show what would be compacted without making changes")
+    .option("--format <format>", "Output format (table or json)", "table")
+    .action(async (sessionId, options) => {
+      const session = await sessionManager.getSession(sessionId);
+
+      if (!session) {
+        UI.error(`Session not found: ${sessionId}`);
+        process.exit(1);
+      }
+
+      const stats = sessionManager.getCompactionStats(sessionId);
+
+      if (!stats) {
+        UI.error("Failed to get compaction stats");
+        process.exit(1);
+      }
+
+      if (options.format === "json") {
+        console.log(JSON.stringify({ sessionId, stats, needsCompaction: sessionManager.needsCompaction(sessionId) }, null, 2));
+        
+        if (options.dryRun) return;
+        
+        const result = await sessionManager.compactSession(sessionId);
+        console.log(JSON.stringify({ result }, null, 2));
+        return;
+      }
+
+      UI.println();
+      UI.println(UI.Style.TEXT_HIGHLIGHT_BOLD + "Session Context Stats" + UI.Style.RESET);
+      UI.println(UI.Style.TEXT_DIM + "─".repeat(40) + UI.Style.RESET);
+      UI.println();
+
+      UI.println(UI.Style.TEXT_INFO_BOLD + "| " + UI.Style.TEXT_DIM + "Current Tokens " + UI.Style.RESET + stats.totalTokens.toLocaleString());
+      UI.println(UI.Style.TEXT_INFO_BOLD + "| " + UI.Style.TEXT_DIM + "Context Limit  " + UI.Style.RESET + stats.contextLimit.toLocaleString());
+      UI.println(UI.Style.TEXT_INFO_BOLD + "| " + UI.Style.TEXT_DIM + "Usable Context " + UI.Style.RESET + stats.usableContext.toLocaleString());
+      UI.println(UI.Style.TEXT_INFO_BOLD + "| " + UI.Style.TEXT_DIM + "Utilization    " + UI.Style.RESET + stats.utilizationPercent + "%");
+      UI.println();
+
+      const needsCompaction = sessionManager.needsCompaction(sessionId);
+      
+      if (stats.overflowAmount > 0) {
+        UI.println(UI.Style.TEXT_DANGER_BOLD + "⚠ Context overflow: " + stats.overflowAmount.toLocaleString() + " tokens over limit" + UI.Style.RESET);
+      } else if (stats.utilizationPercent > 80) {
+        UI.println(UI.Style.TEXT_WARNING + "⚠ Context utilization is high (" + stats.utilizationPercent + "%)" + UI.Style.RESET);
+      } else {
+        UI.println(UI.Style.TEXT_SUCCESS + "✓ Context utilization is healthy" + UI.Style.RESET);
+      }
+      UI.println();
+
+      if (options.dryRun) {
+        if (needsCompaction) {
+          UI.println(UI.Style.TEXT_WARNING + "Would compact this session (--dry-run mode)" + UI.Style.RESET);
+        } else {
+          UI.println(UI.Style.TEXT_DIM + "No compaction needed" + UI.Style.RESET);
+        }
+        return;
+      }
+
+      if (!needsCompaction) {
+        UI.println(UI.Style.TEXT_DIM + "No compaction needed" + UI.Style.RESET);
+        return;
+      }
+
+      const result = await sessionManager.compactSession(sessionId);
+
+      if (result && result.pruned) {
+        UI.println(UI.Style.TEXT_SUCCESS_BOLD + "✓ Compaction complete" + UI.Style.RESET);
+        UI.println(UI.Style.TEXT_INFO + "  Pruned " + result.prunedTokens.toLocaleString() + " tokens from " + result.prunedMessages + " messages" + UI.Style.RESET);
+        
+        if (result.needsSummary) {
+          UI.println(UI.Style.TEXT_WARNING + "  Session may need a summary to continue effectively" + UI.Style.RESET);
+        }
+      } else {
+        UI.println(UI.Style.TEXT_DIM + "No changes made" + UI.Style.RESET);
+      }
+      UI.println();
     });
 }

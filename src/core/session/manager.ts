@@ -18,6 +18,14 @@ import type {
   FileAttachmentPart,
 } from './types';
 import { processAttachmentsForStorage, resolveAttachments } from './attachments';
+import {
+  compactSession,
+  checkNeedsCompaction,
+  getCompactionStats,
+  type CompactionConfig,
+  type CompactionResult,
+  type CompactionStats,
+} from './compaction';
 
 export class SessionManager extends EventEmitter {
   private sessions = new Map<string, SessionState>();
@@ -220,6 +228,53 @@ export class SessionManager extends EventEmitter {
     this.emit('session.updated', { sessionId, updates: { messagesCleared: true } });
 
     return true;
+  }
+
+  async compactSession(sessionId: string, config?: Partial<CompactionConfig>): Promise<CompactionResult | null> {
+    const session = this.sessions.get(sessionId);
+
+    if (!session) {
+      return null;
+    }
+
+    const result = await compactSession(session, config);
+
+    if (result.pruned) {
+      session.updatedAt = new Date();
+      await this.saveSession(sessionId);
+      this.emit('session.compacted', { sessionId, result });
+      Log.info(`Compacted session ${sessionId}: pruned ${result.prunedTokens} tokens from ${result.prunedMessages} messages`);
+    }
+
+    return result;
+  }
+
+  needsCompaction(sessionId: string): boolean {
+    const session = this.sessions.get(sessionId);
+
+    if (!session) {
+      return false;
+    }
+
+    return checkNeedsCompaction({
+      sessionId: session.sessionId,
+      model: session.context.model,
+      messages: session.messages,
+    });
+  }
+
+  getCompactionStats(sessionId: string): CompactionStats | null {
+    const session = this.sessions.get(sessionId);
+
+    if (!session) {
+      return null;
+    }
+
+    return getCompactionStats({
+      sessionId: session.sessionId,
+      model: session.context.model,
+      messages: session.messages,
+    });
   }
 
   async addTodo(sessionId: string, todo: Omit<SessionTodo, 'id' | 'createdAt' | 'updatedAt'>): Promise<SessionTodo> {
