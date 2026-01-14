@@ -2,14 +2,27 @@ export type HookEvent =
   | "session.start"
   | "session.end"
   | "session.idle"
+  | "session.error"
+  | "session.compacting"
+  | "session.deleted"
   | "request.before"
   | "request.after"
   | "response.before"
   | "response.after"
+  | "message.before"
+  | "message.after"
+  | "message.updated"
+  | "message.error"
   | "tool.before"
   | "tool.after"
+  | "tool.error"
   | "agent.spawn"
   | "agent.complete"
+  | "agent.error"
+  | "context.overflow"
+  | "context.compacting"
+  | "user.prompt"
+  | "user.cancel"
   | "error";
 
 export interface HookContext {
@@ -17,14 +30,27 @@ export interface HookContext {
   workdir: string;
   event: HookEvent;
   data?: unknown;
+  toolName?: string;
+  toolResult?: unknown;
+  message?: string;
+  taskId?: string;
+  agent?: string;
+  error?: Error | string;
+  description?: string;
+  todos?: Todo[];
+  toolStats?: Record<string, number>;
 }
 
 export type HookHandler = (context: HookContext) => Promise<HookResult | void>;
+
+export type HookAction = "continue" | "skip" | "retry" | "abort" | "inject" | "modify";
 
 export interface HookResult {
   continue?: boolean;
   prompt?: string;
   modified?: unknown;
+  action?: HookAction;
+  data?: unknown;
 }
 
 export interface Hook {

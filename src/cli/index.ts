@@ -685,7 +685,7 @@ async function runSessionFlow() {
     return;
   }
 
-  const session = await sessionManager.getSession(selected);
+  const session = await sessionManager.getSession(selected as string);
   if (!session) {
     clack.log.error("Session not found");
     return;

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { Box, Text } from "ink";
 import Dashboard from "./Dashboard";
 import { getSessionManager } from "../../core/session";
 import { getTodoManager } from "../../services/agents/todo-manager";
@@ -7,7 +8,6 @@ import { getBackgroundManager } from "../../services/agents/background";
 import type { Session, Todo } from "../../core/types";
 import type { AgentName } from "../../services/agents/types";
 import logger from "../../shared/logger";
-import * as clack from "@clack/prompts";
 
 interface AgentStatus {
   name: AgentName;
@@ -27,18 +27,13 @@ const LiveDashboard: React.FC = () => {
     
     if (currentSession) {
       setSession({
-        id: currentSession.sessionId,
-        workdir: currentSession.context.workdir,
-        model: currentSession.context.model,
-        messages: [],
-        startedAt: currentSession.createdAt,
-        mode: currentSession.mode as "normal" | "ultrawork" | undefined,
-        loop: currentSession.loop ? {
-            iteration: currentSession.loop.iteration,
-            maxIterations: currentSession.loop.maxIterations,
-            stagnantCount: currentSession.loop.stagnantCount,
-            lastPendingHash: currentSession.loop.lastPendingHash,
-        } : undefined,
+        id: currentSession.id,
+        workdir: currentSession.workdir,
+        model: currentSession.model,
+        messages: currentSession.messages || [],
+        startedAt: currentSession.startedAt,
+        mode: currentSession.mode,
+        loop: currentSession.loop,
       });
     }
 
@@ -47,7 +42,7 @@ const LiveDashboard: React.FC = () => {
 
     const registry = getAgentRegistry();
     const backgroundManager = getBackgroundManager();
-    const tasks = backgroundManager.listTasks(currentSession?.sessionId);
+    const tasks = backgroundManager.listTasks(currentSession?.id);
     
     const agentNames = registry.listNames();
     const agentStatuses: AgentStatus[] = agentNames.map(name => {

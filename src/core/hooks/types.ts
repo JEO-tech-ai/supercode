@@ -192,32 +192,40 @@ export interface HookContext {
   data?: unknown;
   timestamp?: number;
   metadata?: Record<string, unknown>;
+  toolName?: string;
+  toolResult?: unknown;
+  message?: string;
+  messages?: unknown[];
+  taskId?: string;
+  agent?: string;
+  error?: Error | string;
+  description?: string;
+  todos?: unknown[];
+  toolStats?: Record<string, number>;
 }
 
 // =============================================================================
 // Hook Results
 // =============================================================================
 
+export type HookAction = "continue" | "skip" | "retry" | "abort" | "inject" | "modify";
+
 /**
  * Hook execution result
  */
 export interface HookResult {
-  /** Whether to continue processing other hooks */
   continue?: boolean;
-  /** Modified prompt for continuation */
   prompt?: string;
-  /** Modified data to pass to next hook */
   modified?: unknown;
-  /** Additional context to inject */
   context?: string[];
-  /** Context to prepend to message */
   prependContext?: string;
-  /** Message to append to response */
   appendMessage?: string;
-  /** Whether to skip the original action */
   skipAction?: boolean;
-  /** Error if hook failed */
   error?: Error | string;
+  action?: HookAction;
+  data?: unknown;
+  replaceMessage?: string;
+  modifiedMessages?: unknown[];
 }
 
 /**

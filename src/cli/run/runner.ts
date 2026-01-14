@@ -43,15 +43,12 @@ export interface RunOptions {
   files?: string[];
 }
 
-/**
- * Emit an event to the event state and process it
- */
 function emitEvent(
   ctx: RunContext,
   state: EventState,
-  event: Omit<RunEvent, "sessionId"> & { sessionId?: string }
+  event: Partial<RunEvent> & { type: RunEvent["type"]; sessionId?: string }
 ): void {
-  const fullEvent: RunEvent = {
+  const fullEvent = {
     ...event,
     sessionId: event.sessionId || ctx.sessionId,
   } as RunEvent;

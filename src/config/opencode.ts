@@ -43,6 +43,7 @@ export function getDefaultModel(provider: AISDKProviderName): string {
     ollama: "rnj-1",
     lmstudio: "local-model",
     llamacpp: "local-model",
+    supercent: "supercent-1",
   };
   return defaults[provider];
 }
