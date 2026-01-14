@@ -1,8 +1,11 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Box, Text, useInput } from "ink";
 import { useTheme } from "../../context/theme";
-import * as fs from "fs";
+import * as fs from "fs/promises";
+import * as fsSync from "fs";
 import * as path from "path";
+import { getStringWidth } from "../../utils/string-width";
+import { createDebouncedAsync } from "../../utils/queue";
 
 export interface FileReference {
   type: "file" | "directory";
@@ -157,17 +160,24 @@ function formatFileSize(bytes?: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-// Glob pattern matching utility
+const globRegexCache = new Map<string, RegExp>();
+
 function matchGlob(pattern: string, filepath: string): boolean {
-  // Convert glob to regex
-  const regexPattern = pattern
-    .replace(/\*\*/g, "<<<GLOBSTAR>>>")
-    .replace(/\*/g, "[^/]*")
-    .replace(/<<<GLOBSTAR>>>/g, ".*")
-    .replace(/\?/g, ".")
-    .replace(/\./g, "\\.");
-  
-  const regex = new RegExp(`^${regexPattern}$`, "i");
+  let regex = globRegexCache.get(pattern);
+  if (!regex) {
+    const regexPattern = pattern
+      .replace(/\*\*/g, "<<<GLOBSTAR>>>")
+      .replace(/\*/g, "[^/]*")
+      .replace(/<<<GLOBSTAR>>>/g, ".*")
+      .replace(/\?/g, ".")
+      .replace(/\./g, "\\.");
+    regex = new RegExp(`^${regexPattern}$`, "i");
+    globRegexCache.set(pattern, regex);
+    if (globRegexCache.size > 100) {
+      const firstKey = globRegexCache.keys().next().value;
+      if (firstKey) globRegexCache.delete(firstKey);
+    }
+  }
   return regex.test(filepath);
 }
 
@@ -176,166 +186,203 @@ function isGlobPattern(query: string): boolean {
   return query.includes("*") || query.includes("?") || query.includes("[");
 }
 
+const IGNORE_PATTERNS = [
+  "node_modules",
+  ".git",
+  "dist",
+  "build",
+  ".next",
+  ".nuxt",
+  "coverage",
+  "__pycache__",
+  ".pytest_cache",
+  "target",
+  "vendor",
+  ".idea",
+  ".vscode",
+];
+
+function shouldIgnore(name: string): boolean {
+  if (name.startsWith(".") && name !== ".supercoin") return true;
+  return IGNORE_PATTERNS.includes(name);
+}
+
+interface SearchState {
+  results: FileReference[];
+  visited: Set<string>;
+  aborted: boolean;
+}
+
+async function searchDirectoryAsync(
+  dir: string,
+  cwd: string,
+  searchQuery: string,
+  isGlob: boolean,
+  lineRange: { start: number; end?: number } | undefined,
+  state: SearchState,
+  signal: AbortSignal,
+  depth: number = 0
+): Promise<void> {
+  if (depth > 6 || state.results.length >= 100 || signal.aborted) return;
+
+  let entries: fsSync.Dirent[];
+  try {
+    entries = await fs.readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+
+  if (signal.aborted) return;
+
+  entries.sort((a, b) => {
+    if (a.isDirectory() && !b.isDirectory()) return -1;
+    if (!a.isDirectory() && b.isDirectory()) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  for (const entry of entries) {
+    if (signal.aborted || state.results.length >= 100) break;
+    if (shouldIgnore(entry.name)) continue;
+
+    const fullPath = path.join(dir, entry.name);
+    const relativePath = path.relative(cwd, fullPath);
+
+    if (state.visited.has(fullPath)) continue;
+    state.visited.add(fullPath);
+
+    let matches = false;
+    if (isGlob) {
+      matches = matchGlob(searchQuery, relativePath);
+    } else {
+      const queryLower = searchQuery.toLowerCase();
+      const targetLower = relativePath.toLowerCase();
+
+      if (targetLower.includes(queryLower)) {
+        matches = true;
+      } else {
+        let queryIdx = 0;
+        for (let i = 0; i < targetLower.length && queryIdx < queryLower.length; i++) {
+          if (targetLower[i] === queryLower[queryIdx]) {
+            queryIdx++;
+          }
+        }
+        matches = queryIdx === queryLower.length;
+      }
+    }
+
+    if (matches) {
+      let fileSize: number | undefined;
+      if (!entry.isDirectory()) {
+        try {
+          const stat = await fs.stat(fullPath);
+          fileSize = stat.size;
+        } catch {}
+      }
+
+      const ext = entry.name.split(".").pop()?.toLowerCase();
+
+      state.results.push({
+        type: entry.isDirectory() ? "directory" : "file",
+        path: fullPath,
+        displayPath: relativePath + (entry.isDirectory() ? "/" : ""),
+        lineRange,
+        size: fileSize,
+        extension: ext,
+      });
+    }
+
+    if (entry.isDirectory() && state.results.length < 100 && !signal.aborted) {
+      await searchDirectoryAsync(
+        fullPath,
+        cwd,
+        searchQuery,
+        isGlob,
+        lineRange,
+        state,
+        signal,
+        depth + 1
+      );
+    }
+  }
+}
+
 export function useFileSearch(query: string, cwd: string = process.cwd()) {
   const [files, setFiles] = useState<FileReference[]>([]);
   const [loading, setLoading] = useState(false);
   const [recentFiles, setRecentFiles] = useState<string[]>([]);
+  
+  const debouncedSearchRef = useRef<ReturnType<typeof createDebouncedAsync<string, FileReference[]>> | null>(null);
+
+  useEffect(() => {
+    if (!debouncedSearchRef.current) {
+      debouncedSearchRef.current = createDebouncedAsync<string, FileReference[]>(
+        async (searchQuery: string, signal: AbortSignal) => {
+          const rangeMatch = searchQuery.match(/^(.+?)(?:#|:)(\d+)(?:-(\d+))?$/);
+          let actualQuery = searchQuery;
+          let lineRange: { start: number; end?: number } | undefined;
+
+          if (rangeMatch) {
+            actualQuery = rangeMatch[1];
+            lineRange = {
+              start: parseInt(rangeMatch[2], 10),
+              end: rangeMatch[3] ? parseInt(rangeMatch[3], 10) : undefined,
+            };
+          }
+
+          const isGlob = isGlobPattern(actualQuery);
+          const state: SearchState = {
+            results: [],
+            visited: new Set(),
+            aborted: false,
+          };
+
+          signal.addEventListener("abort", () => {
+            state.aborted = true;
+          });
+
+          await searchDirectoryAsync(cwd, cwd, actualQuery, isGlob, lineRange, state, signal);
+
+          if (signal.aborted) {
+            throw new Error("AbortError");
+          }
+
+          state.results.sort((a, b) => {
+            const aExact = a.displayPath.toLowerCase().includes(actualQuery.toLowerCase());
+            const bExact = b.displayPath.toLowerCase().includes(actualQuery.toLowerCase());
+            if (aExact && !bExact) return -1;
+            if (!aExact && bExact) return 1;
+            return a.displayPath.length - b.displayPath.length;
+          });
+
+          return state.results.slice(0, 25);
+        },
+        150
+      );
+    }
+
+    return () => {
+      debouncedSearchRef.current?.cancel();
+    };
+  }, [cwd]);
 
   useEffect(() => {
     if (!query) {
       setFiles([]);
+      setLoading(false);
       return;
     }
 
     setLoading(true);
 
-    // Parse line range from query (e.g., "file.ts#10-20" or "file.ts:10-20")
-    const rangeMatch = query.match(/^(.+?)(?:#|:)(\d+)(?:-(\d+))?$/);
-    let searchQuery = query;
-    let lineRange: { start: number; end?: number } | undefined;
-
-    if (rangeMatch) {
-      searchQuery = rangeMatch[1];
-      lineRange = {
-        start: parseInt(rangeMatch[2], 10),
-        end: rangeMatch[3] ? parseInt(rangeMatch[3], 10) : undefined,
-      };
-    }
-
-    const isGlob = isGlobPattern(searchQuery);
-
-    // Enhanced file search
-    const searchFiles = async () => {
-      try {
-        const results: FileReference[] = [];
-        const visited = new Set<string>();
-
-        // Ignore patterns
-        const ignorePatterns = [
-          "node_modules",
-          ".git",
-          "dist",
-          "build",
-          ".next",
-          ".nuxt",
-          "coverage",
-          "__pycache__",
-          ".pytest_cache",
-          "target",
-          "vendor",
-          ".idea",
-          ".vscode",
-        ];
-
-        const shouldIgnore = (name: string) => {
-          if (name.startsWith(".") && name !== ".supercoin") return true;
-          return ignorePatterns.includes(name);
-        };
-
-        const searchDir = (dir: string, depth: number = 0) => {
-          if (depth > 6) return; // Max depth
-          if (results.length >= 100) return;
-          
-          try {
-            const entries = fs.readdirSync(dir, { withFileTypes: true });
-            
-            // Sort: directories first, then by name
-            entries.sort((a, b) => {
-              if (a.isDirectory() && !b.isDirectory()) return -1;
-              if (!a.isDirectory() && b.isDirectory()) return 1;
-              return a.name.localeCompare(b.name);
-            });
-
-            for (const entry of entries) {
-              if (shouldIgnore(entry.name)) continue;
-              if (results.length >= 100) break;
-
-              const fullPath = path.join(dir, entry.name);
-              const relativePath = path.relative(cwd, fullPath);
-
-              if (visited.has(fullPath)) continue;
-              visited.add(fullPath);
-
-              // Check match
-              let matches = false;
-              if (isGlob) {
-                matches = matchGlob(searchQuery, relativePath);
-              } else {
-                // Fuzzy match: check if all characters appear in order
-                const query = searchQuery.toLowerCase();
-                const target = relativePath.toLowerCase();
-                
-                // Exact substring match
-                if (target.includes(query)) {
-                  matches = true;
-                } else {
-                  // Fuzzy match
-                  let queryIdx = 0;
-                  for (let i = 0; i < target.length && queryIdx < query.length; i++) {
-                    if (target[i] === query[queryIdx]) {
-                      queryIdx++;
-                    }
-                  }
-                  matches = queryIdx === query.length;
-                }
-              }
-
-              if (matches) {
-                let fileSize: number | undefined;
-                if (!entry.isDirectory()) {
-                  try {
-                    const stat = fs.statSync(fullPath);
-                    fileSize = stat.size;
-                  } catch {}
-                }
-
-                const ext = entry.name.split(".").pop()?.toLowerCase();
-
-                results.push({
-                  type: entry.isDirectory() ? "directory" : "file",
-                  path: fullPath,
-                  displayPath: relativePath + (entry.isDirectory() ? "/" : ""),
-                  lineRange,
-                  size: fileSize,
-                  extension: ext,
-                });
-              }
-
-              // Recurse into directories
-              if (entry.isDirectory() && results.length < 100) {
-                searchDir(fullPath, depth + 1);
-              }
-            }
-          } catch {
-            // Ignore permission errors
-          }
-        };
-
-        searchDir(cwd);
-
-        // Sort results by relevance
-        results.sort((a, b) => {
-          // Exact matches first
-          const aExact = a.displayPath.toLowerCase().includes(searchQuery.toLowerCase());
-          const bExact = b.displayPath.toLowerCase().includes(searchQuery.toLowerCase());
-          if (aExact && !bExact) return -1;
-          if (!aExact && bExact) return 1;
-
-          // Shorter paths first
-          return a.displayPath.length - b.displayPath.length;
-        });
-
-        setFiles(results.slice(0, 25));
-      } catch (error) {
-        setFiles([]);
-      } finally {
-        setLoading(false);
+    debouncedSearchRef.current?.execute(query).then((results) => {
+      if (results) {
+        setFiles(results);
       }
-    };
-
-    const timer = setTimeout(searchFiles, 100); // Debounce
-    return () => clearTimeout(timer);
-  }, [query, cwd]);
+      setLoading(false);
+    }).catch(() => {
+      setLoading(false);
+    });
+  }, [query]);
 
   return { files, loading, recentFiles };
 }
@@ -455,10 +502,12 @@ export function FileReferenceMenu({
     }
   }, { isActive: visible });
 
-  if (!visible) return null;
+  const maxDisplayLen = useMemo(() => 
+    Math.max(...options.slice(0, 15).map((o) => o.display.length), 20),
+    [options]
+  );
 
-  // Calculate max display length
-  const maxDisplayLen = Math.max(...options.slice(0, 15).map((o) => o.display.length), 20);
+  if (!visible) return null;
 
   return (
     <Box
@@ -467,7 +516,7 @@ export function FileReferenceMenu({
       borderColor={theme.border}
       marginBottom={1}
       paddingX={1}
-      maxHeight={18}
+      height={Math.min(18, options.length + 5)}
     >
       {/* Header */}
       <Box marginBottom={1} justifyContent="space-between">
@@ -579,9 +628,11 @@ export function FileReferenceMenu({
                   );
                 })}
               {options.filter((o) => o.type === "file" || o.type === "directory").length > 8 && (
-                <Text color={theme.textMuted} paddingLeft={1}>
-                  +{options.filter((o) => o.type === "file" || o.type === "directory").length - 8} more
-                </Text>
+                <Box paddingLeft={1}>
+                  <Text color={theme.textMuted}>
+                    +{options.filter((o) => o.type === "file" || o.type === "directory").length - 8} more
+                  </Text>
+                </Box>
               )}
             </Box>
           )}

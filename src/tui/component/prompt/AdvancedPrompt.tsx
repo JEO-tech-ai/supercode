@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Box, Text, useInput, useFocus } from "ink";
 import TextInput from "ink-text-input";
 import { useTheme } from "../../context/theme";
@@ -106,15 +106,17 @@ export function AdvancedPrompt({
 
   const handleChange = useCallback(
     async (newValue: string) => {
-      if (enableImagePaste && isSupportedFilePath(newValue.trim())) {
-        const handled = await handleFilePathPaste(newValue.trim());
+      const normalizedValue = newValue.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+      
+      if (enableImagePaste && isSupportedFilePath(normalizedValue.trim())) {
+        const handled = await handleFilePathPaste(normalizedValue.trim());
         if (handled) {
           setValue("");
           return;
         }
       }
 
-      setValue(newValue);
+      setValue(normalizedValue);
 
       if (newValue.startsWith("/") && !newValue.includes(" ")) {
         setAutocompleteMode("/");
@@ -297,9 +299,13 @@ export function AdvancedPrompt({
     [value]
   );
 
-  // Determine highlight color
-  const highlightColor = shellMode ? theme.primary : theme.accent;
-  const modelDisplay = provider ? `${provider}/${model}` : model;
+  const highlightColor = useMemo(() => 
+    shellMode ? theme.primary : theme.accent,
+    [shellMode, theme.primary, theme.accent]
+  );
+  
+  const hasHistory = useMemo(() => history.entries.length > 0, [history.entries.length]);
+  const hasAttachments = attachments.length > 0;
 
   return (
     <Box flexDirection="column">
@@ -389,12 +395,12 @@ export function AdvancedPrompt({
                 <Text color={theme.text}>Ctrl+V</Text> paste image
               </Text>
             )}
-            {history.entries.length > 0 && (
+            {hasHistory && (
               <Text color={theme.textMuted}>
                 <Text color={theme.text}>↑↓</Text> history
               </Text>
             )}
-            {attachments.length > 0 && (
+            {hasAttachments && (
               <Text color={theme.textMuted}>
                 <Text color={theme.text}>Ctrl+A</Text> select attachments
               </Text>

@@ -615,22 +615,25 @@ export function SlashCommandsMenu({
     }
   }, { isActive: visible });
 
-  if (!visible || filtered.length === 0) return null;
+  const maxNameLen = useMemo(() => 
+    Math.max(...filtered.map((c) => c.name.length), 12),
+    [filtered]
+  );
 
-  // Find max command name length for alignment
-  const maxNameLen = Math.max(...filtered.map((c) => c.name.length), 12);
-
-  // Flatten with indices for selection tracking
-  let flatIndex = 0;
-  const renderCommands: Array<{ type: "header"; category: string } | { type: "command"; cmd: SlashCommand; index: number }> = [];
-  
-  for (const [category, cmds] of groupedCommands) {
-    renderCommands.push({ type: "header", category });
-    for (const cmd of cmds) {
-      renderCommands.push({ type: "command", cmd, index: flatIndex++ });
+  const renderCommands = useMemo(() => {
+    let flatIndex = 0;
+    const items: Array<{ type: "header"; category: string } | { type: "command"; cmd: SlashCommand; index: number }> = [];
+    for (const [category, cmds] of groupedCommands) {
+      items.push({ type: "header", category });
+      for (const cmd of cmds) {
+        items.push({ type: "command", cmd, index: flatIndex++ });
+      }
     }
-  }
+    return items;
+  }, [groupedCommands]);
 
+  if (!visible || filtered.length === 0) return null;
+  
   // Limit displayed items
   const displayLimit = 15;
   const startIndex = Math.max(0, Math.min(selectedIndex - 5, filtered.length - displayLimit));

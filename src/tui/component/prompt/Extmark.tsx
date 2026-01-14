@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useMemo } from "react";
 import { Box, Text } from "ink";
 import { useTheme } from "../../context/theme";
 import type { PromptPart } from "./FileReference";
+import { getStringWidth } from "../../utils/string-width";
 
 /**
  * Extmark - Virtual text markers that render as "pills" in the prompt
@@ -327,44 +328,37 @@ export function RenderWithExtmarks({
   return <Box>{parts}</Box>;
 }
 
-/**
- * Helper to create a file extmark
- */
 export function createFileExtmark(
   manager: ExtmarkManager,
   path: string,
   position: number
 ): string {
   const displayText = path.split("/").pop() || path;
+  const virtualText = "@" + displayText;
   return manager.create({
     type: "file",
     start: position,
-    end: position + displayText.length + 1, // +1 for @
+    end: position + getStringWidth(virtualText),
     displayText,
     metadata: { path },
   });
 }
 
-/**
- * Helper to create an agent extmark
- */
 export function createAgentExtmark(
   manager: ExtmarkManager,
   name: string,
   position: number
 ): string {
+  const virtualText = "@" + name;
   return manager.create({
     type: "agent",
     start: position,
-    end: position + name.length + 1, // +1 for @
+    end: position + getStringWidth(virtualText),
     displayText: name,
     metadata: { name },
   });
 }
 
-/**
- * Helper to create a paste summary extmark
- */
 export function createPasteExtmark(
   manager: ExtmarkManager,
   content: string,
@@ -372,19 +366,17 @@ export function createPasteExtmark(
 ): string {
   const lines = content.split("\n").length;
   const displayText = `Pasted ~${lines} lines`;
+  const virtualText = "[" + displayText + "]";
   return manager.create({
     type: "paste",
     start: position,
-    end: position + displayText.length + 2, // +2 for []
+    end: position + getStringWidth(virtualText),
     displayText,
     actualText: content,
     metadata: { lines },
   });
 }
 
-/**
- * Helper to create a URL extmark
- */
 export function createURLExtmark(
   manager: ExtmarkManager,
   url: string,
@@ -392,10 +384,11 @@ export function createURLExtmark(
   title?: string
 ): string {
   const displayText = title || new URL(url).hostname;
+  const virtualText = "\uD83D\uDD17" + displayText;
   return manager.create({
     type: "url",
     start: position,
-    end: position + displayText.length + 2, // +2 for icon
+    end: position + getStringWidth(virtualText),
     displayText,
     metadata: { url },
   });

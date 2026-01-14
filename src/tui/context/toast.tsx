@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react";
 
 export interface ToastOptions {
   id?: string;
@@ -33,6 +33,14 @@ interface ToastProviderProps {
 
 export function ToastProvider({ children, maxToasts = 5 }: ToastProviderProps) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+      timeoutsRef.current.clear();
+    };
+  }, []);
 
   const show = useCallback((options: ToastOptions) => {
     const toast: ToastItem = {
@@ -48,11 +56,12 @@ export function ToastProvider({ children, maxToasts = 5 }: ToastProviderProps) {
       return next.slice(-maxToasts);
     });
 
-    // Auto dismiss
     if (toast.duration && toast.duration > 0) {
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== toast.id));
+        timeoutsRef.current.delete(toast.id);
       }, toast.duration);
+      timeoutsRef.current.set(toast.id, timeoutId);
     }
   }, [maxToasts]);
 
@@ -78,10 +87,17 @@ export function ToastProvider({ children, maxToasts = 5 }: ToastProviderProps) {
   }, [show]);
 
   const dismiss = useCallback((id: string) => {
+    const timeout = timeoutsRef.current.get(id);
+    if (timeout) {
+      clearTimeout(timeout);
+      timeoutsRef.current.delete(id);
+    }
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   const clear = useCallback(() => {
+    timeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+    timeoutsRef.current.clear();
     setToasts([]);
   }, []);
 

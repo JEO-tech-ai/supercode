@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useMemo } from "react";
 import { Box, Text } from "ink";
 import { useTheme } from "../../context/theme";
 
@@ -13,25 +13,28 @@ interface MessageItemProps {
   message: Message;
 }
 
-function MessageItem({ message }: MessageItemProps) {
+const MessageItem = memo(function MessageItem({ message }: MessageItemProps) {
   const { theme } = useTheme();
 
-  const isUser = message.role === "user";
-  const icon = isUser ? "❯" : "◆";
-  const iconColor = isUser ? theme.primary : theme.secondary;
-  const textColor = isUser ? theme.text : theme.text;
+  const { icon, iconColor } = useMemo(() => {
+    const isUser = message.role === "user";
+    return {
+      icon: isUser ? "❯" : "◆",
+      iconColor: isUser ? theme.primary : theme.secondary,
+    };
+  }, [message.role, theme.primary, theme.secondary]);
 
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Box gap={1}>
         <Text color={iconColor}>{icon}</Text>
-        <Text color={textColor} wrap="wrap">
+        <Text color={theme.text} wrap="wrap">
           {message.content}
         </Text>
       </Box>
     </Box>
   );
-}
+});
 
 interface MessageListProps {
   messages: Message[];

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![SuperCode](https://img.shields.io/badge/SUPERCODE-v0.7.0-blueviolet?style=for-the-badge&logo=supervision&logoColor=white)
+![SuperCode](https://img.shields.io/badge/SUPERCODE-v0.7.1-blueviolet?style=for-the-badge&logo=supervision&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Bun](https://img.shields.io/badge/Bun-1.0+-black?style=for-the-badge&logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
@@ -316,7 +316,7 @@ gh repo star JEO-tech-ai/supercode
 - **Project Configuration**: Per-project settings via `supercode.json`
 - **Session Management**: Create, continue, fork, and manage conversation sessions
 - **Mouse Support**: Terminal mouse click handling for enhanced TUI interaction
-- **Wide Character Support**: Korean/CJK text input with accurate cursor positioning
+- **Wide Character Support**: Korean/CJK text input with accurate cursor positioning via `Bun.stringWidth`
 - **Claude Code Compatibility**: Full compatibility with Claude Code's settings.json, hooks, and skills
 - **File Attachments**: Attach images and PDFs via CLI (`-f` flag) or TUI (`Ctrl+V` paste)
 - **Auto Update Checker**: Automatic version checking with startup notifications
@@ -875,7 +875,7 @@ supercode/
 - [x] Cent Agent (6-phase orchestrator)
 - [x] Ralph Loop (autonomous mode)
 - [x] Hook system (30+ hooks)
-- [x] Korean Unicode text input
+- [x] Korean Unicode text input (Bun.stringWidth for accurate cursor positioning)
 - [x] Mouse support (click, double-click, drag)
 - [x] Skills System with embedded MCP
 - [x] UltraWork mode (multi-agent orchestration)
@@ -883,6 +883,19 @@ supercode/
 - [x] Auto Update Checker
 - [x] AST-grep integration (25 languages)
 - [x] File attachment & image paste support (CLI `-f` flag, TUI `Ctrl+V`)
+- [x] Thread-safe async file search with AbortController
+- [x] React performance optimizations (React.memo, useMemo caching)
+- [x] Memory leak fixes (timeout cleanup, regex caching)
+
+### v0.7.1 Highlights
+
+- **Korean Input Fix**: Accurate cursor positioning using `Bun.stringWidth` for CJK characters
+- **@ File Attachment Stability**: Thread-safe async file search with `AbortController` prevents crashes
+- **Performance Optimizations**: 
+  - `React.memo` for list components (prevents re-render during streaming)
+  - Regex caching with LRU eviction in glob matcher
+  - `useMemo` for expensive calculations
+  - Timeout cleanup to prevent memory leaks
 
 ### In Progress
 
