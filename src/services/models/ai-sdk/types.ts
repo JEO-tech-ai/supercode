@@ -6,18 +6,8 @@
  */
 
 import type { LanguageModel } from "ai";
-
-/**
- * Extended provider names including localhost options
- */
-export type AISDKProviderName = 
-  | "anthropic"   // Claude (API)
-  | "openai"      // OpenAI/Codex (API)
-  | "google"      // Gemini (API)
-  | "ollama"      // Ollama (localhost)
-  | "lmstudio"    // LM Studio (localhost)
-  | "llamacpp"    // llama.cpp (localhost)
-  | "supercent";  // SuperCent (API)
+import type { AISDKProviderName } from "../types";
+export type { AISDKProviderName } from "../types";
 
 /**
  * Provider configuration for AI SDK

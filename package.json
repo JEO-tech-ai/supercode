@@ -34,8 +34,12 @@
     "cli": "bun src/cli/index.ts"
   },
   "dependencies": {
+    "@ai-sdk/amazon-bedrock": "^3.0.73",
     "@ai-sdk/anthropic": "^3.0.9",
+    "@ai-sdk/azure": "^2.0.91",
+    "@ai-sdk/deepinfra": "^1.0.31",
     "@ai-sdk/google": "^3.0.6",
+    "@ai-sdk/google-vertex": "^3.0.97",
     "@ai-sdk/openai": "^3.0.7",
     "@clack/prompts": "^0.7.0",
     "@hono/node-server": "^1.19.8",

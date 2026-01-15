@@ -1,5 +1,9 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
+import { createAmazonBedrock } from "@ai-sdk/amazon-bedrock";
+import { createAzure } from "@ai-sdk/azure";
+import { createDeepInfra } from "@ai-sdk/deepinfra";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createVertex } from "@ai-sdk/google-vertex";
 import { createOpenAI } from "@ai-sdk/openai";
 import type { LanguageModel } from "ai";
 import type {
@@ -56,6 +60,30 @@ const PROVIDER_REGISTRY: ProviderRegistry = {
     supportsStreaming: true,
     defaultBaseURL: "https://api.supercent.ai/v1",
     defaultModel: "cent-1",
+  },
+  "amazon-bedrock": {
+    name: "Amazon Bedrock",
+    requiresAuth: true,
+    supportsStreaming: true,
+    defaultModel: "anthropic.claude-3-haiku-20240307-v1:0",
+  },
+  azure: {
+    name: "Azure OpenAI",
+    requiresAuth: true,
+    supportsStreaming: true,
+    defaultModel: "gpt-4o",
+  },
+  "google-vertex": {
+    name: "Google Vertex AI",
+    requiresAuth: true,
+    supportsStreaming: true,
+    defaultModel: "gemini-1.5-flash",
+  },
+  deepinfra: {
+    name: "DeepInfra",
+    requiresAuth: true,
+    supportsStreaming: true,
+    defaultModel: "meta-llama/Meta-Llama-3.1-70B-Instruct",
   },
 };
 
@@ -127,6 +155,53 @@ export function createModel(config: AISDKModelConfig): AISDKModelResult {
         apiKey: config.apiKey || process.env.SUPERCENT_API_KEY || "supercent"
       });
       languageModel = supercent.chat(model);
+      break;
+    }
+    case "azure": {
+      const apiKey = config.apiKey || process.env.AZURE_API_KEY;
+      if (!apiKey) {
+        throw new Error("API key required for Azure OpenAI");
+      }
+      const baseURL = config.baseURL || process.env.AZURE_API_ENDPOINT;
+      const resourceName = process.env.AZURE_RESOURCE_NAME;
+      const azure = createAzure({
+        apiKey,
+        ...(baseURL ? { baseURL } : {}),
+        ...(resourceName ? { resourceName } : {}),
+      });
+      languageModel = azure(model);
+      break;
+    }
+    case "deepinfra": {
+      const apiKey = config.apiKey || process.env.DEEPINFRA_API_KEY;
+      if (!apiKey) {
+        throw new Error("API key required for DeepInfra");
+      }
+      const deepinfra = createDeepInfra({ apiKey });
+      languageModel = deepinfra(model);
+      break;
+    }
+    case "amazon-bedrock": {
+      const region = process.env.AWS_REGION || "us-east-1";
+      const bedrock = createAmazonBedrock({ region });
+      languageModel = bedrock(model);
+      break;
+    }
+    case "google-vertex": {
+      const project =
+        process.env.GOOGLE_VERTEX_PROJECT ||
+        process.env.GOOGLE_CLOUD_PROJECT ||
+        process.env.GCP_PROJECT ||
+        process.env.GCLOUD_PROJECT;
+      const location =
+        process.env.GOOGLE_VERTEX_LOCATION ||
+        process.env.GOOGLE_CLOUD_LOCATION ||
+        process.env.VERTEX_LOCATION;
+      const vertex = createVertex({
+        ...(project ? { project } : {}),
+        ...(location ? { location } : {}),
+      });
+      languageModel = vertex(model);
       break;
     }
     default: {

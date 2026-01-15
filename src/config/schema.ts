@@ -27,6 +27,27 @@ export const SuperCodeConfigSchema = z.object({
       clientSecret: z.string().optional(),
       baseUrl: z.string().url().default("https://generativelanguage.googleapis.com"),
     }).optional(),
+    azure: z.object({
+      enabled: z.boolean().default(true),
+      apiKey: z.string().optional(),
+      baseUrl: z.string().url().optional(),
+      resourceName: z.string().optional(),
+    }).optional(),
+    "amazon-bedrock": z.object({
+      enabled: z.boolean().default(true),
+      region: z.string().optional(),
+      baseUrl: z.string().url().optional(),
+    }).optional(),
+    "google-vertex": z.object({
+      enabled: z.boolean().default(true),
+      project: z.string().optional(),
+      location: z.string().optional(),
+    }).optional(),
+    deepinfra: z.object({
+      enabled: z.boolean().default(true),
+      apiKey: z.string().optional(),
+      baseUrl: z.string().url().optional(),
+    }).optional(),
     ollama: LocalhostProviderSchema.extend({
       baseUrl: z.string().default("http://localhost:11434/v1"),
       defaultModel: z.string().default("rnj-1"),

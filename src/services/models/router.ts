@@ -1,10 +1,13 @@
 import { getAuthHub } from "../auth/hub";
 import type { AuthProviderName } from "../auth/types";
 import { AnthropicProvider, OpenAIProvider, GoogleProvider, LocalProvider } from "./providers";
+import { getProviderConfig } from "./ai-sdk/registry";
+import { streamAIResponse } from "./ai-sdk/stream";
 import type {
-  Provider,
+  AISDKProviderName,
   ProviderName,
   ModelConfig,
+  ModelDefinition,
   ModelInfo,
   AIRequest,
   AIResponse,
@@ -12,19 +15,20 @@ import type {
 } from "./types";
 import logger from "../../shared/logger";
 
+interface ModelCatalog {
+  isValidModel(model: string): boolean;
+  listModels(): ModelDefinition[];
+  getModelInfo(model: string): ModelDefinition | null;
+}
+
 export class ModelRouter {
-  private providers: Map<ProviderName, Provider>;
+  private catalogs: Map<ProviderName, ModelCatalog>;
   private currentModel: ModelConfig;
   private fallbackChain: string[];
   private modelAliases: Map<string, string>;
 
   constructor(config: RouterConfig) {
-    this.providers = new Map<ProviderName, Provider>([
-      ["anthropic", new AnthropicProvider()],
-      ["openai", new OpenAIProvider()],
-      ["google", new GoogleProvider()],
-      ["local", new LocalProvider()],
-    ]);
+    this.catalogs = this.buildCatalogs();
     this.fallbackChain = config.fallbackModels || [];
     this.currentModel = this.parseModelId(config.defaultModel);
     this.modelAliases = this.buildAliasMap();
@@ -34,36 +38,11 @@ export class ModelRouter {
     request: AIRequest,
     options?: { fallback?: boolean; retries?: number; timeout?: number }
   ): Promise<AIResponse> {
-    const authHub = getAuthHub();
     const modelConfig = this.currentModel;
-    const provider = this.providers.get(modelConfig.provider);
-
-    if (!provider) {
-      throw new Error(`Unknown provider: ${modelConfig.provider}`);
-    }
-
-    // Local provider doesn't require authentication
-    let token = "";
-    if (modelConfig.provider !== "local") {
-      const authName = this.mapProviderToAuth(modelConfig.provider);
-      const isAuthenticated = await authHub.isAuthenticated(authName);
-      if (!isAuthenticated) {
-        throw new Error(
-          `Not authenticated with ${modelConfig.provider}. ` +
-          `Run: supercoin auth login --${authName}`
-        );
-      }
-
-      const authToken = await authHub.getToken(authName);
-      if (!authToken) {
-        throw new Error(`No token available for ${modelConfig.provider}`);
-      }
-      token = authToken;
-    }
 
     try {
       return await this.executeWithRetry(
-        () => provider.complete(request, modelConfig, token),
+        () => this.requestCompletion(request, modelConfig),
         options?.retries || 3,
         options?.timeout || 60000
       );
@@ -80,23 +59,22 @@ export class ModelRouter {
     const resolvedId = this.resolveAlias(modelId);
     const modelConfig = this.parseModelId(resolvedId);
 
-    const provider = this.providers.get(modelConfig.provider);
-    if (!provider) {
+    const catalog = this.catalogs.get(modelConfig.provider);
+    if (!catalog) {
       throw new Error(`Unknown provider: ${modelConfig.provider}`);
     }
 
-    const isValidModel = provider.isValidModel(modelConfig.model);
+    const isValidModel = catalog.isValidModel(modelConfig.model);
     if (!isValidModel) {
-      const models = provider.listModels().map((m) => m.id);
+      const models = catalog.listModels().map((m) => m.id);
       throw new Error(
         `Unknown model: ${modelConfig.model}. ` +
         `Available models for ${modelConfig.provider}: ${models.join(", ")}`
       );
     }
 
-    // Local provider doesn't require authentication
-    if (modelConfig.provider !== "local") {
-      const authName = this.mapProviderToAuth(modelConfig.provider);
+    const authName = this.mapProviderToAuth(modelConfig.provider);
+    if (authName) {
       const isAuthenticated = await authHub.isAuthenticated(authName);
       if (!isAuthenticated) {
         throw new Error(
@@ -116,8 +94,8 @@ export class ModelRouter {
   listModels(): ModelInfo[] {
     const models: ModelInfo[] = [];
 
-    for (const [providerName, provider] of this.providers) {
-      for (const model of provider.listModels()) {
+    for (const [providerName, catalog] of this.catalogs) {
+      for (const model of catalog.listModels()) {
         models.push({
           ...model,
           id: `${providerName}/${model.id}`,
@@ -136,11 +114,11 @@ export class ModelRouter {
       if (!parsed) return null;
 
       const { provider: providerName, model } = parsed;
-      const provider = this.providers.get(providerName);
+      const catalog = this.catalogs.get(providerName);
 
-      if (!provider) return null;
+      if (!catalog) return null;
 
-      const modelInfo = provider.getModelInfo(model);
+      const modelInfo = catalog.getModelInfo(model);
       if (!modelInfo) return null;
 
       return {
@@ -151,6 +129,34 @@ export class ModelRouter {
     } catch {
       return null;
     }
+  }
+
+  private async requestCompletion(request: AIRequest, modelConfig: ModelConfig): Promise<AIResponse> {
+    const provider = this.resolveProvider(modelConfig.provider);
+    const providerConfig = getProviderConfig(provider);
+    const result = await streamAIResponse({
+      provider,
+      model: modelConfig.model || providerConfig.defaultModel,
+      messages: request.messages,
+      systemPrompt: request.systemPrompt,
+      baseURL: providerConfig.defaultBaseURL,
+      temperature: request.temperature ?? modelConfig.temperature ?? 0.7,
+      maxTokens: request.maxTokens ?? modelConfig.maxTokens ?? 4096,
+    });
+
+    const usage = result.usage ?? {
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+    };
+
+    return {
+      content: result.text,
+      toolCalls: undefined,
+      usage,
+      model: modelConfig.model,
+      finishReason: this.mapFinishReason(result.finishReason),
+    };
   }
 
   private tryParseModelId(modelId: string): ModelConfig | null {
@@ -169,25 +175,19 @@ export class ModelRouter {
 
     for (const modelId of this.fallbackChain) {
       const modelConfig = this.parseModelId(modelId);
-      const provider = this.providers.get(modelConfig.provider);
+      const catalog = this.catalogs.get(modelConfig.provider);
 
-      if (!provider) continue;
+      if (!catalog) continue;
 
       try {
-        // Local provider doesn't require authentication
-        let token = "";
-        if (modelConfig.provider !== "local") {
-          const authName = this.mapProviderToAuth(modelConfig.provider);
+        const authName = this.mapProviderToAuth(modelConfig.provider);
+        if (authName) {
           const isAuthenticated = await authHub.isAuthenticated(authName);
           if (!isAuthenticated) continue;
-
-          const authToken = await authHub.getToken(authName);
-          if (!authToken) continue;
-          token = authToken;
         }
 
         logger.info(`Falling back to ${modelId}...`);
-        return await provider.complete(request, modelConfig, token);
+        return await this.requestCompletion(request, modelConfig);
       } catch {
         continue;
       }
@@ -209,6 +209,79 @@ export class ModelRouter {
       return this.modelAliases.get(modelId)!;
     }
     return modelId;
+  }
+
+  private buildCatalogs(): Map<ProviderName, ModelCatalog> {
+    const catalogs = new Map<ProviderName, ModelCatalog>();
+
+    catalogs.set("anthropic", new AnthropicProvider());
+    catalogs.set("openai", new OpenAIProvider());
+    catalogs.set("google", new GoogleProvider());
+    catalogs.set("local", new LocalProvider());
+
+    const ollamaConfig = getProviderConfig("ollama");
+    catalogs.set("ollama", new LocalProvider({
+      baseUrl: ollamaConfig.defaultBaseURL,
+      apiType: "ollama",
+    }));
+
+    const lmstudioConfig = getProviderConfig("lmstudio");
+    catalogs.set("lmstudio", new LocalProvider({
+      baseUrl: lmstudioConfig.defaultBaseURL,
+      apiType: "openai-compatible",
+    }));
+
+    const llamacppConfig = getProviderConfig("llamacpp");
+    catalogs.set("llamacpp", new LocalProvider({
+      baseUrl: llamacppConfig.defaultBaseURL,
+      apiType: "openai-compatible",
+    }));
+
+    const supercentConfig = getProviderConfig("supercent");
+    catalogs.set("supercent", this.createFallbackCatalog(supercentConfig.defaultModel));
+
+    const bedrockConfig = getProviderConfig("amazon-bedrock");
+    catalogs.set("amazon-bedrock", this.createFallbackCatalog(bedrockConfig.defaultModel));
+
+    const azureConfig = getProviderConfig("azure");
+    catalogs.set("azure", this.createFallbackCatalog(azureConfig.defaultModel));
+
+    const vertexConfig = getProviderConfig("google-vertex");
+    catalogs.set("google-vertex", this.createFallbackCatalog(vertexConfig.defaultModel));
+
+    const deepinfraConfig = getProviderConfig("deepinfra");
+    catalogs.set("deepinfra", this.createFallbackCatalog(deepinfraConfig.defaultModel));
+
+    return catalogs;
+  }
+
+  private createFallbackCatalog(defaultModel: string): ModelCatalog {
+    const modelInfo: ModelDefinition = {
+      id: defaultModel,
+      name: defaultModel,
+      contextWindow: 0,
+      capabilities: ["chat"],
+      pricing: { input: 0, output: 0 },
+    };
+
+    return {
+      isValidModel: (model) => model.length > 0,
+      listModels: () => [modelInfo],
+      getModelInfo: (model) => (model === defaultModel ? modelInfo : null),
+    };
+  }
+
+  private resolveProvider(provider: ProviderName): AISDKProviderName {
+    if (provider === "local") {
+      return "ollama";
+    }
+    return provider;
+  }
+
+  private mapFinishReason(reason: string): AIResponse["finishReason"] {
+    if (reason === "tool-calls") return "tool_calls";
+    if (reason === "stop" || reason === "length" || reason === "error") return reason;
+    return "stop";
   }
 
   private buildAliasMap(): Map<string, string> {
@@ -248,13 +321,13 @@ export class ModelRouter {
     ]);
   }
 
-  private mapProviderToAuth(provider: Exclude<ProviderName, "local">): AuthProviderName {
-    const map: Record<Exclude<ProviderName, "local">, AuthProviderName> = {
+  private mapProviderToAuth(provider: ProviderName): AuthProviderName | null {
+    const map: Partial<Record<ProviderName, AuthProviderName>> = {
       anthropic: "claude",
       openai: "codex",
       google: "gemini",
     };
-    return map[provider];
+    return map[provider] ?? null;
   }
 
   private shouldFallback(error: Error): boolean {

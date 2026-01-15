@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![SuperCode](https://img.shields.io/badge/SUPERCODE-v0.7.1-blueviolet?style=for-the-badge&logo=supervision&logoColor=white)
+![SuperCode](https://img.shields.io/badge/SUPERCODE-v0.3.0-blueviolet?style=for-the-badge&logo=supervision&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Bun](https://img.shields.io/badge/Bun-1.0+-black?style=for-the-badge&logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
@@ -113,7 +113,7 @@ SuperCode is a **standalone AI-powered coding assistant CLI** with a full React/
 
 ```
 +---------------------------------------------------------------------+
-|  SuperCode v0.7.0                                     ollama/rnj-1  |
+|  SuperCode v0.3.0                                     ollama/rnj-1  |
 +---------------------------------------------------------------------+
 |                                                                     |
 |  User: @explorer find all React components @src/                    |
@@ -888,7 +888,7 @@ supercode/
 - [x] React performance optimizations (React.memo, useMemo caching)
 - [x] Memory leak fixes (timeout cleanup, regex caching)
 
-### v0.7.1 Highlights
+### v0.3.0 Highlights
 
 - **Korean Input Fix**: Accurate cursor positioning using `Bun.stringWidth` for CJK characters
 - **@ File Attachment Stability**: Thread-safe async file search with `AbortController` prevents crashes
@@ -947,7 +947,7 @@ MIT (c) SuperCode Contributors
 
 Made with Bun, React/Ink, and TypeScript
 
-**[GitHub](https://github.com/JEO-tech-ai/supercode)** | **[Documentation](https://supercode.dev/docs)** | **[Discord](https://discord.gg/supercode)**
+**[GitHub](https://github.com/JEO-tech-ai/supercode)** | **[Documentation](./docs/DEVELOPMENT.md)** | **[Issues](https://github.com/JEO-tech-ai/supercode/issues)**
 
 *"Just type 'ulw'. Sip your coffee. Your work is done."*
 

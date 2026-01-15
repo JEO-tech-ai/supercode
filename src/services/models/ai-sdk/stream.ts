@@ -12,6 +12,10 @@ const AUTH_PROVIDER_MAP: Record<AISDKProviderName, AuthProviderName | null> = {
   lmstudio: null,
   llamacpp: null,
   supercent: null,
+  "amazon-bedrock": null,
+  azure: null,
+  "google-vertex": null,
+  deepinfra: null,
 };
 
 function mapToAuthProvider(provider: AISDKProviderName): AuthProviderName | null {

@@ -4,10 +4,27 @@ import { getModelRouter } from "../../services/models/router";
 import type { ProviderName } from "../../services/models/types";
 
 const ProviderConfigSchema = z.object({
-  provider: z.enum(["anthropic", "openai", "google", "local"]),
+  provider: z.enum([
+    "anthropic",
+    "openai",
+    "google",
+    "amazon-bedrock",
+    "azure",
+    "google-vertex",
+    "deepinfra",
+    "ollama",
+    "lmstudio",
+    "llamacpp",
+    "supercent",
+    "local",
+  ]),
   model: z.string().optional(),
   apiKey: z.string().optional(),
   baseUrl: z.string().url().optional(),
+  resourceName: z.string().optional(),
+  region: z.string().optional(),
+  project: z.string().optional(),
+  location: z.string().optional(),
   enabled: z.boolean().optional(),
 });
 
@@ -18,6 +35,10 @@ const SetModelSchema = z.object({
 interface ProviderRuntimeConfig {
   apiKey?: string;
   baseUrl?: string;
+  resourceName?: string;
+  region?: string;
+  project?: string;
+  location?: string;
   enabled: boolean;
 }
 
@@ -25,6 +46,14 @@ const runtimeProviderConfigs = new Map<ProviderName, ProviderRuntimeConfig>([
   ["anthropic", { enabled: true }],
   ["openai", { enabled: true }],
   ["google", { enabled: true }],
+  ["amazon-bedrock", { enabled: true }],
+  ["azure", { enabled: true }],
+  ["google-vertex", { enabled: true }],
+  ["deepinfra", { enabled: true }],
+  ["ollama", { enabled: true }],
+  ["lmstudio", { enabled: true }],
+  ["llamacpp", { enabled: true }],
+  ["supercent", { enabled: true }],
   ["local", { enabled: true }],
 ]);
 
@@ -32,8 +61,33 @@ const ENV_KEY_MAP: Record<ProviderName, string> = {
   anthropic: "ANTHROPIC_API_KEY",
   openai: "OPENAI_API_KEY",
   google: "GOOGLE_API_KEY",
+  azure: "AZURE_API_KEY",
+  deepinfra: "DEEPINFRA_API_KEY",
+  "amazon-bedrock": "AWS_BEARER_TOKEN_BEDROCK",
+  "google-vertex": "",
+  ollama: "",
+  lmstudio: "",
+  llamacpp: "",
+  supercent: "SUPERCENT_API_KEY",
   local: "",
 };
+
+const LOCAL_PROVIDERS: ProviderName[] = ["local", "ollama", "lmstudio", "llamacpp"];
+const API_KEY_PROVIDERS: ProviderName[] = [
+  "anthropic",
+  "openai",
+  "google",
+  "azure",
+  "deepinfra",
+  "supercent",
+];
+
+function requiresApiKey(provider: ProviderName): boolean {
+  if (LOCAL_PROVIDERS.includes(provider)) {
+    return false;
+  }
+  return API_KEY_PROVIDERS.includes(provider);
+}
 
 export function createProviderConfigRoutes(): Hono {
   const app = new Hono();
@@ -81,6 +135,10 @@ export function createProviderConfigRoutes(): Hono {
         ...existing,
         ...(validated.apiKey !== undefined && { apiKey: validated.apiKey }),
         ...(validated.baseUrl !== undefined && { baseUrl: validated.baseUrl }),
+        ...(validated.resourceName !== undefined && { resourceName: validated.resourceName }),
+        ...(validated.region !== undefined && { region: validated.region }),
+        ...(validated.project !== undefined && { project: validated.project }),
+        ...(validated.location !== undefined && { location: validated.location }),
         ...(validated.enabled !== undefined && { enabled: validated.enabled }),
       };
 
@@ -91,6 +149,26 @@ export function createProviderConfigRoutes(): Hono {
         if (envKey) {
           process.env[envKey] = validated.apiKey;
         }
+      }
+
+      if (validated.resourceName && name === "azure") {
+        process.env.AZURE_RESOURCE_NAME = validated.resourceName;
+      }
+
+      if (validated.baseUrl && name === "azure") {
+        process.env.AZURE_API_ENDPOINT = validated.baseUrl;
+      }
+
+      if (validated.region && name === "amazon-bedrock") {
+        process.env.AWS_REGION = validated.region;
+      }
+
+      if (validated.project && name === "google-vertex") {
+        process.env.GOOGLE_VERTEX_PROJECT = validated.project;
+      }
+
+      if (validated.location && name === "google-vertex") {
+        process.env.GOOGLE_VERTEX_LOCATION = validated.location;
       }
 
       return c.json({
@@ -142,14 +220,18 @@ export function createProviderConfigRoutes(): Hono {
 
       const router = getModelRouter();
       
-      const isLocalModel = model.startsWith("local/") || 
-                           ["llama", "qwen", "deepseek", "mistral", "local"].includes(model);
+      const isLocalModel =
+        model.startsWith("local/") ||
+        model.startsWith("ollama/") ||
+        model.startsWith("lmstudio/") ||
+        model.startsWith("llamacpp/") ||
+        ["llama", "qwen", "deepseek", "mistral", "local"].includes(model);
 
       if (!isLocalModel) {
         const provider = model.split("/")[0] as ProviderName;
         const config = runtimeProviderConfigs.get(provider);
         
-        if (!config?.apiKey && provider !== "local") {
+        if (requiresApiKey(provider) && !config?.apiKey) {
           return c.json({
             error: `No API key configured for ${provider}`,
             hint: `POST /provider/${provider} with { "apiKey": "your-key" }`,

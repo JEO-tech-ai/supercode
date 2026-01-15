@@ -1,4 +1,17 @@
-export type ProviderName = "anthropic" | "openai" | "google" | "local";
+export type ProviderName =
+  | "anthropic"
+  | "openai"
+  | "google"
+  | "ollama"
+  | "lmstudio"
+  | "llamacpp"
+  | "supercent"
+  | "amazon-bedrock"
+  | "azure"
+  | "google-vertex"
+  | "deepinfra"
+  | "local";
+export type AISDKProviderName = Exclude<ProviderName, "local">;
 export type ModelCapability = "chat" | "vision" | "function_calling" | "reasoning" | "coding" | "long_context";
 
 export interface ModelPricing {

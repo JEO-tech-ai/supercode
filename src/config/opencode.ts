@@ -4,7 +4,18 @@ import { join } from "path";
 import type { AISDKProviderName } from "../services/models/ai-sdk/types";
 
 const OpenCodeConfigSchema = z.object({
-  provider: z.enum(["anthropic", "openai", "google", "ollama", "lmstudio", "llamacpp"]).default("ollama"),
+  provider: z.enum([
+    "anthropic",
+    "openai",
+    "google",
+    "ollama",
+    "lmstudio",
+    "llamacpp",
+    "amazon-bedrock",
+    "azure",
+    "google-vertex",
+    "deepinfra",
+  ]).default("ollama"),
   model: z.string().optional(),
   baseURL: z.string().optional(),
   temperature: z.number().min(0).max(2).default(0.7),
@@ -44,6 +55,10 @@ export function getDefaultModel(provider: AISDKProviderName): string {
     lmstudio: "local-model",
     llamacpp: "local-model",
     supercent: "supercent-1",
+    "amazon-bedrock": "anthropic.claude-3-haiku-20240307-v1:0",
+    azure: "gpt-4o",
+    "google-vertex": "gemini-1.5-flash",
+    deepinfra: "meta-llama/Meta-Llama-3.1-70B-Instruct",
   };
   return defaults[provider];
 }
