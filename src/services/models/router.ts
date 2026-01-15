@@ -259,7 +259,7 @@ export class ModelRouter {
     const modelInfo: ModelDefinition = {
       id: defaultModel,
       name: defaultModel,
-      contextWindow: 0,
+      contextWindow: 128000, // Default context window for fallback models
       capabilities: ["chat"],
       pricing: { input: 0, output: 0 },
     };

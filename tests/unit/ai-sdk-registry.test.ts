@@ -88,9 +88,9 @@ describe("AI SDK Provider Registry", () => {
   });
 
   describe("listProviders", () => {
-    test("should return all 7 providers", () => {
+    test("should return all 11 providers", () => {
       const providers = listProviders();
-      expect(providers).toHaveLength(7);
+      expect(providers).toHaveLength(11);
     });
 
     test("should include all expected providers", () => {
@@ -103,6 +103,10 @@ describe("AI SDK Provider Registry", () => {
       expect(names).toContain("LM Studio (Localhost)");
       expect(names).toContain("llama.cpp (Localhost)");
       expect(names).toContain("SuperCent (API)");
+      expect(names).toContain("Amazon Bedrock");
+      expect(names).toContain("Azure OpenAI");
+      expect(names).toContain("Google Vertex AI");
+      expect(names).toContain("DeepInfra");
     });
   });
 
@@ -130,6 +134,11 @@ describe("AI SDK Provider Registry", () => {
       expect(keys).toContain("ollama");
       expect(keys).toContain("lmstudio");
       expect(keys).toContain("llamacpp");
+      expect(keys).toContain("supercent");
+      expect(keys).toContain("amazon-bedrock");
+      expect(keys).toContain("azure");
+      expect(keys).toContain("google-vertex");
+      expect(keys).toContain("deepinfra");
     });
   });
 });
