@@ -1,6 +1,6 @@
-# Contributing to SuperCoin
+# Contributing to SuperCode
 
-Thank you for your interest in contributing to SuperCoin! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to SuperCode! This document provides guidelines and instructions for contributing.
 
 ## Getting Started
 
@@ -16,7 +16,7 @@ Thank you for your interest in contributing to SuperCoin! This document provides
 ```bash
 # Fork and clone the repository
 git clone https://github.com/YOUR_USERNAME/supercode.git
-cd supercode/supercoin
+cd supercode/supercode
 
 # Install dependencies
 bun install
@@ -166,7 +166,7 @@ test("token test", async () => {
 Understanding the codebase structure:
 
 ```
-supercoin/
+supercode/
 ├── src/
 │   ├── cli/                    # CLI commands and entry point
 │   ├── config/                 # Configuration management
@@ -314,7 +314,7 @@ bun run lint
 ollama list
 
 # Check config
-cat ~/.config/supercoin/config.json
+cat ~/.config/supercode/config.json
 
 # Run with verbose output
 bun src/cli/index.ts -v "test"
@@ -335,8 +335,8 @@ bun src/cli/index.ts -v "test"
 
 ## License
 
-By contributing to SuperCoin, you agree that your contributions will be licensed under the MIT License.
+By contributing to SuperCode, you agree that your contributions will be licensed under the MIT License.
 
 ---
 
-Thank you for contributing to SuperCoin! 🚀
+Thank you for contributing to SuperCode! 🚀

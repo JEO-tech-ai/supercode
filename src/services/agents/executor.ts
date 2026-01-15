@@ -1,5 +1,46 @@
-import type { Agent, AgentContext, AgentResult } from "./types";
+import type { Agent, AgentContext, AgentResult, AgentName } from "./types";
 import { streamAIResponse } from "../models/ai-sdk";
+import { Log } from "../../shared/logger";
+
+export interface BackgroundAgentInput {
+  agent: string;
+  prompt: string;
+  parentSessionId: string;
+}
+
+export async function executeBackgroundAgent(input: BackgroundAgentInput): Promise<string> {
+  const { agent, prompt, parentSessionId } = input;
+  
+  Log.info(`[executeBackgroundAgent] Starting ${agent} for session ${parentSessionId}`);
+  
+  try {
+    const agentPrompts: Record<string, string> = {
+      explore: 'You are an expert codebase explorer. Search and analyze code to answer questions.',
+      librarian: 'You are a research librarian. Find documentation, examples, and best practices from external sources.',
+      oracle: 'You are a senior engineering advisor. Provide deep analysis and architectural guidance.',
+      'frontend-ui-ux-engineer': 'You are a UI/UX specialist. Design and implement beautiful, functional interfaces.',
+      'document-writer': 'You are a technical writer. Create clear, comprehensive documentation.',
+      general: 'You are a helpful AI assistant.',
+    };
+
+    const systemPrompt = agentPrompts[agent] || agentPrompts.general;
+
+    const result = await streamAIResponse({
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514",
+      messages: [{ role: "user", content: prompt }],
+      systemPrompt,
+      temperature: 0.7,
+      maxTokens: 8192,
+    });
+
+    Log.info(`[executeBackgroundAgent] Completed ${agent}`);
+    return result.text;
+  } catch (error) {
+    Log.error(`[executeBackgroundAgent] Failed ${agent}:`, error);
+    throw error;
+  }
+}
 
 export class ExecutorAgent implements Agent {
   readonly name = "executor" as const;

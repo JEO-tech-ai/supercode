@@ -869,6 +869,7 @@ supercode/
 - [x] Multi-agent system (10+ agents)
 - [x] Real-time sidebar monitoring
 - [x] MCP server integration
+- [x] OpenCode-compatible plugin system
 - [x] LSP integration (hover, goto, refs, rename, actions)
 - [x] Session state management with continuation
 - [x] Local LLM provider (Ollama, LM Studio, llama.cpp)
@@ -904,7 +905,6 @@ supercode/
 
 ### Planned
 
-- [ ] Plugin system
 - [ ] Voice input support
 - [ ] Collaborative sessions (Multi-user)
 - [ ] WASM-based sandbox for safe code execution

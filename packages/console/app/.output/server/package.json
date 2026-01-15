@@ -4,6 +4,8 @@
   "type": "module",
   "private": true,
   "dependencies": {
+    "hono": "4.11.3",
+    "jose": "6.1.3",
     "pathe": "1.1.2",
     "seroval": "1.3.2",
     "seroval-plugins": "1.3.3",

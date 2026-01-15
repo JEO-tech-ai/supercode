@@ -55,6 +55,58 @@ export {
   astGrepTools,
 } from './ast-grep';
 
+// Background task tools (3 tools)
+export {
+  backgroundTaskTool,
+  backgroundOutputTool,
+  backgroundCancelTool,
+  backgroundTools,
+  BackgroundManager,
+  getBackgroundManager,
+  resetBackgroundManager,
+} from './background-task';
+export type {
+  BackgroundTask,
+  BackgroundAgentType,
+  TaskStatus as BackgroundTaskStatus,
+  SpawnTaskInput,
+  GetOutputInput,
+  CancelTaskInput,
+  BackgroundManagerConfig,
+  TaskEvent,
+  BackgroundManagerEvents,
+} from './background-task';
+
+// Grep.app search tool
+export { grepAppTool } from './grep-app';
+
+// Web search tool (Exa AI)
+export { webSearchTool, createWebSearchTool } from './web-search';
+
+// Interactive bash / tmux tools (3 tools)
+export {
+  interactiveBashTool,
+  tmuxListTool,
+  tmuxCaptureTool,
+  interactiveBashTools,
+} from './interactive-bash';
+
+// Skill MCP tool
+export {
+  skillMCPTool,
+  createSkillMCPTool,
+  loadSkillRegistry,
+  findSkill,
+  searchSkills,
+  renderSkillList,
+  renderSkillContent,
+} from './skill-mcp';
+export type {
+  Skill,
+  SkillRegistry,
+  SkillMCPConfig,
+} from './skill-mcp';
+
 // Adapter and command executor
 export { initializeTools } from './adapter';
 export { commandExecutor } from './command-executor';
