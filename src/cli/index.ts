@@ -149,40 +149,45 @@ async function runInteractiveMode() {
 }
 
 async function runNewTui() {
-  const projectConfig = await resolveProviderFromConfig();
-  const provider = projectConfig.provider as AISDKProviderName;
-  const model = projectConfig.model;
+  try {
+    const projectConfig = await resolveProviderFromConfig();
+    const provider = projectConfig.provider as AISDKProviderName;
+    const model = projectConfig.model;
 
-  // Message handler that integrates with AI SDK
-  const handleSendMessage = async (message: string, sessionId: string): Promise<string> => {
-    let response = "";
+    const handleSendMessage = async (message: string, sessionId: string): Promise<string> => {
+      let response = "";
 
-    await streamAIResponse({
-      provider,
-      model,
-      baseURL: projectConfig.baseURL,
-      temperature: projectConfig.temperature,
-      maxTokens: projectConfig.maxTokens,
-      messages: [{ role: "user", content: message }],
-      onChunk: (text) => {
-        response += text;
-      },
-    });
+      await streamAIResponse({
+        provider,
+        model,
+        baseURL: projectConfig.baseURL,
+        temperature: projectConfig.temperature,
+        maxTokens: projectConfig.maxTokens,
+        messages: [{ role: "user", content: message }],
+        onChunk: (text) => {
+          response += text;
+        },
+      });
 
-    return response;
-  };
+      return response;
+    };
 
-  const { waitUntilExit } = render(
-    React.createElement(TuiApp, {
-      initialTheme: "catppuccin",
-      initialMode: "dark",
-      provider,
-      model,
-      onSendMessage: handleSendMessage,
-    })
-  );
+    const { waitUntilExit } = render(
+      React.createElement(TuiApp, {
+        initialTheme: "catppuccin",
+        initialMode: "dark",
+        provider,
+        model,
+        onSendMessage: handleSendMessage,
+      })
+    );
 
-  await waitUntilExit();
+    await waitUntilExit();
+  } catch (error) {
+    logger.error("TUI crashed", error instanceof Error ? error : new Error(String(error)));
+    UI.error("TUI encountered an error. Falling back to classic mode.");
+    await runInteractiveMode();
+  }
 }
 
 async function runDirectChatMode() {
@@ -898,6 +903,4 @@ main().catch((error) => {
     logger.error("Fatal error", error);
   }
   return shutdownManager.shutdown(code);
-}).finally(() => {
-  process.exit();
 });

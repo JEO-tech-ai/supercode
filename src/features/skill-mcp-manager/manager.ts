@@ -7,6 +7,7 @@ import type {
   McpPrompt,
 } from "./types";
 import { createCleanMcpEnvironment, expandEnvVarsInObject } from "./env-cleaner";
+import { getShutdownManager, type Disposable } from "../../shared/shutdown";
 
 type McpClient = {
   connect: (transport: unknown) => Promise<void>;
@@ -58,10 +59,10 @@ interface ManagedClient {
   lastUsedAt: number;
 }
 
-export class SkillMcpManager {
+export class SkillMcpManager implements Disposable {
   private clients: Map<string, ManagedClient> = new Map();
   private pendingConnections: Map<string, Promise<McpClient>> = new Map();
-  private cleanupRegistered = false;
+  private registeredWithShutdown = false;
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
   private readonly IDLE_TIMEOUT = 5 * 60 * 1000;
 
@@ -69,39 +70,14 @@ export class SkillMcpManager {
     return `${info.sessionId}:${info.skillName}:${info.serverName}`;
   }
 
-  private registerProcessCleanup(): void {
-    if (this.cleanupRegistered) return;
-    this.cleanupRegistered = true;
+  private registerWithShutdownManager(): void {
+    if (this.registeredWithShutdown) return;
+    this.registeredWithShutdown = true;
+    getShutdownManager().register("skill-mcp-manager", this);
+  }
 
-    const cleanup = async () => {
-      for (const [, managed] of this.clients) {
-        try {
-          await managed.client.close();
-        } catch {
-        }
-        try {
-          await managed.transport.close();
-        } catch {
-        }
-      }
-      this.clients.clear();
-      this.pendingConnections.clear();
-    };
-
-    process.on("SIGINT", async () => {
-      await cleanup();
-      process.exit(0);
-    });
-    process.on("SIGTERM", async () => {
-      await cleanup();
-      process.exit(0);
-    });
-    if (process.platform === "win32") {
-      process.on("SIGBREAK", async () => {
-        await cleanup();
-        process.exit(0);
-      });
-    }
+  async dispose(): Promise<void> {
+    await this.disconnectAll();
   }
 
   async getOrCreateClient(
@@ -157,7 +133,7 @@ export class SkillMcpManager {
 
     const mergedEnv = createCleanMcpEnvironment(config.env);
 
-    this.registerProcessCleanup();
+    this.registerWithShutdownManager();
 
     const transport = new sdk.StdioClientTransport({
       command,

@@ -34,6 +34,7 @@ import {
   DEFAULT_IDLE_TIMEOUT_MS,
 } from "./constants";
 import logger from "../../../shared/logger";
+import { getShutdownManager, type Disposable } from "../../../shared/shutdown";
 
 /**
  * LSP Client class
@@ -573,15 +574,17 @@ export class LSPClient {
   }
 }
 
-/**
- * LSP Server Manager (Singleton)
- */
-class LSPServerManager {
+class LSPServerManager implements Disposable {
   private clients = new Map<string, { client: LSPClient; refCount: number; lastAccess: number }>();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.startCleanup();
+    getShutdownManager().register("lsp-server-manager", this);
+  }
+
+  async dispose(): Promise<void> {
+    await this.cleanup();
   }
 
   /**
@@ -723,7 +726,4 @@ export async function withLspClient<T>(
   }
 }
 
-// Cleanup on process exit
-process.on("beforeExit", () => {
-  lspServerManager.cleanup();
-});
+
