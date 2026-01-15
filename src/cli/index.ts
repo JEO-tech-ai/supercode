@@ -26,53 +26,37 @@ import {
   type SlashCommandResult,
 } from "../tools/slashcommand";
 import { getSkillLoader } from "../tools/skill";
+import { getShutdownManager } from "../shared/shutdown";
 
 import React from "react";
 import { render } from "ink";
 import { TuiApp } from "../tui";
-import { ptyManager } from "../services/pty/manager";
 
 const VERSION = "0.2.0";
 
-let isShuttingDown = false;
-let exitCode = 0;
-
-async function gracefulShutdown(code: number = 0): Promise<void> {
-  if (isShuttingDown) return;
-  isShuttingDown = true;
-  exitCode = code;
-
-  logger.info("Initiating graceful shutdown...");
-
-  try {
-    await ptyManager.shutdownAll();
-    logger.info("PTY processes cleaned up");
-  } catch (error) {
-    logger.error("Error during PTY cleanup", error as Error);
-  }
-
-  // Allow pending I/O to flush before exit
-  setTimeout(() => process.exit(exitCode), 100);
-}
+const shutdownManager = getShutdownManager();
 
 process.on("SIGINT", () => {
   logger.info("Received SIGINT");
-  gracefulShutdown(0);
+  shutdownManager.shutdown(0);
 });
 
 process.on("SIGTERM", () => {
   logger.info("Received SIGTERM");
-  gracefulShutdown(0);
+  shutdownManager.shutdown(0);
 });
 
 process.on("unhandledRejection", (e) => {
   logger.error("rejection", e instanceof Error ? e : new Error(String(e)));
+  if (!shutdownManager.isShuttingDown()) {
+    shutdownManager.shutdown(1);
+  }
 });
 
 process.on("uncaughtException", (e) => {
   logger.error("exception", e);
-  if (!isShuttingDown) {
-    gracefulShutdown(1);
+  if (!shutdownManager.isShuttingDown()) {
+    shutdownManager.shutdown(1);
   }
 });
 
@@ -899,9 +883,10 @@ async function main() {
 }
 
 main().catch((error) => {
+  let code = 1;
   if (error instanceof CancelledError) {
     clack.cancel("Operation cancelled");
-    exitCode = 0;
+    code = 0;
   } else {
     const formatted = formatError(error);
     if (formatted) {
@@ -911,8 +896,8 @@ main().catch((error) => {
       UI.error(formatUnknownError(error));
     }
     logger.error("Fatal error", error);
-    exitCode = 1;
   }
+  return shutdownManager.shutdown(code);
 }).finally(() => {
-  gracefulShutdown(exitCode);
+  process.exit();
 });

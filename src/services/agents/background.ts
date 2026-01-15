@@ -1,20 +1,31 @@
 import type { AgentName, AgentResult, BackgroundTask, TaskStatus } from "./types";
 import { getAgentRegistry } from "./registry";
+import { 
+  getShutdownManager, 
+  withTimeoutDefault, 
+  type Disposable 
+} from "../../shared/shutdown";
+
+const DEFAULT_TASK_TIMEOUT_MS = 300000;
+const DEFAULT_WAIT_TIMEOUT_MS = 60000;
 
 export interface ISpawnInput {
   sessionId: string;
   agent: AgentName;
   prompt: string;
   description: string;
+  timeoutMs?: number;
 }
 
 export interface IBackgroundManager {
   spawn(input: ISpawnInput): Promise<string>;
   getStatus(taskId: string): Promise<BackgroundTask | null>;
   cancel(taskId: string): Promise<boolean>;
-  getOutput(taskId: string, wait?: boolean): Promise<AgentResult | null>;
+  cancelAll(): Promise<void>;
+  getOutput(taskId: string, wait?: boolean, timeoutMs?: number): Promise<AgentResult | null>;
   listTasks(sessionId?: string): BackgroundTask[];
   cleanup(sessionId: string): void;
+  dispose(): Promise<void>;
 }
 
 interface SpawnInput {
@@ -22,10 +33,17 @@ interface SpawnInput {
   agent: AgentName;
   prompt: string;
   description: string;
+  timeoutMs?: number;
 }
 
-class BackgroundManager implements IBackgroundManager {
+interface RunningTask {
+  task: BackgroundTask;
+  abortController: AbortController;
+}
+
+class BackgroundManager implements IBackgroundManager, Disposable {
   private tasks: Map<string, BackgroundTask> = new Map();
+  private runningTasks: Map<string, RunningTask> = new Map();
   private concurrencyLimits: Map<string, number> = new Map([
     ["default", 3],
     ["anthropic", 2],
@@ -34,9 +52,15 @@ class BackgroundManager implements IBackgroundManager {
   ]);
   private runningCounts: Map<string, number> = new Map();
   private queue: Array<{ task: BackgroundTask; provider: string }> = [];
+  private isDisposing = false;
 
   async spawn(input: SpawnInput): Promise<string> {
+    if (this.isDisposing) {
+      throw new Error("BackgroundManager is disposing, cannot spawn new tasks");
+    }
+
     const taskId = crypto.randomUUID();
+    const abortController = new AbortController();
 
     const task: BackgroundTask = {
       id: taskId,
@@ -50,10 +74,11 @@ class BackgroundManager implements IBackgroundManager {
     };
 
     this.tasks.set(taskId, task);
+    this.runningTasks.set(taskId, { task, abortController });
 
     const provider = this.getProviderForAgent(input.agent);
     if (this.canRun(provider)) {
-      this.runTask(task);
+      this.runTask(task, abortController, input.timeoutMs);
     } else {
       this.queue.push({ task, provider });
     }
@@ -61,7 +86,11 @@ class BackgroundManager implements IBackgroundManager {
     return taskId;
   }
 
-  private async runTask(task: BackgroundTask): Promise<void> {
+  private async runTask(
+    task: BackgroundTask, 
+    abortController: AbortController,
+    timeoutMs: number = DEFAULT_TASK_TIMEOUT_MS
+  ): Promise<void> {
     const provider = this.getProviderForAgent(task.agent);
     this.incrementRunning(provider);
 
@@ -76,20 +105,54 @@ class BackgroundManager implements IBackgroundManager {
         throw new Error(`Agent not found: ${task.agent}`);
       }
 
-      const result = await agent.execute(task.prompt);
+      const executePromise = agent.execute(task.prompt);
+      
+      const result = await Promise.race([
+        executePromise,
+        this.createAbortPromise(abortController.signal),
+        this.createTimeoutPromise(timeoutMs),
+      ]);
 
-      task.status = "completed";
-      task.result = result;
+      if (abortController.signal.aborted) {
+        task.status = "cancelled";
+        task.error = "Task was cancelled";
+      } else if (result === "TIMEOUT") {
+        task.status = "failed";
+        task.error = `Task timed out after ${timeoutMs}ms`;
+      } else {
+        task.status = "completed";
+        task.result = result as AgentResult;
+      }
+      
       task.completedAt = new Date();
-      task.progress = { step: 1, total: 1, message: "Completed" };
+      task.progress = { step: 1, total: 1, message: task.status === "completed" ? "Completed" : task.error || "Failed" };
     } catch (error) {
       task.status = "failed";
       task.error = (error as Error).message;
       task.completedAt = new Date();
     } finally {
       this.decrementRunning(provider);
+      this.runningTasks.delete(task.id);
       this.processQueue();
     }
+  }
+
+  private createAbortPromise(signal: AbortSignal): Promise<never> {
+    return new Promise((_, reject) => {
+      if (signal.aborted) {
+        reject(new Error("Aborted"));
+        return;
+      }
+      signal.addEventListener("abort", () => {
+        reject(new Error("Aborted"));
+      }, { once: true });
+    });
+  }
+
+  private createTimeoutPromise(timeoutMs: number): Promise<"TIMEOUT"> {
+    return new Promise((resolve) => {
+      setTimeout(() => resolve("TIMEOUT"), timeoutMs);
+    });
   }
 
   async getStatus(taskId: string): Promise<BackgroundTask | null> {
@@ -97,6 +160,11 @@ class BackgroundManager implements IBackgroundManager {
   }
 
   async cancel(taskId: string): Promise<boolean> {
+    const running = this.runningTasks.get(taskId);
+    if (running) {
+      running.abortController.abort();
+    }
+
     const task = this.tasks.get(taskId);
     if (!task || task.status === "completed") {
       return false;
@@ -107,12 +175,32 @@ class BackgroundManager implements IBackgroundManager {
     return true;
   }
 
-  async getOutput(taskId: string, wait: boolean = false): Promise<AgentResult | null> {
+  async cancelAll(): Promise<void> {
+    const taskIds = Array.from(this.runningTasks.keys());
+    for (const taskId of taskIds) {
+      await this.cancel(taskId);
+    }
+
+    this.queue.length = 0;
+  }
+
+  async getOutput(
+    taskId: string, 
+    wait: boolean = false,
+    timeoutMs: number = DEFAULT_WAIT_TIMEOUT_MS
+  ): Promise<AgentResult | null> {
     const task = this.tasks.get(taskId);
     if (!task) return null;
 
     if (wait && task.status === "in_progress") {
-      await this.waitForCompletion(taskId);
+      const result = await withTimeoutDefault(
+        this.waitForCompletion(taskId),
+        timeoutMs,
+        null
+      );
+      if (result === null) {
+        return null;
+      }
     }
 
     return task.result || null;
@@ -127,14 +215,37 @@ class BackgroundManager implements IBackgroundManager {
   }
 
   cleanup(sessionId: string): void {
-    for (const [id, task] of this.tasks) {
+    const toDelete: string[] = [];
+    
+    const entries = Array.from(this.tasks.entries());
+    for (const [id, task] of entries) {
       if (task.sessionId === sessionId) {
-        if (task.status === "in_progress") {
-          task.status = "cancelled";
+        const running = this.runningTasks.get(id);
+        if (running) {
+          running.abortController.abort();
         }
-        this.tasks.delete(id);
+        toDelete.push(id);
       }
     }
+
+    for (const id of toDelete) {
+      this.tasks.delete(id);
+      this.runningTasks.delete(id);
+    }
+  }
+
+  async dispose(): Promise<void> {
+    if (this.isDisposing) return;
+    
+    this.isDisposing = true;
+    await this.cancelAll();
+    
+    this.tasks.clear();
+    this.runningTasks.clear();
+    this.queue.length = 0;
+    this.runningCounts.clear();
+    
+    this.isDisposing = false;
   }
 
   private getProviderForAgent(agent: AgentName): string {
@@ -170,6 +281,8 @@ class BackgroundManager implements IBackgroundManager {
   }
 
   private processQueue(): void {
+    if (this.isDisposing) return;
+
     const toRun: Array<{ task: BackgroundTask; provider: string }> = [];
 
     for (let i = this.queue.length - 1; i >= 0; i--) {
@@ -181,22 +294,29 @@ class BackgroundManager implements IBackgroundManager {
     }
 
     for (const item of toRun) {
-      this.runTask(item.task);
+      const running = this.runningTasks.get(item.task.id);
+      if (running) {
+        this.runTask(item.task, running.abortController);
+      }
     }
   }
 
-  private async waitForCompletion(taskId: string, timeoutMs: number = 60000): Promise<void> {
-    const startTime = Date.now();
-
-    while (Date.now() - startTime < timeoutMs) {
+  private async waitForCompletion(taskId: string): Promise<void> {
+    while (true) {
       const task = this.tasks.get(taskId);
       if (!task || task.status === "completed" || task.status === "failed" || task.status === "cancelled") {
         return;
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
+  }
 
-    throw new Error(`Timeout waiting for task ${taskId}`);
+  getActiveTaskCount(): number {
+    return this.runningTasks.size;
+  }
+
+  getQueuedTaskCount(): number {
+    return this.queue.length;
   }
 }
 
@@ -205,6 +325,14 @@ let backgroundManagerInstance: BackgroundManager | null = null;
 export function getBackgroundManager(): IBackgroundManager {
   if (!backgroundManagerInstance) {
     backgroundManagerInstance = new BackgroundManager();
+    getShutdownManager().register('backgroundManager', backgroundManagerInstance);
   }
   return backgroundManagerInstance;
+}
+
+export function resetBackgroundManager(): void {
+  if (backgroundManagerInstance) {
+    getShutdownManager().unregister('backgroundManager');
+  }
+  backgroundManagerInstance = null;
 }

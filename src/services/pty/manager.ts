@@ -1,6 +1,12 @@
 import * as pty from 'node-pty';
 import { EventEmitter } from 'events';
 import { Log } from '../../shared/logger';
+import { 
+  getShutdownManager, 
+  killTree, 
+  withTimeoutDefault, 
+  type Disposable 
+} from '../../shared/shutdown';
 import {
   PTYProcess,
   PTYManagerConfig,
@@ -9,10 +15,14 @@ import {
   PTYSpawnOptions
 } from './types';
 
-export class PTYManager extends EventEmitter {
+const DEFAULT_SHUTDOWN_TIMEOUT_MS = 5000;
+const KILL_ESCALATION_TIMEOUT_MS = 200;
+
+export class PTYManager extends EventEmitter implements Disposable {
   private processes = new Map<string, PTYProcess>();
   private activeProcesses = new Set<string>();
   private config: PTYManagerConfig;
+  private isDisposing = false;
 
   constructor(config: Partial<PTYManagerConfig> = {}) {
     super();
@@ -26,6 +36,10 @@ export class PTYManager extends EventEmitter {
   }
 
   async spawn(options: PTYSpawnOptions): Promise<PTYProcess> {
+    if (this.isDisposing) {
+      throw new Error('PTYManager is disposing, cannot spawn new processes');
+    }
+
     const processId = crypto.randomUUID();
     const ptyProcess = this.createPTYProcess(processId, options);
 
@@ -55,76 +69,122 @@ export class PTYManager extends EventEmitter {
   }
 
   async kill(processId: string, signal: 'SIGTERM' | 'SIGKILL' | 'SIGINT' = 'SIGTERM'): Promise<void> {
-    const process = this.processes.get(processId);
+    const proc = this.processes.get(processId);
 
-    if (!process) {
+    if (!proc) {
       throw new PTYNotFoundError(processId);
     }
 
-    if (!process.isAlive()) {
+    if (!proc.isAlive()) {
       Log.warn(`Process ${processId} already dead`);
-      this.processes.delete(processId);
+      this.cleanup(processId);
       return;
     }
 
     Log.info(`Killing process ${processId} with ${signal}`);
-    process.kill(signal);
+    proc.kill(signal);
   }
 
-  async shutdown(processId: string): Promise<void> {
-    const process = this.processes.get(processId);
-    if (!process) return;
+  async shutdown(processId: string, timeoutMs: number = DEFAULT_SHUTDOWN_TIMEOUT_MS): Promise<void> {
+    const proc = this.processes.get(processId);
+    if (!proc) return;
 
-    if (!process.isAlive()) return;
+    if (!proc.isAlive()) {
+      this.cleanup(processId);
+      return;
+    }
 
     Log.info(`Shutting down process ${processId}`);
 
-    // Send SIGTERM first
-    process.kill('SIGTERM');
-    await this.waitForExit(process, 1000);
+    let exited = false;
+    const exitPromise = new Promise<void>((resolve) => {
+      const checkExit = () => {
+        if (!proc.isAlive()) {
+          exited = true;
+          resolve();
+        }
+      };
+      
+      const interval = setInterval(() => {
+        checkExit();
+        if (exited) clearInterval(interval);
+      }, 50);
+      
+      setTimeout(() => {
+        clearInterval(interval);
+        resolve();
+      }, timeoutMs);
+    });
 
-    // Force kill if still alive
-    if (process.isAlive()) {
-      process.kill('SIGKILL');
-      await this.waitForExit(process, 500);
+    proc.kill('SIGTERM');
+    await this.waitForExit(proc, KILL_ESCALATION_TIMEOUT_MS);
+
+    if (proc.isAlive()) {
+      proc.kill('SIGKILL');
+      await this.waitForExit(proc, KILL_ESCALATION_TIMEOUT_MS);
     }
 
-    this.processes.delete(processId);
-    this.activeProcesses.delete(processId);
+    await exitPromise;
+    this.cleanup(processId);
   }
 
-  async shutdownAll(): Promise<void> {
+  async shutdownAll(timeoutMs: number = DEFAULT_SHUTDOWN_TIMEOUT_MS): Promise<void> {
+    if (this.isDisposing) {
+      Log.debug('Already disposing PTY processes');
+      return;
+    }
+
+    this.isDisposing = true;
     Log.info(`Shutting down all PTY processes (${this.processes.size})`);
 
-    const shutdownPromises = Array.from(this.processes.entries())
-      .map(([id]) => this.shutdown(id));
+    const shutdownPromises = Array.from(this.processes.keys())
+      .map((id) => 
+        withTimeoutDefault(
+          this.shutdown(id, timeoutMs),
+          timeoutMs,
+          undefined
+        )
+      );
 
     await Promise.all(shutdownPromises);
     this.processes.clear();
     this.activeProcesses.clear();
+    this.isDisposing = false;
   }
 
-  private handleExit(process: PTYProcess, exitCode: number, signal?: number): void {
-    Log.info(`Process ${process.id} exited with code ${exitCode}, signal: ${signal ?? 'none'}`);
-    this.activeProcesses.delete(process.id);
+  async dispose(): Promise<void> {
+    Log.info('Disposing PTYManager');
+    await this.shutdownAll();
+    this.removeAllListeners();
+  }
+
+  private cleanup(processId: string): void {
+    this.processes.delete(processId);
+    this.activeProcesses.delete(processId);
+  }
+
+  private handleExit(proc: PTYProcess, exitCode: number, signal?: number): void {
+    Log.info(`Process ${proc.id} exited with code ${exitCode}, signal: ${signal ?? 'none'}`);
+    
+    proc._killed = true;
+    this.cleanup(proc.id);
 
     this.emit('exit', {
       type: 'exit',
       exitCode,
       signal: signal?.toString(),
-      process
+      process: proc
     } as PTYEvent);
-
-    process._killed = true;
-    this.processes.delete(process.id);
   }
 
-  private async waitForExit(process: PTYProcess, timeout: number): Promise<void> {
+  private async waitForExit(proc: PTYProcess, timeout: number): Promise<boolean> {
     const startTime = Date.now();
 
-    while (Date.now() - startTime < timeout && process.isAlive()) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+    while (Date.now() - startTime < timeout && proc.isAlive()) {
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
+
+    return !proc.isAlive();
   }
 
   private createPTYProcess(processId: string, options: PTYSpawnOptions): PTYProcess {
@@ -181,14 +241,12 @@ export class PTYManager extends EventEmitter {
   }
 
   async cleanupStaleSessions(): Promise<void> {
-    const now = Date.now();
-    const staleThreshold = this.config.idleTimeout;
-
     let staleCount = 0;
 
-    for (const [id, process] of this.processes.entries()) {
-      if (!process.isAlive()) {
-        await this.shutdown(id);
+    const entries = Array.from(this.processes.entries());
+    for (const [id, proc] of entries) {
+      if (!proc.isAlive()) {
+        this.cleanup(id);
         staleCount++;
       }
     }
@@ -197,7 +255,17 @@ export class PTYManager extends EventEmitter {
       Log.info(`Cleaned up ${staleCount} stale sessions`);
     }
   }
+
+  getActiveCount(): number {
+    return this.activeProcesses.size;
+  }
+
+  isDisposed(): boolean {
+    return this.isDisposing;
+  }
 }
 
-// Global PTY manager instance
-export const ptyManager = new PTYManager();
+const ptyManagerInstance = new PTYManager();
+getShutdownManager().register('ptyManager', ptyManagerInstance);
+
+export const ptyManager = ptyManagerInstance;

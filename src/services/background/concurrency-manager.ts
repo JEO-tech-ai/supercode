@@ -1,43 +1,83 @@
-/**
- * Concurrency Manager
- * Rate limiting for background tasks per provider/model
- * Inspired by oh-my-opencode's ConcurrencyManager
- */
 import type { ProviderName } from "../models/types";
 import logger from "../../shared/logger";
+import { 
+  getShutdownManager, 
+  type Disposable 
+} from "../../shared/shutdown";
+
+const DEFAULT_ACQUIRE_TIMEOUT_MS = 30000;
 
 interface ConcurrencyConfig {
   defaultConcurrency: number;
   providerConcurrency: Partial<Record<ProviderName, number>>;
   modelConcurrency: Record<string, number>;
+  acquireTimeoutMs: number;
+}
+
+interface WaitingTask {
+  resolve: () => void;
+  reject: (error: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
 }
 
 class Semaphore {
   private permits: number;
-  private waiting: Array<() => void> = [];
+  private waiting: WaitingTask[] = [];
+  private isDisposed = false;
 
   constructor(permits: number) {
     this.permits = permits;
   }
 
-  async acquire(): Promise<void> {
+  async acquire(timeoutMs?: number): Promise<void> {
+    if (this.isDisposed) {
+      throw new Error("Semaphore is disposed");
+    }
+
     if (this.permits > 0) {
       this.permits--;
       return;
     }
 
-    return new Promise<void>((resolve) => {
-      this.waiting.push(resolve);
+    return new Promise<void>((resolve, reject) => {
+      const task: WaitingTask = {
+        resolve: () => {
+          clearTimeout(task.timer);
+          resolve();
+        },
+        reject,
+        timer: setTimeout(() => {
+          const index = this.waiting.indexOf(task);
+          if (index !== -1) {
+            this.waiting.splice(index, 1);
+          }
+          reject(new Error(`Semaphore acquire timed out after ${timeoutMs}ms`));
+        }, timeoutMs ?? DEFAULT_ACQUIRE_TIMEOUT_MS),
+      };
+
+      this.waiting.push(task);
     });
   }
 
   release(): void {
+    if (this.isDisposed) return;
+
     this.permits++;
     const next = this.waiting.shift();
     if (next) {
       this.permits--;
-      next();
+      clearTimeout(next.timer);
+      next.resolve();
     }
+  }
+
+  dispose(): void {
+    this.isDisposed = true;
+    for (const task of this.waiting) {
+      clearTimeout(task.timer);
+      task.reject(new Error("Semaphore disposed"));
+    }
+    this.waiting = [];
   }
 
   getAvailable(): number {
@@ -49,15 +89,17 @@ class Semaphore {
   }
 }
 
-export class ConcurrencyManager {
+export class ConcurrencyManager implements Disposable {
   private config: ConcurrencyConfig;
   private providerSemaphores: Map<ProviderName, Semaphore> = new Map();
   private modelSemaphores: Map<string, Semaphore> = new Map();
   private activeTasks: Map<string, { provider: ProviderName; model: string }> = new Map();
+  private isDisposed = false;
 
   constructor(config?: Partial<ConcurrencyConfig>) {
     this.config = {
       defaultConcurrency: config?.defaultConcurrency ?? 5,
+      acquireTimeoutMs: config?.acquireTimeoutMs ?? DEFAULT_ACQUIRE_TIMEOUT_MS,
       providerConcurrency: {
         anthropic: 3,
         openai: 5,
@@ -77,7 +119,6 @@ export class ConcurrencyManager {
   }
 
   private initializeSemaphores(): void {
-    // Initialize provider semaphores
     for (const [provider, limit] of Object.entries(this.config.providerConcurrency)) {
       this.providerSemaphores.set(
         provider as ProviderName,
@@ -85,7 +126,6 @@ export class ConcurrencyManager {
       );
     }
 
-    // Initialize model semaphores
     for (const [model, limit] of Object.entries(this.config.modelConcurrency)) {
       this.modelSemaphores.set(model, new Semaphore(limit));
     }
@@ -109,14 +149,14 @@ export class ConcurrencyManager {
     return semaphore;
   }
 
-  /**
-   * Acquire a slot for the given model
-   * Blocks until a slot is available
-   */
-  async acquire(taskId: string, model: string): Promise<void> {
-    const provider = this.getProviderFromModel(model);
+  async acquire(taskId: string, model: string, timeoutMs?: number): Promise<void> {
+    if (this.isDisposed) {
+      throw new Error("ConcurrencyManager is disposed");
+    }
 
-    // Get or create semaphores
+    const provider = this.getProviderFromModel(model);
+    const timeout = timeoutMs ?? this.config.acquireTimeoutMs;
+
     const providerSemaphore = this.getOrCreateSemaphore(
       this.providerSemaphores as unknown as Map<string, Semaphore>,
       provider,
@@ -136,10 +176,9 @@ export class ConcurrencyManager {
       modelAvailable: modelSemaphore.getAvailable(),
     });
 
-    // Acquire both provider and model level permits
     await Promise.all([
-      providerSemaphore.acquire(),
-      modelSemaphore.acquire(),
+      providerSemaphore.acquire(timeout),
+      modelSemaphore.acquire(timeout),
     ]);
 
     this.activeTasks.set(taskId, { provider, model });
@@ -147,9 +186,6 @@ export class ConcurrencyManager {
     logger.debug(`Acquired concurrency slot for ${model}`, { taskId });
   }
 
-  /**
-   * Release a slot for the given task
-   */
   release(taskId: string): void {
     const task = this.activeTasks.get(taskId);
     if (!task) {
@@ -170,47 +206,63 @@ export class ConcurrencyManager {
     logger.debug(`Released concurrency slot for ${model}`, { taskId });
   }
 
-  /**
-   * Get available slots for a provider
-   */
+  releaseAll(): void {
+    const taskIds = Array.from(this.activeTasks.keys());
+    for (const taskId of taskIds) {
+      this.release(taskId);
+    }
+  }
+
+  async dispose(): Promise<void> {
+    if (this.isDisposed) return;
+
+    this.isDisposed = true;
+    logger.info("Disposing ConcurrencyManager");
+
+    this.releaseAll();
+
+    const providerSemaphores = Array.from(this.providerSemaphores.values());
+    for (const semaphore of providerSemaphores) {
+      semaphore.dispose();
+    }
+    this.providerSemaphores.clear();
+
+    const modelSemaphores = Array.from(this.modelSemaphores.values());
+    for (const semaphore of modelSemaphores) {
+      semaphore.dispose();
+    }
+    this.modelSemaphores.clear();
+
+    this.activeTasks.clear();
+  }
+
   getAvailableSlots(provider: ProviderName): number {
     const semaphore = this.providerSemaphores.get(provider);
     return semaphore?.getAvailable() ?? 0;
   }
 
-  /**
-   * Get available slots for a specific model
-   */
   getModelAvailableSlots(model: string): number {
     const semaphore = this.modelSemaphores.get(model);
     return semaphore?.getAvailable() ?? this.config.defaultConcurrency;
   }
 
-  /**
-   * Get current active task count
-   */
   getActiveTaskCount(): number {
     return this.activeTasks.size;
   }
 
-  /**
-   * Get waiting task count for a provider
-   */
   getWaitingCount(provider: ProviderName): number {
     const semaphore = this.providerSemaphores.get(provider);
     return semaphore?.getWaiting() ?? 0;
   }
 
-  /**
-   * Get status summary
-   */
   getStatus(): {
     activeTasks: number;
     providers: Record<string, { available: number; waiting: number }>;
   } {
     const providers: Record<string, { available: number; waiting: number }> = {};
 
-    for (const [name, semaphore] of this.providerSemaphores) {
+    const entries = Array.from(this.providerSemaphores.entries());
+    for (const [name, semaphore] of entries) {
       providers[name] = {
         available: semaphore.getAvailable(),
         waiting: semaphore.getWaiting(),
@@ -223,12 +275,13 @@ export class ConcurrencyManager {
     };
   }
 
-  /**
-   * Update configuration dynamically
-   */
   updateConfig(config: Partial<ConcurrencyConfig>): void {
     if (config.defaultConcurrency !== undefined) {
       this.config.defaultConcurrency = config.defaultConcurrency;
+    }
+
+    if (config.acquireTimeoutMs !== undefined) {
+      this.config.acquireTimeoutMs = config.acquireTimeoutMs;
     }
 
     if (config.providerConcurrency) {
@@ -245,22 +298,23 @@ export class ConcurrencyManager {
       };
     }
 
-    // Note: Existing semaphores are not updated
-    // New limits only apply to newly created semaphores
     logger.debug("Concurrency config updated", { config: this.config });
   }
 }
 
-// Singleton instance
 let concurrencyManagerInstance: ConcurrencyManager | null = null;
 
 export function getConcurrencyManager(config?: Partial<ConcurrencyConfig>): ConcurrencyManager {
   if (!concurrencyManagerInstance) {
     concurrencyManagerInstance = new ConcurrencyManager(config);
+    getShutdownManager().register('concurrencyManager', concurrencyManagerInstance);
   }
   return concurrencyManagerInstance;
 }
 
 export function resetConcurrencyManager(): void {
+  if (concurrencyManagerInstance) {
+    getShutdownManager().unregister('concurrencyManager');
+  }
   concurrencyManagerInstance = null;
 }
