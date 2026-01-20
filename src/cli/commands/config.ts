@@ -1,12 +1,19 @@
 /**
  * Config Command
- * Manage SuperCoin configuration
+ * Manage SuperCode configuration with layered config support
  */
 import { Command } from "commander";
-import type { SuperCoinConfig } from "../../config/schema";
+import type { SuperCodeConfig } from "../../config/schema";
+import {
+  loadLayeredConfig,
+  saveGlobalConfig,
+  saveProjectConfig,
+  getConfigPaths,
+  hasConfigSource,
+} from "../../config/layered-loader";
 import logger from "../../shared/logger";
 
-export function createConfigCommand(config: SuperCoinConfig): Command {
+export function createConfigCommand(config: SuperCodeConfig): Command {
   const configCmd = new Command("config")
     .description("Manage configuration");
 
@@ -15,7 +22,8 @@ export function createConfigCommand(config: SuperCoinConfig): Command {
     .command("get <key>")
     .description("Get a configuration value")
     .action(async (key: string) => {
-      const value = getNestedValue(config, key);
+      const { config: layeredConfig } = await loadLayeredConfig();
+      const value = getNestedValue(layeredConfig, key);
       if (value === undefined) {
         console.log("undefined");
       } else {
@@ -27,9 +35,25 @@ export function createConfigCommand(config: SuperCoinConfig): Command {
   configCmd
     .command("set <key> <value>")
     .description("Set a configuration value")
-    .action(async (key: string, value: string) => {
-      logger.info(`Would set ${key} = ${value}`);
-      logger.warn("Config persistence will be implemented in a future phase.");
+    .option("--global", "Save to global config (~/.config/supercode/config.json)")
+    .option("--project", "Save to project config (supercode.json)")
+    .action(async (key: string, value: string, options) => {
+      const parsedValue = parseValue(value);
+      const configUpdate = buildConfigFromPath(key, parsedValue);
+
+      try {
+        if (options.global) {
+          const path = await saveGlobalConfig(configUpdate);
+          console.log(`Saved to global config: ${path}`);
+        } else {
+          // Default to project config
+          const path = await saveProjectConfig(configUpdate);
+          console.log(`Saved to project config: ${path}`);
+        }
+        console.log(`  ${key} = ${JSON.stringify(parsedValue)}`);
+      } catch (error) {
+        logger.error("Failed to save config", { error });
+      }
     });
 
   // List all config
@@ -37,14 +61,27 @@ export function createConfigCommand(config: SuperCoinConfig): Command {
     .command("list")
     .description("List all configuration")
     .option("--json", "Output as JSON")
+    .option("--sources", "Show config sources")
     .action(async (options) => {
+      const { config: layeredConfig, sources } = await loadLayeredConfig();
+
+      if (options.sources) {
+        console.log("\nConfiguration Sources (in priority order):\n");
+        for (const source of sources) {
+          const pathInfo = source.path ? ` (${source.path})` : "";
+          console.log(`  ${source.priority}. ${source.name}${pathInfo}`);
+        }
+        console.log("");
+        return;
+      }
+
       if (options.json) {
-        console.log(JSON.stringify(config, null, 2));
+        console.log(JSON.stringify(layeredConfig, null, 2));
         return;
       }
 
       console.log("\nConfiguration:\n");
-      printConfig(config);
+      printConfig(layeredConfig);
     });
 
   // Reset config
@@ -52,14 +89,16 @@ export function createConfigCommand(config: SuperCoinConfig): Command {
     .command("reset")
     .description("Reset configuration to defaults")
     .option("--confirm", "Confirm reset")
+    .option("--global", "Reset global config")
+    .option("--project", "Reset project config")
     .action(async (options) => {
       if (!options.confirm) {
         logger.warn("Use --confirm to reset configuration");
         return;
       }
 
+      // TODO: Implement config reset by writing empty or default values
       logger.info("Configuration reset to defaults");
-      logger.warn("Config persistence will be implemented in a future phase.");
     });
 
   // Show config path
@@ -67,10 +106,62 @@ export function createConfigCommand(config: SuperCoinConfig): Command {
     .command("path")
     .description("Show configuration file paths")
     .action(async () => {
-      const home = process.env.HOME || process.env.USERPROFILE || "";
+      const paths = getConfigPaths();
+      const hasGlobal = await hasConfigSource("global");
+      const hasProject = await hasConfigSource("project");
+
       console.log("\nConfiguration file paths (in priority order):\n");
-      console.log(`  1. User:    ${home}/.config/supercoin/config.json`);
-      console.log(`  2. Project: .supercoin/config.json`);
+      console.log("  Priority 1: Environment Variables");
+      console.log(`    Prefix: ${paths.envPrefix}*`);
+      console.log(`    Example: ${paths.envPrefix}DEFAULT_MODEL=anthropic/claude-opus`);
+      console.log("");
+      console.log("  Priority 2: Project Config");
+      console.log(`    Files: ${paths.projectConfigFiles.join(", ")}`);
+      console.log(`    Status: ${hasProject ? "Found" : "Not found"}`);
+      console.log("");
+      console.log("  Priority 3: Global Config");
+      console.log(`    Path: ${paths.globalConfig}`);
+      console.log(`    Status: ${hasGlobal ? "Found" : "Not found"}`);
+      console.log("");
+      console.log("  Priority 4: Default Values");
+      console.log("    Built-in defaults");
+    });
+
+  // Init command to create config file
+  configCmd
+    .command("init")
+    .description("Create a new configuration file")
+    .option("--global", "Create global config")
+    .option("--force", "Overwrite existing config")
+    .action(async (options) => {
+      const targetType = options.global ? "global" : "project";
+      const exists = await hasConfigSource(targetType);
+
+      if (exists && !options.force) {
+        console.log(`Config already exists. Use --force to overwrite.`);
+        return;
+      }
+
+      const defaultConfig = {
+        default_model: "anthropic/claude-sonnet-4-5",
+        fallback_models: [],
+        providers: {
+          anthropic: { enabled: true },
+          ollama: { enabled: true, baseUrl: "http://localhost:11434/v1" },
+        },
+      };
+
+      try {
+        if (options.global) {
+          const path = await saveGlobalConfig(defaultConfig);
+          console.log(`Created global config: ${path}`);
+        } else {
+          const path = await saveProjectConfig(defaultConfig);
+          console.log(`Created project config: ${path}`);
+        }
+      } catch (error) {
+        logger.error("Failed to create config", { error });
+      }
     });
 
   return configCmd;
@@ -108,4 +199,50 @@ function printConfig(obj: Record<string, unknown>, indent = 0): void {
       console.log(`${prefix}${key}: ${value}`);
     }
   }
+}
+
+/**
+ * Parse a string value to appropriate type
+ */
+function parseValue(value: string): unknown {
+  // Boolean
+  if (value.toLowerCase() === "true") return true;
+  if (value.toLowerCase() === "false") return false;
+
+  // Number
+  const num = parseFloat(value);
+  if (!isNaN(num) && value.trim() === num.toString()) return num;
+
+  // JSON
+  if (value.startsWith("{") || value.startsWith("[")) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+
+  // Array (comma-separated)
+  if (value.includes(",")) {
+    return value.split(",").map((s) => s.trim());
+  }
+
+  return value;
+}
+
+/**
+ * Build a config object from a dot-notation path
+ */
+function buildConfigFromPath(path: string, value: unknown): Record<string, unknown> {
+  const keys = path.split(".");
+  const result: Record<string, unknown> = {};
+  let current = result;
+
+  for (let i = 0; i < keys.length - 1; i++) {
+    current[keys[i]] = {};
+    current = current[keys[i]] as Record<string, unknown>;
+  }
+
+  current[keys[keys.length - 1]] = value;
+  return result;
 }

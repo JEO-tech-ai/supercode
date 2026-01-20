@@ -41,6 +41,7 @@
   - [Multi-Agent System](#multi-agent-system)
   - [Hook System (30+)](#-hook-system-30)
 - [Claude Code Compatibility](#claude-code-compatibility)
+- [Localhost Model Setup](#localhost-model-setup)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting-doctor-command)
 - [Roadmap](#roadmap)
@@ -636,6 +637,161 @@ supercode run "Describe this UI" -f ui.png -m ollama/qwen3-vl:4b
 **Note:** For image analysis, use a vision-capable model (e.g., `qwen3-vl`, `llava`, `gpt-4-vision`, `gemini-pro-vision`)
 
 **TUI Support:** In the TUI, use `Ctrl+V` to paste images from clipboard, or type a file path to auto-attach.
+
+---
+
+## Localhost Model Setup
+
+SuperCode supports running entirely on local LLMs for **privacy-first, cost-free** development. This guide covers setup for popular local model servers.
+
+### Quick Start with Ollama (Recommended)
+
+[Ollama](https://ollama.com) is the easiest way to run local models.
+
+```bash
+# 1. Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 2. Pull a model
+ollama pull llama3.3      # General purpose (128K context)
+ollama pull qwen2.5-coder # Best for coding
+ollama pull deepseek-coder-v2  # Alternative coder
+
+# 3. Start SuperCode with Ollama
+supercode -p ollama -m llama3.3
+```
+
+**Recommended Models for Coding:**
+
+| Model | Context | Best For |
+|-------|---------|----------|
+| `llama3.3:latest` | 128K | General coding, large context |
+| `qwen2.5-coder:latest` | 32K | Code generation, completion |
+| `deepseek-coder-v2:latest` | 64K | Complex coding tasks |
+| `codellama:7b` | 16K | Fast code assistance |
+| `mistral:latest` | 32K | General purpose |
+
+### LM Studio Setup
+
+[LM Studio](https://lmstudio.ai) provides a GUI for running local models.
+
+```bash
+# 1. Download and install LM Studio from https://lmstudio.ai
+# 2. Download a model (e.g., TheBloke/Llama-2-7B-Chat-GGUF)
+# 3. Start the local server (default port: 1234)
+
+# 4. Configure SuperCode
+cat > supercode.json << 'EOF'
+{
+  "default_model": "local/llama-2-7b",
+  "providers": {
+    "local": {
+      "enabled": true,
+      "baseUrl": "http://localhost:1234/v1"
+    }
+  }
+}
+EOF
+
+# 5. Run SuperCode
+supercode
+```
+
+### llama.cpp Server Setup
+
+For maximum performance with [llama.cpp](https://github.com/ggerganov/llama.cpp):
+
+```bash
+# 1. Build llama.cpp
+git clone https://github.com/ggerganov/llama.cpp
+cd llama.cpp && make
+
+# 2. Download a GGUF model
+# (e.g., from https://huggingface.co/TheBloke)
+
+# 3. Start the server
+./server -m models/llama-2-7b.Q4_K_M.gguf --port 8080
+
+# 4. Configure SuperCode
+cat > supercode.json << 'EOF'
+{
+  "default_model": "local/llama-2-7b",
+  "providers": {
+    "local": {
+      "enabled": true,
+      "baseUrl": "http://localhost:8080/v1"
+    }
+  }
+}
+EOF
+```
+
+### Remote Localhost (Network LLM Server)
+
+Run models on a powerful machine and connect from your laptop:
+
+```bash
+# On the server (192.168.1.100)
+ollama serve --host 0.0.0.0
+
+# On your laptop - configure SuperCode
+cat > supercode.json << 'EOF'
+{
+  "default_model": "ollama/llama3.3",
+  "providers": {
+    "ollama": {
+      "enabled": true,
+      "baseUrl": "http://192.168.1.100:11434/v1"
+    }
+  }
+}
+EOF
+```
+
+### Environment Variable Configuration
+
+Override settings via environment variables:
+
+```bash
+# Set default model
+export SUPERCODE_DEFAULT_MODEL="ollama/llama3.3"
+
+# Configure Ollama URL
+export SUPERCODE_PROVIDERS_OLLAMA_BASEURL="http://192.168.1.100:11434/v1"
+
+# Run SuperCode
+supercode
+```
+
+### Configuration Priority
+
+SuperCode loads config from multiple sources (highest to lowest priority):
+
+1. **Environment Variables** (`SUPERCODE_*`)
+2. **Project Config** (`supercode.json`, `.supercode.json`)
+3. **Global Config** (`~/.config/supercode/config.json`)
+4. **Default Values**
+
+```bash
+# View current config sources
+supercode config list --sources
+
+# View config file paths
+supercode config path
+```
+
+### Verify Local Setup
+
+```bash
+# Check if Ollama is running
+curl http://localhost:11434/api/tags
+
+# Test SuperCode connection
+supercode doctor
+
+# Quick test
+supercode run -p ollama -m llama3.3 "Hello, are you running locally?"
+```
 
 ---
 

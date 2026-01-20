@@ -58,3 +58,7 @@ export function getToolRegistry(): IToolRegistry {
   }
   return toolRegistryInstance;
 }
+
+export function resetToolRegistry(): void {
+  toolRegistryInstance = null;
+}
