@@ -1,9 +1,0 @@
-{
-  "extends": "@supercoin/tsconfig/base.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "."
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "drizzle.config.ts"]
-}
