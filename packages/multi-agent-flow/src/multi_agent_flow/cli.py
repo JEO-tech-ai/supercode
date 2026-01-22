@@ -317,7 +317,7 @@ def status():
 
 
 def workflow(task_description: str):
-    """Start a workflow"""
+    """Start a workflow (legacy HTTP mode)"""
     print(f"{BLUE}Starting workflow...{NC}\n")
 
     try:
@@ -332,6 +332,105 @@ def workflow(task_description: str):
     except Exception as e:
         print(f"{RED}Failed to start workflow: {e}{NC}")
         print(f"Make sure agents are running: maf start")
+
+
+def run_workflow(task_description: str):
+    """Run a full agent chaining workflow (Phase 3)"""
+    print_banner()
+    print(f"{BLUE}  Starting Agent Chaining Workflow...{NC}\n")
+
+    try:
+        from multi_agent_flow.workflow import WorkflowEngine
+        import uuid
+
+        task_id = f"wf-{uuid.uuid4().hex[:8]}"
+
+        engine = WorkflowEngine()
+
+        # Set up callbacks
+        def on_step_complete(tid, result):
+            icon = f"{GREEN}✓{NC}" if result.status.value == "success" else f"{RED}✗{NC}"
+            print(f"    {icon} {result.step_name.value:12} - {result.status.value}")
+
+        def on_workflow_complete(state):
+            if state.status.value == "COMPLETED":
+                print(f"\n{GREEN}  Workflow completed successfully!{NC}")
+            else:
+                print(f"\n{RED}  Workflow ended: {state.status.value}{NC}")
+
+        engine.set_callbacks(on_step_complete, on_workflow_complete)
+
+        print(f"  Task ID: {task_id}")
+        print(f"  Task:    {task_description[:50]}{'...' if len(task_description) > 50 else ''}")
+        print(f"\n{CYAN}  Executing workflow chain:{NC}")
+        print(f"    Planner → Writer → Reviewer → Tester → Analyzer\n")
+
+        # Start and execute workflow
+        engine.start_workflow(task_id, task_description)
+        state = engine.execute_workflow(task_id)
+
+        print(f"\n  Final Status: {state.status.value}")
+        print(f"  Steps Completed: {len([h for h in state.history if h.status.value == 'success'])}/5")
+
+        if state.rework_count > 0:
+            print(f"  Rework Cycles: {state.rework_count}")
+
+    except Exception as e:
+        print(f"{RED}  Failed to run workflow: {e}{NC}")
+        import traceback
+        traceback.print_exc()
+
+
+def workflow_status(task_id: str):
+    """Show status of a specific workflow"""
+    print_banner()
+    print(f"{BLUE}  Workflow Status{NC}\n")
+
+    try:
+        from multi_agent_flow.workflow import WorkflowEngine
+
+        engine = WorkflowEngine()
+        engine.print_workflow_status(task_id)
+
+    except Exception as e:
+        print(f"{RED}  Failed to get workflow status: {e}{NC}")
+
+
+def workflow_list():
+    """List all workflows"""
+    print_banner()
+    print(f"{BLUE}  Workflow List{NC}\n")
+
+    try:
+        from multi_agent_flow.workflow import WorkflowEngine
+
+        engine = WorkflowEngine()
+        workflows = engine.list_workflows()
+
+        if not workflows:
+            print(f"  {YELLOW}No workflows found.{NC}")
+            return
+
+        print("  " + "=" * 70)
+        print(f"  {'TASK ID':<20} {'STATUS':<15} {'STEP':<12} {'UPDATED':<20}")
+        print("  " + "-" * 70)
+
+        for wf in workflows:
+            status_color = GREEN if wf["status"] == "COMPLETED" else (
+                RED if wf["status"] in ("FAILED", "IN_DLQ") else YELLOW
+            )
+            print(
+                f"  {wf['task_id']:<20} "
+                f"{status_color}{wf['status']:<15}{NC} "
+                f"{wf['current_step'] or 'N/A':<12} "
+                f"{wf['last_updated'][:19]}"
+            )
+
+        print("  " + "=" * 70)
+        print(f"  Total: {len(workflows)} workflows")
+
+    except Exception as e:
+        print(f"{RED}  Failed to list workflows: {e}{NC}")
 
 
 def task_submit(description: str, role: str, priority: str = "NORMAL"):
@@ -402,21 +501,21 @@ Examples:
   maf launch              Launch all AI agents in terminal windows
   maf status              Check status of all agents
   maf stop                Stop all agents
-  maf task "desc" writer  Submit a task to an agent role
-  maf queue               Show task queue status
+  maf run "task desc"     Run a full agent chaining workflow
+  maf wf-status <id>      Check workflow status
+  maf wf-list             List all workflows
 
 Phase 1 (launch):
-  Opens separate terminal windows for each AI agent:
-  - Orchestrator (Claude) on port 8000
-  - Planner (OpenCode) on port 8001
-  - Writer (Codex) on port 8002
-  - Tester (Codex) on port 8003
-  - Analyzer (Gemini) on port 8004
+  Opens separate terminal windows for each AI agent
 
 Phase 2 (scheduler):
-  Submit tasks to the scheduler queue:
-  - maf task "Generate API" writer --priority HIGH
-  - maf queue (view queue status)
+  maf task "desc" writer --priority HIGH
+  maf queue
+
+Phase 3 (workflow):
+  maf run "Create REST API"  # Full agent chaining
+  maf wf-status wf-abc123    # Check workflow progress
+  maf wf-list                # List all workflows
 """
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -449,6 +548,17 @@ Phase 2 (scheduler):
     # queue command (Phase 2 - scheduler)
     subparsers.add_parser("queue", help="Show task queue status")
 
+    # run command (Phase 3 - workflow engine)
+    run_parser = subparsers.add_parser("run", help="Run a full agent chaining workflow")
+    run_parser.add_argument("task", help="Task description")
+
+    # wf-status command (Phase 3)
+    wf_status_parser = subparsers.add_parser("wf-status", help="Check workflow status")
+    wf_status_parser.add_argument("task_id", help="Workflow task ID")
+
+    # wf-list command (Phase 3)
+    subparsers.add_parser("wf-list", help="List all workflows")
+
     args = parser.parse_args()
 
     if args.command == "launch":
@@ -465,6 +575,12 @@ Phase 2 (scheduler):
         task_submit(args.description, args.role, args.priority)
     elif args.command == "queue":
         queue_status()
+    elif args.command == "run":
+        run_workflow(args.task)
+    elif args.command == "wf-status":
+        workflow_status(args.task_id)
+    elif args.command == "wf-list":
+        workflow_list()
     else:
         parser.print_help()
 

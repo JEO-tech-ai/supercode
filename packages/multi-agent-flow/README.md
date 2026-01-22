@@ -68,6 +68,9 @@ graph TB
 | `maf stop` | 모든 에이전트 중지 |
 | `maf task "desc" role [-p PRIORITY]` | 스케줄러에 태스크 제출 |
 | `maf queue` | 태스크 큐 상태 확인 |
+| `maf run "task"` | 전체 워크플로우 실행 (Phase 3) |
+| `maf wf-status <id>` | 워크플로우 상태 확인 |
+| `maf wf-list` | 모든 워크플로우 목록 |
 
 ## Communication Flow
 
@@ -103,7 +106,8 @@ sequenceDiagram
 |:------|:------:|:------------|
 | Phase 1 | ✅ | Multi-Terminal Launcher |
 | Phase 2 | ✅ | Task Scheduler |
-| Phase 3 | ⏳ | Agent Chaining, Feedback Loop, WebSocket |
+| Phase 3 | ✅ | Agent Chaining, Feedback Loop |
+| Phase 4 | ⏳ | WebSocket Dashboard, Real Agent Integration |
 
 ---
 
@@ -295,12 +299,19 @@ multi-agent-flow/
 - [x] Agent state persistence (JSON)
 - [x] CLI integration (maf task, maf queue)
 
-### Phase 3 ⏳ Planned
-- [ ] Agent chaining (Planner → Writer → Reviewer → Tester)
-- [ ] Feedback loop (Reviewer → Writer rework)
+### Phase 3 ✅ Complete
+- [x] Agent chaining (Planner → Writer → Reviewer → Tester → Analyzer)
+- [x] Feedback loop (Reviewer → Writer rework)
+- [x] Workflow state machine
+- [x] File-based IPC
+- [x] Retry/failure recovery
+- [x] CLI integration (maf run, maf wf-status, maf wf-list)
+
+### Phase 4 ⏳ Planned
+- [ ] Real agent CLI integration (actual claude/codex/gemini calls)
 - [ ] WebSocket real-time dashboard
 - [ ] Result caching
-- [ ] Failure recovery
+- [ ] Parallel step execution
 
 </details>
 

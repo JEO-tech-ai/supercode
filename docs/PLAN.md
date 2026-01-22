@@ -70,16 +70,27 @@ supercode start
 - [x] 실시간 상태 모니터링 (`maf queue` 명령)
 - [x] 에이전트 상태 파일 저장 (`agent_status.json`)
 
-### Phase 3: Advanced Features
+### Phase 3: Workflow Engine ✅
 
-**목표**: 정밀도 향상 및 고급 기능
+**목표**: 에이전트 체이닝 및 워크플로우 실행
 
 **구현 사항**:
-- [ ] 에이전트 체이닝 (Planner → Writer → Reviewer → Tester → Analyzer)
-- [ ] 피드백 루프 (Reviewer → Writer 재작업)
-- [ ] 우선순위 기반 스케줄링
+- [x] 에이전트 체이닝 (Planner → Writer → Reviewer → Tester → Analyzer)
+- [x] 피드백 루프 (Reviewer → Writer 재작업, max_reworks=2)
+- [x] 워크플로우 상태 머신 (WorkflowEngine)
+- [x] 파일 기반 IPC (FileIPCManager)
+- [x] 실패 재시도 (max_retries=3)
+- [x] CLI 명령어 (`maf run`, `maf wf-status`, `maf wf-list`)
+
+### Phase 4: Real Integration (Planned)
+
+**목표**: 실제 에이전트 CLI 통합 및 실시간 대시보드
+
+**구현 예정**:
+- [ ] 실제 에이전트 CLI 호출 (claude, codex, gemini, opencode)
+- [ ] WebSocket 실시간 대시보드
 - [ ] 작업 결과 캐싱
-- [ ] 실패 복구 메커니즘
+- [ ] 병렬 단계 실행
 
 ## Workflow Example
 
@@ -231,7 +242,8 @@ supercode/
 |-------|--------|----------|-------|
 | Phase 1 | ✅ Completed | Gemini + Claude | 멀티터미널 런처 구현 완료 |
 | Phase 2 | ✅ Completed | Gemini + Claude + Codex | 태스크 스케줄러 구현 완료 |
-| Phase 3 | ⏳ Pending | All Agents | 고급 기능 |
+| Phase 3 | ✅ Completed | Gemini + Claude + Codex | 워크플로우 엔진 구현 완료 |
+| Phase 4 | ⏳ Pending | All Agents | 실제 에이전트 통합 |
 
 ## Phase 1 Deliverables
 
@@ -251,4 +263,4 @@ maf stop     # 전체 중지
 ---
 **Created**: 2026-01-22
 **Last Updated**: 2026-01-22
-**Status**: ✅ Phase 2 Complete
+**Status**: ✅ Phase 3 Complete
