@@ -1,9 +1,12 @@
 """
-Workflow Engine for Phase 3 - Agent Chaining & Task Dispatch
+Workflow Engine for Multi-Agent Flow
+
+Phase 3: Agent Chaining & Task Dispatch
+Phase 4: Parallel Execution & Real Integration
 """
 from .models import (
     WorkflowStatus,
-    StepStatus,
+    StepStatus as ModelStepStatus,
     AgentName,
     StepResult,
     WorkflowState,
@@ -12,10 +15,13 @@ from .models import (
 )
 from .ipc import FileIPCManager
 from .engine import WorkflowEngine
+from .graph import WorkflowGraph, StepStatus as GraphStepStatus
+from .parallel import ParallelScheduler, run_parallel_workflow
 
 __all__ = [
+    # Phase 3 - Models
     "WorkflowStatus",
-    "StepStatus",
+    "ModelStepStatus",
     "AgentName",
     "StepResult",
     "WorkflowState",
@@ -23,4 +29,9 @@ __all__ = [
     "AgentOutput",
     "FileIPCManager",
     "WorkflowEngine",
+    # Phase 4 - Parallel Execution
+    "WorkflowGraph",
+    "GraphStepStatus",
+    "ParallelScheduler",
+    "run_parallel_workflow",
 ]

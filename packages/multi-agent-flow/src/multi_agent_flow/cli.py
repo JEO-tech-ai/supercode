@@ -490,6 +490,135 @@ def queue_status():
         print(f"{RED}  Failed to get queue status: {e}{NC}")
 
 
+# Phase 4 Functions
+
+def dashboard_server(host: str = "0.0.0.0", port: int = 8100):
+    """Start the real-time dashboard server"""
+    print_banner()
+    print(f"{BLUE}  Starting Dashboard Server...{NC}\n")
+
+    try:
+        from multi_agent_flow.dashboard.server import DashboardServer
+
+        server = DashboardServer(host=host, port=port)
+        print(f"  {CYAN}WebSocket: ws://{host}:{port}/ws{NC}")
+        print(f"  {CYAN}Health: http://{host}:{port}/health{NC}")
+        print(f"\n  {YELLOW}Press Ctrl+C to stop{NC}\n")
+
+        server.run()
+
+    except ImportError as e:
+        print(f"{RED}  Missing dependencies. Install with:{NC}")
+        print(f"    pip install fastapi uvicorn websockets")
+    except Exception as e:
+        print(f"{RED}  Failed to start dashboard: {e}{NC}")
+
+
+def monitor_workflows(task_id: str = None, server_url: str = "ws://localhost:8100/ws"):
+    """Monitor workflows in terminal"""
+    print_banner()
+    print(f"{BLUE}  Workflow Monitor{NC}\n")
+
+    try:
+        from multi_agent_flow.dashboard.client import DashboardClient
+        import asyncio
+
+        client = DashboardClient(server_url=server_url)
+        print(f"  Connecting to: {server_url}")
+        if task_id:
+            print(f"  Monitoring: {task_id}")
+        print(f"\n  {YELLOW}Press Ctrl+C to stop{NC}\n")
+
+        asyncio.run(client.monitor(task_id))
+
+    except ImportError as e:
+        print(f"{RED}  Missing dependencies. Install with:{NC}")
+        print(f"    pip install rich websockets")
+    except KeyboardInterrupt:
+        print(f"\n{YELLOW}  Monitor stopped.{NC}")
+    except Exception as e:
+        print(f"{RED}  Monitor error: {e}{NC}")
+
+
+def check_agents():
+    """Check available AI CLI agents"""
+    print_banner()
+    print(f"{BLUE}  Available AI CLI Agents{NC}\n")
+
+    try:
+        from multi_agent_flow.agents.runner import AgentRunner
+
+        runner = AgentRunner()
+        availability = runner.list_available_agents()
+
+        print("  " + "=" * 50)
+        print(f"  {'AGENT':<15} {'STATUS':<12} {'EXECUTABLE':<20}")
+        print("  " + "-" * 50)
+
+        for name, available in availability.items():
+            status = f"{GREEN}Available{NC}" if available else f"{RED}Not Found{NC}"
+            config = runner.config.get(name)
+            executable = config.executable if config else "N/A"
+            print(f"  {name:<15} {status:<21} {executable:<20}")
+
+        print("  " + "=" * 50)
+
+        found = sum(1 for a in availability.values() if a)
+        total = len(availability)
+        print(f"\n  {GREEN if found == total else YELLOW}Found {found}/{total} agents{NC}")
+
+        if found < total:
+            print(f"\n  {CYAN}Install missing agents:{NC}")
+            print(f"    claude  - npm install -g @anthropic-ai/claude-code")
+            print(f"    codex   - npm install -g @openai/codex")
+            print(f"    gemini  - npm install -g @anthropic-ai/gemini-cli")
+            print(f"    opencode - pip install opencode-ai")
+
+    except Exception as e:
+        print(f"{RED}  Failed to check agents: {e}{NC}")
+
+
+def cache_action(action: str):
+    """Manage workflow cache"""
+    print_banner()
+    print(f"{BLUE}  Cache Management{NC}\n")
+
+    try:
+        from multi_agent_flow.cache.manager import CacheManager
+        import asyncio
+
+        manager = CacheManager()
+
+        if action == "stats":
+            stats = manager.get_stats()
+            backend_stats = asyncio.run(manager.get_backend_stats())
+
+            print(f"  {CYAN}Cache Statistics:{NC}")
+            print(f"    Hits:         {stats['hits']}")
+            print(f"    Misses:       {stats['misses']}")
+            print(f"    Hit Rate:     {stats['hit_rate_percent']}%")
+
+            if backend_stats:
+                print(f"\n  {CYAN}Backend Statistics:{NC}")
+                print(f"    Total Entries: {backend_stats.get('total_entries', 'N/A')}")
+                print(f"    Total Size:    {backend_stats.get('total_size_bytes', 0) / 1024:.2f} KB")
+                print(f"    Expired:       {backend_stats.get('expired_entries', 'N/A')}")
+                print(f"    Location:      {backend_stats.get('cache_dir', 'N/A')}")
+
+        elif action == "clear":
+            asyncio.run(manager.clear())
+            print(f"  {GREEN}Cache cleared.{NC}")
+
+        elif action == "cleanup":
+            from multi_agent_flow.cache.file_cache import FileCache
+            cache = FileCache()
+            removed = asyncio.run(cache.cleanup_expired())
+            print(f"  {GREEN}Removed {removed} expired entries.{NC}")
+
+    except Exception as e:
+        print(f"{RED}  Cache action failed: {e}{NC}")
+
+
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
@@ -516,6 +645,12 @@ Phase 3 (workflow):
   maf run "Create REST API"  # Full agent chaining
   maf wf-status wf-abc123    # Check workflow progress
   maf wf-list                # List all workflows
+
+Phase 4 (real integration):
+  maf agents               # Check available CLI agents
+  maf dashboard            # Start real-time WebSocket dashboard
+  maf monitor              # Monitor workflows in terminal
+  maf cache stats          # View cache statistics
 """
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -559,6 +694,24 @@ Phase 3 (workflow):
     # wf-list command (Phase 3)
     subparsers.add_parser("wf-list", help="List all workflows")
 
+    # Phase 4 commands
+    # dashboard command
+    dashboard_parser = subparsers.add_parser("dashboard", help="Start the real-time dashboard server")
+    dashboard_parser.add_argument("--port", type=int, default=8100, help="Server port (default: 8100)")
+    dashboard_parser.add_argument("--host", default="0.0.0.0", help="Server host (default: 0.0.0.0)")
+
+    # monitor command
+    monitor_parser = subparsers.add_parser("monitor", help="Monitor workflows in terminal")
+    monitor_parser.add_argument("task_id", nargs="?", help="Specific task to monitor (optional)")
+    monitor_parser.add_argument("--url", default="ws://localhost:8100/ws", help="Dashboard WebSocket URL")
+
+    # agents command (check available CLI agents)
+    subparsers.add_parser("agents", help="Check available AI CLI agents")
+
+    # cache command
+    cache_parser = subparsers.add_parser("cache", help="Manage workflow cache")
+    cache_parser.add_argument("action", choices=["stats", "clear", "cleanup"], help="Cache action")
+
     args = parser.parse_args()
 
     if args.command == "launch":
@@ -581,6 +734,15 @@ Phase 3 (workflow):
         workflow_status(args.task_id)
     elif args.command == "wf-list":
         workflow_list()
+    # Phase 4 commands
+    elif args.command == "dashboard":
+        dashboard_server(args.host, args.port)
+    elif args.command == "monitor":
+        monitor_workflows(args.task_id, args.url)
+    elif args.command == "agents":
+        check_agents()
+    elif args.command == "cache":
+        cache_action(args.action)
     else:
         parser.print_help()
 

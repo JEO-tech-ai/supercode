@@ -71,6 +71,10 @@ graph TB
 | `maf run "task"` | 전체 워크플로우 실행 (Phase 3) |
 | `maf wf-status <id>` | 워크플로우 상태 확인 |
 | `maf wf-list` | 모든 워크플로우 목록 |
+| `maf agents` | 사용 가능한 CLI 에이전트 확인 (Phase 4) |
+| `maf dashboard` | 실시간 대시보드 서버 시작 (Phase 4) |
+| `maf monitor [task_id]` | 터미널에서 워크플로우 모니터링 (Phase 4) |
+| `maf cache stats\|clear\|cleanup` | 캐시 관리 (Phase 4) |
 
 ## Communication Flow
 
@@ -98,7 +102,100 @@ sequenceDiagram
 | Callback | 비동기 | 작업 완료 후 callback_url로 상태 전송 |
 | Health Check | 폴링 | GET /health 엔드포인트 |
 
-> **Note**: 현재 WebSocket/Pub-Sub 실시간 양방향 통신은 Phase 3에서 구현 예정
+## Phase 4: Real Integration Architecture
+
+```mermaid
+graph TB
+    subgraph CLI["CLI Layer"]
+        RUN[maf run] --> WE[Workflow Engine]
+        DASH[maf dashboard] --> WS[WebSocket Server]
+        MON[maf monitor] --> WSC[WebSocket Client]
+    end
+
+    subgraph Core["Core Engine"]
+        WE --> |"1. Check Cache"| CM[Cache Manager]
+        WE --> |"2. Execute"| AR[Agent Runner]
+        WE --> |"3. Notify"| NM[Notification Manager]
+    end
+
+    subgraph Agents["Agent Execution"]
+        AR --> |"subprocess"| CLAUDE[claude CLI]
+        AR --> |"subprocess"| CODEX[codex CLI]
+        AR --> |"subprocess"| GEMINI[gemini CLI]
+        AR --> |"subprocess"| OPENCODE[opencode CLI]
+    end
+
+    subgraph Cache["Caching Layer"]
+        CM --> FC[File Cache]
+        CM -.-> RC[Redis Cache]
+    end
+
+    subgraph Dashboard["Real-time Dashboard"]
+        NM --> |"events"| WS
+        WS --> |"broadcast"| WSC
+        WSC --> RICH[Rich Terminal UI]
+    end
+
+    style CLI fill:#e1f5fe
+    style Core fill:#fff3e0
+    style Agents fill:#e8f5e9
+    style Cache fill:#fce4ec
+    style Dashboard fill:#f3e5f5
+```
+
+### Parallel Execution DAG
+
+```mermaid
+graph LR
+    subgraph Sequential["Default Sequential"]
+        P1[Planner] --> W1[Writer] --> R1[Reviewer] --> T1[Tester] --> A1[Analyzer]
+    end
+
+    subgraph Parallel["With Parallel Analysis"]
+        P2[Planner] --> W2[Writer]
+        W2 --> SEC[Security Analyzer]
+        W2 --> STY[Style Checker]
+        SEC --> R2[Reviewer]
+        STY --> R2
+        R2 --> T2[Tester]
+    end
+
+    style Sequential fill:#e3f2fd
+    style Parallel fill:#e8f5e9
+```
+
+### Data Flow
+
+```mermaid
+sequenceDiagram
+    participant CLI as maf run
+    participant Engine as Workflow Engine
+    participant Cache as Cache Manager
+    participant Runner as Agent Runner
+    participant Agent as CLI Agent
+    participant WS as WebSocket
+
+    CLI->>Engine: start_workflow(task)
+    Engine->>WS: workflow_start event
+
+    loop Each Step
+        Engine->>Cache: check cache
+        alt Cache Hit
+            Cache-->>Engine: cached result
+            Engine->>WS: cache_hit event
+        else Cache Miss
+            Engine->>Runner: run(agent, prompt)
+            Runner->>Agent: subprocess.Popen
+            Agent-->>Runner: stdout/stderr
+            Runner-->>Engine: AgentResult
+            Engine->>Cache: store result
+        end
+        Engine->>WS: step_end event
+    end
+
+    Engine->>WS: workflow_end event
+    Engine-->>CLI: WorkflowState
+```
 
 ## Project Status
 
@@ -107,7 +204,7 @@ sequenceDiagram
 | Phase 1 | ✅ | Multi-Terminal Launcher |
 | Phase 2 | ✅ | Task Scheduler |
 | Phase 3 | ✅ | Agent Chaining, Feedback Loop |
-| Phase 4 | ⏳ | WebSocket Dashboard, Real Agent Integration |
+| Phase 4 | ✅ | Real Agent Integration, WebSocket Dashboard, Caching, Parallel Execution |
 
 ---
 
@@ -258,6 +355,56 @@ task = scheduler.submit_task(
 scheduler.print_status()
 ```
 
+### Agent Runner (Phase 4)
+```python
+import asyncio
+from multi_agent_flow.agents import AgentRunner
+
+runner = AgentRunner()
+
+# Check available agents
+print(runner.list_available_agents())
+
+# Execute an agent
+async def run():
+    result = await runner.run("claude", "Explain this code")
+    print(result.stdout)
+
+asyncio.run(run())
+```
+
+### Parallel Workflow (Phase 4)
+```python
+from multi_agent_flow.workflow import WorkflowGraph, ParallelScheduler
+
+# Create a parallel workflow
+graph = WorkflowGraph.with_parallel_analysis()
+
+# Get parallel groups
+groups = graph.get_parallel_groups()
+# [['Planner'], ['Writer'], ['SecurityAnalyzer', 'StyleChecker'], ['Reviewer'], ['Tester']]
+```
+
+### Cache Manager (Phase 4)
+```python
+import asyncio
+from multi_agent_flow.cache import CacheManager
+
+cache = CacheManager(default_ttl=3600)
+
+async def cache_example():
+    # Store result
+    await cache.set_step_result("task-1", "planner", "input", {"plan": "..."})
+
+    # Retrieve cached result
+    result = await cache.get_step_result("task-1", "planner", "input")
+
+    # Check stats
+    print(cache.get_stats())
+
+asyncio.run(cache_example())
+```
+
 </details>
 
 <details>
@@ -266,16 +413,36 @@ scheduler.print_status()
 ```
 multi-agent-flow/
 ├── src/multi_agent_flow/
-│   ├── launcher/           # Phase 1
+│   ├── launcher/           # Phase 1 - Multi-Terminal
 │   │   ├── port_allocator.py
 │   │   ├── process_manager.py
 │   │   ├── platforms.py
 │   │   └── manager.py
-│   ├── scheduler/          # Phase 2
+│   ├── scheduler/          # Phase 2 - Task Scheduling
 │   │   ├── task.py
 │   │   ├── queue.py
 │   │   ├── state_manager.py
 │   │   └── scheduler.py
+│   ├── workflow/           # Phase 3 & 4 - Workflow Engine
+│   │   ├── models.py       # Data models
+│   │   ├── ipc.py          # File-based IPC
+│   │   ├── engine.py       # State machine
+│   │   ├── graph.py        # DAG for parallel execution
+│   │   └── parallel.py     # Parallel scheduler
+│   ├── agents/             # Phase 4 - Agent Runner
+│   │   ├── config.py       # Agent configuration
+│   │   └── runner.py       # CLI subprocess execution
+│   ├── cache/              # Phase 4 - Caching
+│   │   ├── base.py         # Abstract cache interface
+│   │   ├── file_cache.py   # File-based cache
+│   │   └── manager.py      # Cache manager
+│   ├── dashboard/          # Phase 4 - Real-time Dashboard
+│   │   ├── server.py       # FastAPI WebSocket server
+│   │   ├── client.py       # Rich terminal client
+│   │   ├── notifications.py # Event dispatcher
+│   │   └── connection_manager.py
+│   ├── shared/             # Shared utilities
+│   │   └── events.py       # WebSocket event protocol
 │   └── cli.py
 ├── config.yaml
 └── pyproject.toml
@@ -307,11 +474,12 @@ multi-agent-flow/
 - [x] Retry/failure recovery
 - [x] CLI integration (maf run, maf wf-status, maf wf-list)
 
-### Phase 4 ⏳ Planned
-- [ ] Real agent CLI integration (actual claude/codex/gemini calls)
-- [ ] WebSocket real-time dashboard
-- [ ] Result caching
-- [ ] Parallel step execution
+### Phase 4 ✅ Complete
+- [x] Real agent CLI integration (`agents/runner.py`)
+- [x] WebSocket real-time dashboard (`dashboard/server.py`, `dashboard/client.py`)
+- [x] Result caching (`cache/manager.py`, `cache/file_cache.py`)
+- [x] Parallel step execution (`workflow/graph.py`, `workflow/parallel.py`)
+- [x] CLI commands: `maf agents`, `maf dashboard`, `maf monitor`, `maf cache`
 
 </details>
 
