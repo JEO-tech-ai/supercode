@@ -1,0 +1,85 @@
+# Supercode Multi-Agent Flow Configuration
+# This file defines agent configurations for the multi-terminal launcher
+
+version: "2.0"
+
+# Global settings
+settings:
+  port_range:
+    start: 8000
+    end: 8010
+  terminal_app: "iTerm2"  # macOS: iTerm2, Terminal.app | Linux: tmux
+  tmux_session: "supercode"
+  log_level: "INFO"
+
+# Agent configurations
+agents:
+  orchestrator:
+    name: "Orchestrator"
+    model: "claude"
+    command: "claude"
+    port: 8000
+    roles:
+      - orchestrator
+      - reviewer
+    env:
+      SUPERCODE_MODE: "orchestrator"
+
+  planner:
+    name: "Planner"
+    model: "opencode"
+    command: "opencode"
+    port: 8001
+    roles:
+      - planner
+    env:
+      SUPERCODE_MODE: "planner"
+
+  writer:
+    name: "Writer"
+    model: "codex"
+    command: "codex"
+    port: 8002
+    roles:
+      - writer
+    env:
+      SUPERCODE_MODE: "writer"
+
+  tester:
+    name: "Tester"
+    model: "codex"
+    command: "codex"
+    port: 8003
+    roles:
+      - tester
+    env:
+      SUPERCODE_MODE: "tester"
+
+  analyzer:
+    name: "Analyzer"
+    model: "gemini"
+    command: "gemini"
+    port: 8004
+    roles:
+      - analyzer
+    env:
+      SUPERCODE_MODE: "analyzer"
+
+# Workflow configuration
+workflow:
+  default_flow:
+    - planner
+    - writer
+    - orchestrator  # reviews
+    - tester
+    - analyzer
+
+  parallel_enabled: true
+  max_parallel_tasks: 3
+
+# Scheduler settings (Phase 2)
+scheduler:
+  enabled: false
+  queue_size: 100
+  retry_attempts: 3
+  timeout_seconds: 300
