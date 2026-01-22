@@ -334,18 +334,43 @@ def workflow(task_description: str):
         print(f"Make sure agents are running: maf start")
 
 
-def run_workflow(task_description: str):
-    """Run a full agent chaining workflow (Phase 3)"""
+def run_workflow(task_description: str, with_dashboard: bool = False):
+    """Run a full agent chaining workflow (Phase 3 & 4)"""
     print_banner()
     print(f"{BLUE}  Starting Agent Chaining Workflow...{NC}\n")
 
     try:
         from multi_agent_flow.workflow import WorkflowEngine
         import uuid
+        import asyncio
 
         task_id = f"wf-{uuid.uuid4().hex[:8]}"
 
-        engine = WorkflowEngine()
+        # Phase 4: Setup notification manager for dashboard
+        notification_manager = None
+        dashboard_server = None
+
+        if with_dashboard:
+            try:
+                from multi_agent_flow.dashboard.notifications import NotificationManager
+                from multi_agent_flow.dashboard.server import DashboardServer
+
+                notification_manager = NotificationManager()
+                notification_manager.enable_logging(True)
+
+                # Create server and connect notification manager
+                dashboard_server = DashboardServer(host='127.0.0.1', port=8100)
+                dashboard_server.create_app()
+                notification_manager.set_websocket_sender(dashboard_server.broadcast)
+
+                print(f"  {CYAN}Dashboard: ws://127.0.0.1:8100/ws/{task_id}{NC}")
+            except ImportError as e:
+                print(f"  {YELLOW}Dashboard not available: {e}{NC}")
+
+        engine = WorkflowEngine(
+            use_real_agents=True,
+            notification_manager=notification_manager,
+        )
 
         # Set up callbacks
         def on_step_complete(tid, result):
@@ -367,7 +392,12 @@ def run_workflow(task_description: str):
 
         # Start and execute workflow
         engine.start_workflow(task_id, task_description)
-        state = engine.execute_workflow(task_id)
+
+        if notification_manager:
+            # Run async workflow
+            state = asyncio.run(engine.execute_workflow_async(task_id))
+        else:
+            state = engine.execute_workflow(task_id)
 
         print(f"\n  Final Status: {state.status.value}")
         print(f"  Steps Completed: {len([h for h in state.history if h.status.value == 'success'])}/5")
@@ -686,6 +716,7 @@ Phase 4 (real integration):
     # run command (Phase 3 - workflow engine)
     run_parser = subparsers.add_parser("run", help="Run a full agent chaining workflow")
     run_parser.add_argument("task", help="Task description")
+    run_parser.add_argument("--dashboard", "-d", action="store_true", help="Enable real-time dashboard notifications")
 
     # wf-status command (Phase 3)
     wf_status_parser = subparsers.add_parser("wf-status", help="Check workflow status")
@@ -729,7 +760,7 @@ Phase 4 (real integration):
     elif args.command == "queue":
         queue_status()
     elif args.command == "run":
-        run_workflow(args.task)
+        run_workflow(args.task, with_dashboard=args.dashboard)
     elif args.command == "wf-status":
         workflow_status(args.task_id)
     elif args.command == "wf-list":

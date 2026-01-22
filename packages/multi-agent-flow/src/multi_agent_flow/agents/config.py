@@ -15,6 +15,7 @@ class AgentConfig:
     env_vars: Dict[str, str] = field(default_factory=dict)
     timeout_seconds: int = 300
     working_dir: Optional[str] = None
+    prompt_style: str = "arg"  # "arg" = command-line argument, "stdin" = stdin input
 
     def to_dict(self) -> Dict:
         return {
@@ -24,6 +25,7 @@ class AgentConfig:
             "env_vars": self.env_vars,
             "timeout_seconds": self.timeout_seconds,
             "working_dir": self.working_dir,
+            "prompt_style": self.prompt_style,
         }
 
     @classmethod
@@ -35,6 +37,7 @@ class AgentConfig:
             env_vars=data.get("env_vars", {}),
             timeout_seconds=data.get("timeout_seconds", 300),
             working_dir=data.get("working_dir"),
+            prompt_style=data.get("prompt_style", "arg"),
         )
 
 
@@ -55,27 +58,33 @@ class AgentsConfig:
         config = cls()
 
         # Claude Code (Orchestrator, Reviewer)
+        # Usage: claude -p "prompt" for non-interactive output
         config.add(AgentConfig(
             name="claude",
             executable="claude",
-            default_args=["--print"],
-            timeout_seconds=600,
+            default_args=["-p"],  # --print flag, prompt follows as next arg
+            timeout_seconds=120,
+            prompt_style="arg",
         ))
 
         # Codex (Writer, Tester)
+        # Usage: codex exec "prompt" for non-interactive execution
         config.add(AgentConfig(
             name="codex",
             executable="codex",
-            default_args=["--quiet"],
-            timeout_seconds=300,
+            default_args=["exec"],  # exec subcommand for non-interactive mode
+            timeout_seconds=120,
+            prompt_style="arg",
         ))
 
         # Gemini-CLI (Analyzer)
+        # Usage: gemini "query" - positional argument
         config.add(AgentConfig(
             name="gemini",
             executable="gemini",
-            default_args=[],
-            timeout_seconds=600,
+            default_args=[],  # prompt is positional argument
+            timeout_seconds=120,
+            prompt_style="arg",
         ))
 
         # OpenCode (Planner)
@@ -83,7 +92,8 @@ class AgentsConfig:
             name="opencode",
             executable="opencode",
             default_args=[],
-            timeout_seconds=300,
+            timeout_seconds=120,
+            prompt_style="arg",
         ))
 
         return config

@@ -1,6 +1,10 @@
 """
 Workflow Engine - Core state machine for agent chaining
+
+Phase 3: Basic workflow execution
+Phase 4: Real CLI integration + Dashboard notification
 """
+import asyncio
 import json
 import logging
 import subprocess
@@ -26,11 +30,11 @@ logger = logging.getLogger(__name__)
 
 # Agent CLI command mapping
 AGENT_COMMANDS = {
-    AgentName.PLANNER: "opencode",
-    AgentName.WRITER: "codex",
-    AgentName.REVIEWER: "claude",
-    AgentName.TESTER: "codex",
-    AgentName.ANALYZER: "gemini",
+    AgentName.PLANNER: "gemini",  # Using gemini for planning
+    AgentName.WRITER: "claude",   # Using claude for writing
+    AgentName.REVIEWER: "claude", # Using claude for review
+    AgentName.TESTER: "codex",    # Using codex for testing
+    AgentName.ANALYZER: "gemini", # Using gemini for analysis
 }
 
 
@@ -43,6 +47,8 @@ class WorkflowEngine:
     - Feedback loop (Reviewer rejection → Writer rework)
     - Retry mechanism for failures
     - Dead Letter Queue for permanently failed tasks
+    - Real CLI agent integration (Phase 4)
+    - Dashboard notification via WebSocket (Phase 4)
     """
 
     def __init__(
@@ -52,6 +58,8 @@ class WorkflowEngine:
         max_retries: int = 3,
         max_reworks: int = 2,
         step_timeout: int = 300,  # 5 minutes per step
+        use_real_agents: bool = True,  # Phase 4: Use real CLI agents
+        notification_manager = None,   # Phase 4: Dashboard notifications
     ):
         self.ipc_manager = ipc_manager or FileIPCManager()
         self.state_dir = state_dir or Path.home() / ".multi-agent-flow" / "states"
@@ -60,16 +68,30 @@ class WorkflowEngine:
         self.max_retries = max_retries
         self.max_reworks = max_reworks
         self.step_timeout = step_timeout
+        self.use_real_agents = use_real_agents
 
         self._running = False
         self._stop_event = Event()
         self._workflows: Dict[str, WorkflowState] = {}
 
+        # Phase 4: Agent runner and notification manager
+        self._agent_runner = None
+        self._notification_manager = notification_manager
+
+        if use_real_agents:
+            try:
+                from ..agents.runner import AgentRunner
+                self._agent_runner = AgentRunner()
+                logger.info("Real agent execution enabled")
+            except ImportError:
+                logger.warning("AgentRunner not available, using simulation mode")
+                self.use_real_agents = False
+
         # Callbacks
         self._on_step_complete: Optional[Callable[[str, StepResult], None]] = None
         self._on_workflow_complete: Optional[Callable[[WorkflowState], None]] = None
 
-        logger.info(f"WorkflowEngine initialized (max_retries={max_retries}, max_reworks={max_reworks})")
+        logger.info(f"WorkflowEngine initialized (max_retries={max_retries}, max_reworks={max_reworks}, real_agents={use_real_agents})")
 
     def set_callbacks(
         self,
@@ -79,6 +101,21 @@ class WorkflowEngine:
         """Set callback functions for workflow events"""
         self._on_step_complete = on_step_complete
         self._on_workflow_complete = on_workflow_complete
+
+    def set_notification_manager(self, notification_manager):
+        """Set the notification manager for dashboard events (Phase 4)"""
+        self._notification_manager = notification_manager
+        logger.info("Notification manager set for dashboard events")
+
+    async def _notify(self, method: str, *args, **kwargs):
+        """Send notification to dashboard if notification manager is set"""
+        if self._notification_manager:
+            try:
+                notify_method = getattr(self._notification_manager, method, None)
+                if notify_method:
+                    await notify_method(*args, **kwargs)
+            except Exception as e:
+                logger.warning(f"Notification failed: {e}")
 
     def load_state(self, task_id: str) -> Optional[WorkflowState]:
         """Load workflow state from file"""
@@ -147,6 +184,12 @@ class WorkflowEngine:
         Returns:
             Final WorkflowState
         """
+        # Use async version if notification manager is set
+        if self._notification_manager:
+            return asyncio.get_event_loop().run_until_complete(
+                self.execute_workflow_async(task_id)
+            )
+
         state = self.load_state(task_id)
         if not state:
             raise ValueError(f"Workflow {task_id} not found")
@@ -185,6 +228,167 @@ class WorkflowEngine:
             self._on_workflow_complete(state)
 
         return state
+
+    async def execute_workflow_async(self, task_id: str) -> WorkflowState:
+        """
+        Execute a complete workflow asynchronously with dashboard notifications.
+
+        Args:
+            task_id: The task to execute
+
+        Returns:
+            Final WorkflowState
+        """
+        state = self.load_state(task_id)
+        if not state:
+            raise ValueError(f"Workflow {task_id} not found")
+
+        state.status = WorkflowStatus.DISPATCHING
+        self.save_state(state)
+
+        # Notify workflow start
+        await self._notify("workflow_started", task_id, state.task_description)
+
+        # Execute each step in sequence
+        while state.current_step and not state.status.is_terminal():
+            if self._stop_event.is_set():
+                logger.info(f"Workflow {task_id} stopped by request")
+                break
+
+            step = state.current_step
+            state.status = WorkflowStatus.for_agent(step)
+            self.save_state(state)
+
+            logger.info(f"[{task_id}] Executing step: {step.value}")
+
+            # Notify step start
+            await self._notify("step_started", task_id, step.value)
+
+            # Execute the step (async if using real agents)
+            if self.use_real_agents and self._agent_runner:
+                result = await self._execute_step_async(state, step)
+            else:
+                result = self._execute_step(state, step)
+
+            state.history.append(result)
+
+            # Notify step completion
+            await self._notify(
+                "step_ended", task_id, step.value,
+                result.status.value,
+                result.output_data
+            )
+
+            # Handle the result
+            state = self._transition_state(state, result)
+            self.save_state(state)
+
+            # Callback
+            if self._on_step_complete:
+                self._on_step_complete(task_id, result)
+
+        # Notify workflow end
+        await self._notify(
+            "workflow_ended", task_id,
+            state.status.value,
+            {"steps_completed": len([h for h in state.history if h.status == StepStatus.SUCCESS])}
+        )
+
+        # Workflow complete callback
+        if self._on_workflow_complete:
+            self._on_workflow_complete(state)
+
+        return state
+
+    async def _execute_step_async(self, state: WorkflowState, step: AgentName) -> StepResult:
+        """Execute a single workflow step asynchronously using real agents"""
+        started_at = datetime.utcnow().isoformat()
+        input_path, output_path, stderr_path = self.ipc_manager.get_step_paths(
+            state.task_id, step
+        )
+
+        # Prepare input
+        previous_output = state.get_last_output()
+
+        # Create prompt for the agent
+        prompt = self.ipc_manager.create_agent_prompt(
+            task_id=state.task_id,
+            step=step,
+            task_description=state.task_description,
+            previous_output=previous_output,
+        )
+
+        # Log progress
+        await self._notify("step_log", state.task_id, step.value, f"Running {AGENT_COMMANDS.get(step)} agent...", "info")
+
+        # Execute agent using AgentRunner
+        exit_code = 0
+        stderr_content = ""
+        output_content = ""
+
+        try:
+            agent_name = AGENT_COMMANDS.get(step)
+            result = await self._agent_runner.run(
+                agent_name,
+                prompt,
+                timeout_override=self.step_timeout
+            )
+            exit_code = result.return_code
+            output_content = result.stdout
+            stderr_content = result.stderr
+
+            await self._notify("step_log", state.task_id, step.value, f"Agent completed with exit code {exit_code}", "info")
+
+        except Exception as e:
+            exit_code = 1
+            stderr_content = str(e)
+            await self._notify("step_log", state.task_id, step.value, f"Agent error: {e}", "error")
+
+        completed_at = datetime.utcnow().isoformat()
+
+        # Create output
+        if exit_code == 0 and output_content:
+            output = AgentOutput(
+                status="success",
+                payload={
+                    "step": step.value,
+                    "output": output_content[:5000],  # Truncate for storage
+                    "timestamp": completed_at,
+                },
+                message=f"{step.value.capitalize()} completed successfully",
+            )
+            step_status = StepStatus.SUCCESS
+        else:
+            output = AgentOutput(
+                status="failure",
+                payload={
+                    "step": step.value,
+                    "error": stderr_content[:1000],
+                    "timestamp": completed_at,
+                },
+                message=f"{step.value.capitalize()} failed",
+            )
+            step_status = StepStatus.FAILURE
+
+        # Save output
+        with open(output_path, 'w') as f:
+            json.dump(output.to_dict(), f, indent=2)
+
+        if stderr_content:
+            self.ipc_manager.write_step_stderr(state.task_id, step, stderr_content)
+
+        return StepResult(
+            step_name=step,
+            status=step_status,
+            started_at=started_at,
+            completed_at=completed_at,
+            input_path=str(input_path),
+            output_path=str(output_path),
+            exit_code=exit_code,
+            output_data=output.to_dict(),
+            error_log_path=str(stderr_path) if stderr_content else None,
+            error_message=stderr_content[:500] if stderr_content else None,
+        )
 
     def _execute_step(self, state: WorkflowState, step: AgentName) -> StepResult:
         """Execute a single workflow step"""

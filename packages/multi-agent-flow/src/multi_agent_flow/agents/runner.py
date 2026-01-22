@@ -129,8 +129,12 @@ class AgentRunner:
 
         timeout = timeout_override or agent_config.timeout_seconds
 
-        # Build command
+        # Build command with prompt as argument (not stdin)
         cmd = [executable, *agent_config.default_args, *extra_args]
+
+        # Add prompt as command-line argument (for arg style)
+        if agent_config.prompt_style == "arg":
+            cmd.append(prompt)
 
         # Prepare environment
         env = {**os.environ, **agent_config.env_vars}
@@ -139,60 +143,74 @@ class AgentRunner:
         cwd = agent_config.working_dir or str(self.working_dir)
 
         logger.info(f"Running agent: {agent_name} (timeout={timeout}s)")
-        logger.debug(f"Command: {' '.join(cmd)}")
+        logger.debug(f"Command: {' '.join(cmd[:3])}... (prompt truncated)")
 
         start_time = datetime.now()
 
         try:
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env=env,
-                cwd=cwd,
-            )
-
-            try:
+            # Create subprocess based on prompt style
+            if agent_config.prompt_style == "arg":
+                # Prompt passed as command-line argument
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    env=env,
+                    cwd=cwd,
+                )
+                stdout, stderr = await asyncio.wait_for(
+                    proc.communicate(),
+                    timeout=timeout,
+                )
+            else:
+                # Prompt passed via stdin
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdin=asyncio.subprocess.PIPE,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    env=env,
+                    cwd=cwd,
+                )
                 stdout, stderr = await asyncio.wait_for(
                     proc.communicate(input=prompt.encode()),
                     timeout=timeout,
                 )
 
-                duration = (datetime.now() - start_time).total_seconds()
+            duration = (datetime.now() - start_time).total_seconds()
 
-                result = AgentResult(
-                    stdout=stdout.decode(),
-                    stderr=stderr.decode(),
-                    return_code=proc.returncode or 0,
-                    timed_out=False,
-                    duration_seconds=duration,
-                    agent_name=agent_name,
-                )
+            result = AgentResult(
+                stdout=stdout.decode(),
+                stderr=stderr.decode(),
+                return_code=proc.returncode or 0,
+                timed_out=False,
+                duration_seconds=duration,
+                agent_name=agent_name,
+            )
 
-                logger.info(
-                    f"Agent {agent_name} completed: "
-                    f"return_code={result.return_code}, "
-                    f"duration={result.duration_seconds:.2f}s"
-                )
+            logger.info(
+                f"Agent {agent_name} completed: "
+                f"return_code={result.return_code}, "
+                f"duration={result.duration_seconds:.2f}s"
+            )
 
-                return result
+            return result
 
-            except asyncio.TimeoutError:
-                proc.kill()
-                await proc.wait()
-                duration = (datetime.now() - start_time).total_seconds()
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            duration = (datetime.now() - start_time).total_seconds()
 
-                logger.warning(f"Agent {agent_name} timed out after {timeout}s")
+            logger.warning(f"Agent {agent_name} timed out after {timeout}s")
 
-                return AgentResult(
-                    stdout="",
-                    stderr=f"Process timed out after {timeout} seconds",
-                    return_code=-1,
-                    timed_out=True,
-                    duration_seconds=duration,
-                    agent_name=agent_name,
-                )
+            return AgentResult(
+                stdout="",
+                stderr=f"Process timed out after {timeout} seconds",
+                return_code=-1,
+                timed_out=True,
+                duration_seconds=duration,
+                agent_name=agent_name,
+            )
 
         except FileNotFoundError as e:
             logger.error(f"Agent executable not found: {e}")
